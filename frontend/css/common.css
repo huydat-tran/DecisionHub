@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; }
+
+html { min-height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--dh-bg);
+  color: var(--dh-text);
+  font-family: var(--dh-font);
+  font-size: var(--dh-font-size-base);
+  line-height: 1.5;
+}
+
+a { color: var(--dh-primary); text-decoration: none; }
+a:hover { color: var(--dh-primary-hover); }
+
+button, input, select, textarea { font: inherit; }
+
+:focus-visible {
+  outline: 3px solid rgba(22, 132, 91, .25);
+  outline-offset: 2px;
+}
+
+.dh-app { min-height: 100vh; }
+
+.dh-main {
+  margin-left: var(--dh-sidebar-width);
+  padding-top: var(--dh-navbar-height);
+  min-height: 100vh;
+}
+
+.dh-page {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--dh-page-padding);
+}
+
+.dh-page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dh-eyebrow {
+  margin: 0 0 6px;
+  color: var(--dh-primary);
+  font-size: var(--dh-font-size-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.dh-page-title {
+  margin: 0;
+  color: var(--dh-text);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.dh-page-description {
+  margin: 8px 0 0;
+  color: var(--dh-text-muted);
+  font-size: var(--dh-font-size-base);
+}
+
+.dh-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dh-muted { color: var(--dh-text-muted); }
+.dh-small { font-size: var(--dh-font-size-sm); }
+
+.dh-divider {
+  height: 1px;
+  border: 0;
+  background: var(--dh-border);
+  margin: 20px 0;
+}
+
+.dh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dh-status-success { color: var(--dh-success); background: var(--dh-success-soft); }
+.dh-status-warning { color: var(--dh-warning); background: var(--dh-warning-soft); }
+.dh-status-danger { color: var(--dh-danger); background: var(--dh-danger-soft); }
+.dh-status-info { color: var(--dh-info); background: var(--dh-info-soft); }
+
+@media (max-width: 991.98px) {
+  .dh-main { margin-left: 0; }
+  .dh-page { padding: 22px 18px; }
+}
+
+@media (max-width: 767.98px) {
+  :root { --dh-navbar-height: 60px; }
+  .dh-page { padding: 18px 14px; }
+  .dh-page-heading { flex-direction: column; }
+  .dh-page-title { font-size: 23px; }
+}

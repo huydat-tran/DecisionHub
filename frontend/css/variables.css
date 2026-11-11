@@ -1,0 +1,55 @@
+:root {
+  /* Brand */
+  --dh-primary: #16845B;
+  --dh-primary-hover: #116B49;
+  --dh-primary-active: #0D583C;
+  --dh-primary-soft: #E8F5EF;
+  --dh-primary-soft-hover: #D9EEE3;
+
+  /* Surfaces */
+  --dh-bg: #F5F8F6;
+  --dh-surface: #FFFFFF;
+  --dh-surface-subtle: #F8FBF9;
+  --dh-sidebar-bg: #FFFFFF;
+
+  /* Text */
+  --dh-text: #172B23;
+  --dh-text-muted: #66776F;
+  --dh-text-subtle: #8A9991;
+  --dh-text-inverse: #FFFFFF;
+
+  /* Borders and states */
+  --dh-border: #E3EBE6;
+  --dh-border-strong: #CCD9D1;
+  --dh-success: #16845B;
+  --dh-success-soft: #E8F5EF;
+  --dh-warning: #B7791F;
+  --dh-warning-soft: #FFF6E5;
+  --dh-danger: #C2413B;
+  --dh-danger-soft: #FDEDEC;
+  --dh-info: #2876A8;
+  --dh-info-soft: #EAF3F9;
+
+  /* Typography */
+  --dh-font: "Roboto", Arial, sans-serif;
+  --dh-font-size-xs: 12px;
+  --dh-font-size-sm: 13px;
+  --dh-font-size-base: 14px;
+  --dh-font-size-lg: 16px;
+
+  /* Shape and elevation */
+  --dh-radius-sm: 7px;
+  --dh-radius-md: 9px;
+  --dh-radius-lg: 14px;
+  --dh-radius-xl: 18px;
+  --dh-shadow-sm: 0 1px 3px rgba(23, 43, 35, .05);
+  --dh-shadow-md: 0 8px 24px rgba(23, 43, 35, .07);
+
+  /* Layout */
+  --dh-navbar-height: 68px;
+  --dh-sidebar-width: 248px;
+  --dh-page-padding: 28px;
+
+  /* Motion */
+  --dh-transition: 160ms ease;
+}

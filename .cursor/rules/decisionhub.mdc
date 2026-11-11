@@ -1,0 +1,187 @@
+---
+description: Quy tắc phát triển chung cho dự án DecisionHub
+alwaysApply: true
+---
+
+# DecisionHub - Project Rules
+
+## 1. Project Overview
+
+DecisionHub là ứng dụng hỗ trợ người dùng đưa ra quyết định thông qua các chức năng gợi ý và phân tích.
+
+Tech stack:
+
+### Backend
+- Python
+- FastAPI
+- SQLAlchemy 2.x
+- MySQL
+- PyMySQL
+- Pydantic v2
+
+### Frontend
+- HTML5
+- CSS3
+- JavaScript
+- Bootstrap 5.0.2
+- SweetAlert2
+
+Architecture: Modular Monolith.
+
+## 2. Architecture Rules
+
+Tuân thủ cấu trúc dự án hiện tại.
+
+Các nguyên tắc:
+
+- Mỗi module chịu trách nhiệm cho một nghiệp vụ riêng.
+- API endpoint được khai báo trong `router.py` của module tương ứng.
+- Business logic được xử lý trong `service.py`.
+- Database queries được xử lý trong `repository.py` khi cần thiết.
+- SQLAlchemy models được khai báo trong module tương ứng.
+- Pydantic schemas dùng để validate request và định nghĩa response.
+- `core/` chỉ chứa cấu hình và thành phần hạ tầng dùng chung.
+- `common/` chứa các thành phần dùng chung giữa nhiều module.
+
+Không đặt logic nghiệp vụ vào `main.py`.
+
+Không tạo module mới nếu chức năng có thể thuộc một module hiện có.
+
+Không biến Decision Engine thành một module độc lập nếu nó chỉ là thành phần xử lý bên trong module `decision`.
+
+## 3. Anti-Overengineering Rules
+
+Đây là nguyên tắc quan trọng nhất.
+
+- Ưu tiên giải pháp đơn giản, trực tiếp và dễ hiểu.
+- Chỉ triển khai đúng yêu cầu được giao.
+- Không tự ý mở rộng phạm vi chức năng.
+- Không tạo class, function hoặc file nếu chưa có lý do thực tế.
+- Không tạo thêm tầng abstraction chỉ để chuyển tiếp dữ liệu.
+- Không sử dụng Design Pattern nếu bài toán không thực sự cần.
+- Không tạo BaseService, BaseRepository, Factory hoặc Manager chung một cách máy móc.
+- Không thêm dependency khi có thể giải quyết bằng thư viện hiện tại.
+- Không refactor những phần code không liên quan đến task.
+- Không viết code quá phức tạp chỉ để chuẩn hóa một chức năng nhỏ.
+
+Không đồng nghĩa với việc bỏ qua bảo mật, validation, xử lý lỗi hoặc khả năng bảo trì.
+
+## 4. Backend Coding Rules
+
+### FastAPI
+
+- Sử dụng APIRouter để tổ chức API.
+- Mỗi router phải thuộc module nghiệp vụ tương ứng.
+- Khai báo HTTP method và response schema rõ ràng.
+- Sử dụng dependency injection khi thực sự cần.
+- Không viết business logic trực tiếp trong endpoint.
+- Không trả về dữ liệu nội bộ hoặc thông tin nhạy cảm.
+
+### SQLAlchemy
+
+- Sử dụng SQLAlchemy 2.x style.
+- Ưu tiên Mapped và mapped_column khi định nghĩa model.
+- Sử dụng Session thông qua dependency get_db.
+- Không tạo engine hoặc SessionLocal riêng trong từng module.
+- Không truy vấn database trực tiếp trong router.
+- Không tự ý thay đổi schema database ngoài phạm vi task.
+
+### Pydantic
+
+- Sử dụng Pydantic v2.
+- Tách request schema và response schema khi cần.
+- Validate dữ liệu đầu vào.
+- Không trả trực tiếp SQLAlchemy model làm response nếu không có chủ đích rõ ràng.
+
+### Security
+
+- Không lưu mật khẩu dạng plaintext.
+- Sử dụng password hashing an toàn.
+- Không hardcode JWT secret hoặc database password.
+- Không đưa thông tin nhạy cảm vào response.
+- Kiểm tra quyền truy cập trước khi thực hiện thao tác cần phân quyền.
+- Không tin tưởng dữ liệu gửi lên từ frontend.
+
+## 5. Frontend Coding Rules
+
+- Sử dụng HTML, CSS và JavaScript thuần kết hợp Bootstrap 5.0.2.
+- Không sử dụng Tailwind CSS.
+- Không viết JavaScript inline trong HTML.
+- Không sử dụng thuộc tính onclick.
+- Tách CSS và JavaScript thành file riêng.
+- Sử dụng Fetch API để giao tiếp với Backend.
+- Tái sử dụng component và CSS chung.
+- Tuân thủ Design System đã thống nhất của DecisionHub.
+- Không tự ý thay đổi màu sắc, font chữ, spacing hoặc giao diện chung.
+- Không tạo thêm thư viện UI nếu Bootstrap và component hiện có đã đáp ứng được.
+
+## 6. Code Quality
+
+- Đặt tên biến và function rõ ràng.
+- Ưu tiên code dễ đọc hơn code ngắn.
+- Mỗi function nên tập trung giải quyết một nhiệm vụ.
+- Hạn chế lặp lại code.
+- Không viết nested logic quá phức tạp nếu có cách đơn giản hơn.
+- Xóa import và biến không sử dụng.
+- Không để lại code thử nghiệm hoặc debug trong bản hoàn thiện.
+- Sử dụng Ruff để kiểm tra và format Python theo cấu hình dự án.
+
+## 7. Git & Team Collaboration
+
+DecisionHub được phát triển bởi nhiều thành viên.
+
+- Không tự ý chỉnh sửa code thuộc module của thành viên khác.
+- Không tự ý đổi tên file, thư mục hoặc endpoint đã được thống nhất.
+- Không ghi đè code hiện có khi chưa kiểm tra nội dung.
+- Không tự ý sửa cấu hình chung nếu task không yêu cầu.
+- Không commit file `.env`, mật khẩu hoặc secret.
+- Không tự ý cài thêm dependency mà không giải thích lý do.
+- Ưu tiên thay đổi nhỏ, rõ ràng và dễ review qua Pull Request.
+
+## 8. AI Working Protocol
+
+Trước khi thực hiện bất kỳ task nào:
+
+1. Đọc các file liên quan.
+2. Kiểm tra cấu trúc hiện tại.
+3. Xác định những thành phần có thể tái sử dụng.
+4. Xác định chính xác phạm vi cần thay đổi.
+5. Đề xuất phương án nếu task có nhiều cách triển khai.
+
+Trong quá trình triển khai:
+
+- Không tự suy diễn thêm yêu cầu.
+- Không tự ý thay đổi kiến trúc.
+- Không sửa file ngoài phạm vi nếu không cần thiết.
+- Nếu phát hiện vấn đề kiến trúc ảnh hưởng trực tiếp đến task, hãy giải thích trước khi thay đổi.
+
+Sau khi hoàn thành:
+
+1. Liệt kê các file đã tạo hoặc chỉnh sửa.
+2. Giải thích ngắn gọn những thay đổi chính.
+3. Báo cáo dependency mới nếu có.
+4. Chạy kiểm tra phù hợp.
+5. Nêu rõ những phần chưa hoàn thành hoặc chưa được kiểm thử.
+
+## 9. Final Principle
+
+Luôn ưu tiên:
+
+- Simplicity over Complexity.
+- Reusability over Duplication.
+- Readability over Cleverness.
+- Consistency over Personal Preference.
+- Maintainability over Premature Abstraction.
+
+Hãy xây dựng DecisionHub theo đúng quy mô và yêu cầu thực tế của dự án.
+
+Không overengineering. Không tự ý mở rộng phạm vi. Không phá vỡ kiến trúc đã thống nhất.
+
+### Task Scope Control
+
+- Chỉ thực hiện các yêu cầu được mô tả trong prompt hiện tại.
+- Không tự ý triển khai các chức năng liên quan nhưng chưa được yêu cầu.
+- Không tự động refactor toàn bộ module khi chỉ cần sửa một chức năng.
+- Ưu tiên tái sử dụng các thành phần hiện có.
+- Nếu task phụ thuộc vào thành phần chưa tồn tại, hãy đánh giá và giải thích trước khi tạo mới.
+- Không yêu cầu người dùng xác nhận những quyết định kỹ thuật nhỏ đã được quy định trong Project Rules.

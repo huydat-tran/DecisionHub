@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DecisionHub – Thư Viện Giao Diện Mẫu (Design System Demo)</title>
+  <link rel="icon" href="assets/images/logo.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="dh-app">
+  <!-- Shared sidebar mẫu -->
+  <aside class="dh-sidebar">
+    <a class="dh-brand" href="index.html">
+      <span class="dh-brand-mark">D</span>
+      <span class="dh-brand-name">DecisionHub</span>
+    </a>
+    <div class="dh-nav-label">Workspace</div>
+    <nav class="dh-nav" aria-label="Điều hướng chính">
+      <a class="dh-nav-link active" href="#"><span class="dh-nav-icon">⌂</span> Tổng quan</a>
+      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">✦</span> Đề xuất món ăn</a>
+      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">⌖</span> Khám phá du lịch</a>
+      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">◷</span> Lịch sử</a>
+    </nav>
+    <div class="dh-nav-label">Tài liệu</div>
+    <nav class="dh-nav">
+      <a class="dh-nav-link" href="docs/UI-GUIDELINES.md" target="_blank"><span class="dh-nav-icon">📘</span> UI Guidelines</a>
+      <a class="dh-nav-link" href="index.html"><span class="dh-nav-icon">↩</span> Về trang chủ Base</a>
+    </nav>
+    <div class="dh-sidebar-bottom">
+      <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 MVP</div>
+    </div>
+  </aside>
+
+  <!-- Shared navbar mẫu -->
+  <header class="dh-navbar">
+    <div class="dh-navbar-left">
+      <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
+      <div class="dh-navbar-search">
+        <input class="dh-input" type="search" placeholder="Tìm kiếm mẫu..." aria-label="Tìm kiếm">
+      </div>
+    </div>
+    <div class="dh-navbar-right">
+      <a href="index.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về trang chủ</a>
+      <div class="dh-user-chip">
+        <span class="dh-avatar">DH</span>
+        <span class="dh-user-name">
+          <strong class="d-block" style="font-size:13px">Thành viên</strong>
+          <small class="dh-muted">Nhóm 6</small>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="dh-main">
+    <div class="dh-page">
+      <div class="dh-page-heading">
+        <div>
+          <p class="dh-eyebrow">Design System · Green Modern SaaS</p>
+          <h1 class="dh-page-title">Thư Viện Giao Diện Mẫu (UI Demo)</h1>
+          <p class="dh-page-description">Trang tham chiếu các thành phần UI chuẩn cho cả 6 thành viên khi tự tay xây dựng module của mình.</p>
+        </div>
+        <a href="docs/UI-GUIDELINES.md" target="_blank" class="dh-btn dh-btn-primary">📘 Đọc UI-GUIDELINES.md</a>
+      </div>
+
+      <!-- Thống kê mẫu -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+          <section class="dh-card">
+            <div class="dh-card-body">
+              <p class="dh-muted mb-2">Tổng đề xuất</p>
+              <div class="d-flex align-items-end justify-content-between">
+                <strong style="font-size:28px">24</strong>
+                <span class="dh-status dh-status-success">+12% tháng này</span>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="col-12 col-md-4">
+          <section class="dh-card">
+            <div class="dh-card-body">
+              <p class="dh-muted mb-2">Lựa chọn đã lưu</p>
+              <strong style="font-size:28px">08</strong>
+            </div>
+          </section>
+        </div>
+        <div class="col-12 col-md-4">
+          <section class="dh-card">
+            <div class="dh-card-body">
+              <p class="dh-muted mb-2">Món ăn gợi ý</p>
+              <strong style="font-size:28px">15</strong>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 1. DecisionHub Specific Components -->
+      <h2 class="dh-section-title mb-3">1. Linh kiện đặc thù Decision Engine & Bộ lọc</h2>
+      <div class="row g-3 mb-4">
+        <!-- Filter Chips Demo -->
+        <div class="col-12 col-md-6">
+          <section class="dh-card h-100">
+            <div class="dh-card-header">
+              <h3 class="dh-section-title" style="font-size:16px;">Filter Chips (Bộ lọc nhanh)</h3>
+              <span class="dh-muted dh-small"><code>.dh-chip</code>, <code>.dh-chip.active</code></span>
+            </div>
+            <div class="dh-card-body">
+              <p class="dh-muted dh-small mb-2">Bữa ăn:</p>
+              <div class="dh-chip-group">
+                <span class="dh-chip active">Tất cả</span>
+                <span class="dh-chip">🌅 Bữa sáng</span>
+                <span class="dh-chip">☀️ Bữa trưa</span>
+                <span class="dh-chip">🌙 Bữa tối</span>
+              </div>
+
+              <p class="dh-muted dh-small mb-2 mt-3">Mức giá & Thời gian:</p>
+              <div class="dh-chip-group">
+                <span class="dh-chip">Dưới 30.000đ</span>
+                <span class="dh-chip active">Dưới 50.000đ</span>
+                <span class="dh-chip">Nhanh &lt; 15 phút</span>
+                <span class="dh-chip">Ăn chay</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- WSM Score Badge & Breakdown Demo -->
+        <div class="col-12 col-md-6">
+          <section class="dh-card h-100">
+            <div class="dh-card-header">
+              <h3 class="dh-section-title" style="font-size:16px;">Điểm WSM & Tiêu chí</h3>
+              <span class="dh-muted dh-small"><code>.dh-score-box</code>, <code>.dh-criteria-group</code></span>
+            </div>
+            <div class="dh-card-body">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="dh-score-box">
+                  <span class="dh-score-value">84.5</span>
+                  <span class="dh-score-label">Điểm WSM</span>
+                </div>
+                <div>
+                  <strong class="d-block text-success">Mức độ phù hợp cao</strong>
+                  <small class="dh-muted">Xếp hạng #1 trong Top 5 gợi ý</small>
+                </div>
+              </div>
+
+              <div class="dh-criteria-group">
+                <div class="dh-criteria-item">
+                  <div class="dh-criteria-header">
+                    <span>Giá (40%)</span>
+                    <span>80 / 100</span>
+                  </div>
+                  <div class="dh-progress-track">
+                    <div class="dh-progress-bar" style="width: 80%;"></div>
+                  </div>
+                </div>
+
+                <div class="dh-criteria-item">
+                  <div class="dh-criteria-header">
+                    <span>Sở thích (35%)</span>
+                    <span>100 / 100</span>
+                  </div>
+                  <div class="dh-progress-track">
+                    <div class="dh-progress-bar" style="width: 100%;"></div>
+                  </div>
+                </div>
+
+                <div class="dh-criteria-item">
+                  <div class="dh-criteria-header">
+                    <span>Thời gian (25%)</span>
+                    <span>70 / 100</span>
+                  </div>
+                  <div class="dh-progress-track">
+                    <div class="dh-progress-bar" style="width: 70%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <ul class="dh-reason-list border-top pt-2 mt-3">
+                <li class="dh-reason-item">
+                  <span class="dh-reason-icon">✓</span>
+                  <span>Phù hợp với 2/2 sở thích đã chọn (Ăn chay, Cay vừa)</span>
+                </li>
+                <li class="dh-reason-item">
+                  <span class="dh-reason-icon">✓</span>
+                  <span>Giá 35.000đ nằm trong ngân sách 50.000đ</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 2. Standard Form Controls & Buttons -->
+      <h2 class="dh-section-title mb-3">2. Nút bấm, Biểu mẫu & Thẻ nội dung</h2>
+      <div class="row g-3 mb-4">
+        <!-- Buttons Demo -->
+        <div class="col-12 col-md-6">
+          <section class="dh-card h-100">
+            <div class="dh-card-header">
+              <h3 class="dh-section-title" style="font-size:16px;">Nút bấm chuẩn (Buttons)</h3>
+            </div>
+            <div class="dh-card-body">
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="dh-btn dh-btn-primary">Primary Action</button>
+                <button class="dh-btn dh-btn-secondary">Secondary</button>
+                <button class="dh-btn dh-btn-outline">Outline</button>
+                <button class="dh-btn dh-btn-danger">Danger</button>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button class="dh-btn dh-btn-sm dh-btn-primary">Small Primary</button>
+                <button class="dh-btn dh-btn-sm dh-btn-secondary">Small Secondary</button>
+                <button class="dh-btn dh-btn-sm dh-btn-outline">Small Outline</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Form Controls Demo -->
+        <div class="col-12 col-md-6">
+          <section class="dh-card h-100">
+            <div class="dh-card-header">
+              <h3 class="dh-section-title" style="font-size:16px;">Ô nhập liệu (Inputs & Select)</h3>
+            </div>
+            <div class="dh-card-body">
+              <div class="dh-field">
+                <label class="dh-label" for="demo-input">Ngân sách tối đa (VND)</label>
+                <input id="demo-input" class="dh-input" type="number" placeholder="Ví dụ: 50000">
+                <small class="dh-help">Nhập ngân sách cho một bữa ăn.</small>
+              </div>
+              <div class="dh-field">
+                <label class="dh-label" for="demo-select">Chọn loại bữa ăn</label>
+                <select id="demo-select" class="dh-select">
+                  <option value="">-- Tất cả bữa ăn --</option>
+                  <option value="breakfast">Bữa sáng</option>
+                  <option value="lunch">Bữa trưa</option>
+                  <option value="dinner">Bữa tối</option>
+                </select>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 3. Status Badges & Empty State -->
+      <h2 class="dh-section-title mb-3">3. Huy hiệu trạng thái & Empty State</h2>
+      <div class="row g-3">
+        <div class="col-12 col-md-5">
+          <section class="dh-card h-100">
+            <div class="dh-card-header">
+              <h3 class="dh-section-title" style="font-size:16px;">Trạng thái (Status Badges)</h3>
+            </div>
+            <div class="dh-card-body d-flex flex-column gap-2">
+              <div><span class="dh-status dh-status-success">● Thành công (Success)</span></div>
+              <div><span class="dh-status dh-status-warning">▲ Cảnh báo (Warning)</span></div>
+              <div><span class="dh-status dh-status-danger">✕ Lỗi / Vi phạm (Danger)</span></div>
+              <div><span class="dh-status dh-status-info">ℹ Thông tin (Info)</span></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-md-7">
+          <section class="dh-card h-100">
+            <div class="dh-card-body">
+              <div class="dh-empty-state py-3">
+                <div class="dh-empty-icon">🍽️</div>
+                <div class="dh-empty-title">Không tìm thấy món ăn phù hợp</div>
+                <p class="dh-empty-desc">Không có món nào thỏa mãn toàn bộ điều kiện ngân sách và thời gian đã chọn. Hãy thử nới rộng bộ lọc.</p>
+                <button class="dh-btn dh-btn-sm dh-btn-outline">Xóa bộ lọc</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // Mobile toggle sidebar
+  document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.querySelector(".dh-sidebar");
+    const toggle = document.querySelector("[data-sidebar-toggle]");
+    if (sidebar && toggle) {
+      toggle.addEventListener("click", () => {
+        const opened = sidebar.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", String(opened));
+      });
+    }
+  });
+</script>
+</body>
+</html>
