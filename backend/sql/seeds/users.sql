@@ -1,6 +1,8 @@
 -- =====================================================================
--- DecisionHub - Users & Roles
--- Chạy SAU khi đã chạy backend/sql/init.sql (tạo database decision_hub).
+-- DecisionHub - Seed dữ liệu mẫu Users & Roles
+--
+-- Chạy SAU khi đã tạo database (sql/init.sql) và đã apply migration Alembic
+-- (tạo bảng roles và users).
 --
 -- Lưu ý về password_hash:
 --   Hash dùng cơ chế Argon2id (thư viện pwdlib, mặc định argon2 recommended).
@@ -13,34 +15,7 @@ SET NAMES utf8mb4;
 USE decision_hub;
 
 -- ---------------------------------------------------------------------
--- Bảng roles
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS roles (
-  id          BIGINT       NOT NULL AUTO_INCREMENT,
-  name        VARCHAR(20)  NOT NULL,
-  description VARCHAR(255) NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_roles_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------
--- Bảng users (khóa ngoại role_id -> roles.id)
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS users (
-  id            BIGINT       NOT NULL AUTO_INCREMENT,
-  email         VARCHAR(255) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  role_id       BIGINT       NOT NULL,
-  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_users_email (email),
-  KEY idx_users_role_id (role_id),
-  CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles (id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------
--- Dữ liệu mẫu: roles
+-- Seed roles
 -- INSERT IGNORE để chạy lại file không bị lỗi trùng UNIQUE.
 -- ---------------------------------------------------------------------
 INSERT IGNORE INTO roles (name, description) VALUES
@@ -48,7 +23,7 @@ INSERT IGNORE INTO roles (name, description) VALUES
   ('ADMIN', 'Quản trị viên hệ thống');
 
 -- ---------------------------------------------------------------------
--- Dữ liệu mẫu: users
+-- Seed users
 -- Mỗi tài khoản dùng mật khẩu dev "Password@123" (đã hash Argon2id).
 -- role_id được tra theo tên role để không phụ thuộc giá trị AUTO_INCREMENT.
 --
