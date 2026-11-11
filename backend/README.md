@@ -24,12 +24,19 @@ backend/
 │   │   └── responses.py         # Định dạng response thống nhất
 │   └── modules/
 │       ├── auth/                # Module nghiệp vụ (chưa triển khai)
-│       ├── users/
+│       ├── users/               # Module Users (models.py: Role, User)
 │       ├── food/
 │       ├── travel/
 │       ├── decision/            # Chứa Decision Engine nội bộ
-│      
-├── sql/init.sql                 # Tạo database decision_hub
+│
+├── alembic/                     # Alembic migrations (tạo/thay đổi cấu trúc bảng)
+│   ├── env.py
+│   └── versions/                # Các file migration
+├── alembic.ini
+├── sql/
+│   ├── init.sql                 # Tạo database decision_hub
+│   └── seeds/                   # Dữ liệu mẫu
+│       └── users.sql            # Seed roles + users
 ├── .env                         # Cấu hình máy phát triển (KHÔNG commit)
 ├── .env.example                 # Mẫu cấu hình
 └── requirements.txt
@@ -87,7 +94,57 @@ Tài liệu API: http://127.0.0.1:8000/docs
 
 Sửa `.env` xong phải tắt (`Ctrl + C`) và chạy lại uvicorn.
 
-## 6. Lỗi hay gặp
+## 6. Database: tạo cấu trúc bảng và dữ liệu mẫu
+
+Ba bước độc lập, theo đúng thứ tự:
+
+```bash
+cd backend
+```
+
+**Bước 1 — Tạo database** (`sql/init.sql` chỉ tạo database, không tạo bảng):
+
+```bash
+mysql -u root -p < sql/init.sql
+```
+
+**Bước 2 — Tạo cấu trúc bảng** bằng Alembic (đọc `DB_*` từ `.env`):
+
+```bash
+alembic upgrade head
+```
+
+Sinh migration mới sau khi đổi `models.py`:
+
+```bash
+alembic revision --autogenerate -m "mô tả thay đổi"
+```
+
+**Bước 3 — Nạp dữ liệu mẫu** (`sql/seeds/users.sql`):
+
+```bash
+mysql -u root -p decision_hub < sql/seeds/users.sql
+```
+
+File seed dùng `INSERT IGNORE` (roles) và `INSERT ... WHERE NOT EXISTS` (users) nên
+**chạy lại nhiều lần không tạo bản ghi trùng**.
+
+| Nội dung | Ở đâu |
+|---|---|
+| Cấu trúc bảng | Alembic — `alembic/versions/` |
+| Dữ liệu mẫu | `sql/seeds/` |
+| Tạo database | `sql/init.sql` |
+
+Tài khoản mẫu (mật khẩu dev `Password@123`, hash Argon2id):
+
+| Email | Role |
+|---|---|
+| user1@example.com | USER |
+| user2@example.com | USER |
+| admin@example.com | ADMIN |
+| admin2@example.com | ADMIN |
+
+## 7. Lỗi hay gặp
 
 | Lỗi | Cách sửa |
 |---|---|
