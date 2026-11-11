@@ -1,0 +1,35 @@
+/* ==========================================================
+   CSS riêng cho phân hệ Food (WhatShouldIEat)
+   Tuân thủ UI Guidelines: Sử dụng namespace .food-page
+   Không ghi đè các token toàn cục
+   ========================================================== */
+
+.food-page .food-card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--dh-radius-sm);
+}
+
+.food-page .food-price-tag {
+  color: var(--dh-primary);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.food-page .food-time-tag {
+  color: var(--dh-text-muted);
+  font-size: 12px;
+}
+
+.food-page .food-item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--dh-border);
+}
+
+.food-page .food-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dh-shadow-md);
+  border-color: var(--dh-border-strong);
+}
+

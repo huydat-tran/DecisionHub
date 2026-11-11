@@ -1,0 +1,41 @@
+/* ==========================================================
+   CSS riêng cho phân hệ History (Lịch sử hoạt động)
+   Tuân thủ UI Guidelines: Sử dụng namespace .history-page
+   ========================================================== */
+
+.history-page .history-badge-food {
+  background: var(--dh-success-soft);
+  color: var(--dh-success);
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid rgba(22, 132, 91, 0.2);
+}
+
+.history-page .history-badge-travel {
+  background: var(--dh-info-soft);
+  color: var(--dh-info);
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid rgba(40, 118, 168, 0.2);
+}
+
+.history-page .history-table th {
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--dh-text-muted);
+  font-weight: 600;
+  background: var(--dh-surface-subtle);
+  border-bottom: 1px solid var(--dh-border);
+}
+
+.history-page .history-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--dh-border);
+}
+
+.history-page .history-table tr:hover {
+  background: var(--dh-surface-subtle);
+}
+
