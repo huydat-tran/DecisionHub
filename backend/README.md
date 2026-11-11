@@ -28,7 +28,7 @@ backend/
 │       ├── food/
 │       ├── travel/
 │       ├── decision/            # Chứa Decision Engine nội bộ
-│       └── ai/
+│      
 ├── sql/init.sql                 # Tạo database decision_hub
 ├── .env                         # Cấu hình máy phát triển (KHÔNG commit)
 ├── .env.example                 # Mẫu cấu hình
