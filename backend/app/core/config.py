@@ -49,6 +49,15 @@ class Settings(BaseSettings):
         )
 
     @property
+    def server_database_url(self) -> str:
+        """Chuỗi kết nối tới MySQL server (không chỉ định database) để tạo database nếu thiếu."""
+        password_encoded = quote_plus(self.DB_PASSWORD) if self.DB_PASSWORD else ""
+        return (
+            f"mysql+pymysql://{self.DB_USER}:{password_encoded}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/?charset=utf8mb4"
+        )
+
+    @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 

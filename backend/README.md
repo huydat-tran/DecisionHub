@@ -108,6 +108,9 @@ cd backend
 mysql -u root -p < sql/init.sql
 ```
 
+> Không bắt buộc: khi chạy `uvicorn app.main:app`, ứng dụng tự tạo database
+> và tự chạy `alembic upgrade head` (bảng đã có thì giữ nguyên, chỉ tạo phần còn thiếu).
+
 **Bước 2 — Tạo cấu trúc bảng** bằng Alembic (đọc `DB_*` từ `.env`):
 
 ```bash

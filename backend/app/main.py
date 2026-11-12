@@ -4,18 +4,30 @@ Chạy: uvicorn app.main:app --reload
 Tài liệu Swagger: http://127.0.0.1:8000/docs
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.common.exceptions import register_exception_handlers
 from app.common.responses import success_response
 from app.core.config import settings
+from app.core.database import init_database
 from app.modules.auth.router import router as auth_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Khởi tạo database (tạo database/bảng còn thiếu) trước khi phục vụ request."""
+    init_database()
+    yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Hệ thống hỗ trợ ra quyết định DecisionHub - API Backend",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Đăng ký xử lý lỗi chuẩn hóa
