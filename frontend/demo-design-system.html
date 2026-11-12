@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DecisionHub – Thư Viện Giao Diện Mẫu (Design System Demo)</title>
+  <title>DecisionHub – Hệ Thống Hỗ Trợ Ra Quyết Định</title>
   <link rel="icon" href="assets/images/logo.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/variables.css">
@@ -14,21 +14,33 @@
 <div class="dh-app">
   <!-- Shared sidebar mẫu -->
   <aside class="dh-sidebar">
-    <a class="dh-brand" href="index.html">
+    <a class="dh-brand" href="#overview">
       <span class="dh-brand-mark">D</span>
       <span class="dh-brand-name">DecisionHub</span>
     </a>
     <div class="dh-nav-label">Workspace</div>
     <nav class="dh-nav" aria-label="Điều hướng chính">
-      <a class="dh-nav-link active" href="#"><span class="dh-nav-icon">⌂</span> Tổng quan</a>
-      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">✦</span> Đề xuất món ăn</a>
-      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">⌖</span> Khám phá du lịch</a>
-      <a class="dh-nav-link" href="#"><span class="dh-nav-icon">◷</span> Lịch sử</a>
+      <a class="dh-nav-link active" href="demo-design-system.html">
+        <span class="dh-nav-icon">⌂</span> Tổng quan
+      </a>
+      <a class="dh-nav-link" href="pages/food.html">
+        <span class="dh-nav-icon">✦</span> Đề xuất món ăn
+      </a>
+      <a class="dh-nav-link" href="pages/travel.html">
+        <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+      </a>
+      <a class="dh-nav-link" href="pages/history.html">
+        <span class="dh-nav-icon">◷</span> Lịch sử
+      </a>
     </nav>
     <div class="dh-nav-label">Tài liệu</div>
     <nav class="dh-nav">
-      <a class="dh-nav-link" href="docs/UI-GUIDELINES.md" target="_blank"><span class="dh-nav-icon">📘</span> UI Guidelines</a>
-      <a class="dh-nav-link" href="index.html"><span class="dh-nav-icon">↩</span> Về trang chủ Base</a>
+      <a class="dh-nav-link" href="docs/UI-GUIDELINES.md" target="_blank">
+        <span class="dh-nav-icon">📘</span> UI Guidelines
+      </a>
+      <a class="dh-nav-link" href="pages/items.html">
+        <span class="dh-nav-icon">📦</span> Items (CRUD mẫu)
+      </a>
     </nav>
     <div class="dh-sidebar-bottom">
       <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 MVP</div>
@@ -40,11 +52,10 @@
     <div class="dh-navbar-left">
       <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
       <div class="dh-navbar-search">
-        <input class="dh-input" type="search" placeholder="Tìm kiếm mẫu..." aria-label="Tìm kiếm">
+        <input class="dh-input" id="navbar-search" type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm">
       </div>
     </div>
     <div class="dh-navbar-right">
-      <a href="index.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về trang chủ</a>
       <div class="dh-user-chip">
         <span class="dh-avatar">DH</span>
         <span class="dh-user-name">
@@ -57,240 +68,347 @@
 
   <main class="dh-main">
     <div class="dh-page">
-      <div class="dh-page-heading">
-        <div>
-          <p class="dh-eyebrow">Design System · Green Modern SaaS</p>
-          <h1 class="dh-page-title">Thư Viện Giao Diện Mẫu (UI Demo)</h1>
-          <p class="dh-page-description">Trang tham chiếu các thành phần UI chuẩn cho cả 6 thành viên khi tự tay xây dựng module của mình.</p>
-        </div>
-        <a href="docs/UI-GUIDELINES.md" target="_blank" class="dh-btn dh-btn-primary">📘 Đọc UI-GUIDELINES.md</a>
-      </div>
 
-      <!-- Thống kê mẫu -->
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
-          <section class="dh-card">
-            <div class="dh-card-body">
-              <p class="dh-muted mb-2">Tổng đề xuất</p>
-              <div class="d-flex align-items-end justify-content-between">
-                <strong style="font-size:28px">24</strong>
-                <span class="dh-status dh-status-success">+12% tháng này</span>
-              </div>
-            </div>
-          </section>
-        </div>
-        <div class="col-12 col-md-4">
-          <section class="dh-card">
-            <div class="dh-card-body">
-              <p class="dh-muted mb-2">Lựa chọn đã lưu</p>
-              <strong style="font-size:28px">08</strong>
-            </div>
-          </section>
-        </div>
-        <div class="col-12 col-md-4">
-          <section class="dh-card">
-            <div class="dh-card-body">
-              <p class="dh-muted mb-2">Món ăn gợi ý</p>
-              <strong style="font-size:28px">15</strong>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 1. DecisionHub Specific Components -->
-      <h2 class="dh-section-title mb-3">1. Linh kiện đặc thù Decision Engine & Bộ lọc</h2>
-      <div class="row g-3 mb-4">
-        <!-- Filter Chips Demo -->
-        <div class="col-12 col-md-6">
-          <section class="dh-card h-100">
-            <div class="dh-card-header">
-              <h3 class="dh-section-title" style="font-size:16px;">Filter Chips (Bộ lọc nhanh)</h3>
-              <span class="dh-muted dh-small"><code>.dh-chip</code>, <code>.dh-chip.active</code></span>
-            </div>
-            <div class="dh-card-body">
-              <p class="dh-muted dh-small mb-2">Bữa ăn:</p>
-              <div class="dh-chip-group">
-                <span class="dh-chip active">Tất cả</span>
-                <span class="dh-chip">🌅 Bữa sáng</span>
-                <span class="dh-chip">☀️ Bữa trưa</span>
-                <span class="dh-chip">🌙 Bữa tối</span>
-              </div>
-
-              <p class="dh-muted dh-small mb-2 mt-3">Mức giá & Thời gian:</p>
-              <div class="dh-chip-group">
-                <span class="dh-chip">Dưới 30.000đ</span>
-                <span class="dh-chip active">Dưới 50.000đ</span>
-                <span class="dh-chip">Nhanh &lt; 15 phút</span>
-                <span class="dh-chip">Ăn chay</span>
-              </div>
-            </div>
-          </section>
+      <!-- ========================================================
+           1. PHẦN TỔNG QUAN (OVERVIEW)
+           ======================================================== -->
+      <section id="view-overview" class="dh-page-section">
+        <div class="dh-page-heading">
+          <div>
+            <p class="dh-eyebrow">Design System · Green Modern SaaS</p>
+            <h1 class="dh-page-title">Tổng quan hệ thống DecisionHub</h1>
+            <p class="dh-page-description">Hệ thống hỗ trợ ra quyết định ăn uống (Food) và du lịch (Travel) với mô hình chấm điểm WSM theo DecisionHub.md.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="pages/food.html" class="dh-btn dh-btn-primary">Khám phá Food ngay →</a>
+          </div>
         </div>
 
-        <!-- WSM Score Badge & Breakdown Demo -->
-        <div class="col-12 col-md-6">
-          <section class="dh-card h-100">
-            <div class="dh-card-header">
-              <h3 class="dh-section-title" style="font-size:16px;">Điểm WSM & Tiêu chí</h3>
-              <span class="dh-muted dh-small"><code>.dh-score-box</code>, <code>.dh-criteria-group</code></span>
-            </div>
-            <div class="dh-card-body">
-              <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="dh-score-box">
-                  <span class="dh-score-value">84.5</span>
-                  <span class="dh-score-label">Điểm WSM</span>
-                </div>
-                <div>
-                  <strong class="d-block text-success">Mức độ phù hợp cao</strong>
-                  <small class="dh-muted">Xếp hạng #1 trong Top 5 gợi ý</small>
+        <!-- Thống kê mẫu -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <section class="dh-card">
+              <div class="dh-card-body">
+                <p class="dh-muted mb-2">Tổng đề xuất</p>
+                <div class="d-flex align-items-end justify-content-between">
+                  <strong style="font-size:28px">24</strong>
+                  <span class="dh-status dh-status-success">+12% tháng này</span>
                 </div>
               </div>
+            </section>
+          </div>
+          <div class="col-12 col-md-4">
+            <section class="dh-card">
+              <div class="dh-card-body">
+                <p class="dh-muted mb-2">Lựa chọn đã lưu</p>
+                <strong style="font-size:28px">08</strong>
+              </div>
+            </section>
+          </div>
+          <div class="col-12 col-md-4">
+            <section class="dh-card">
+              <div class="dh-card-body">
+                <p class="dh-muted mb-2">Món ăn gợi ý</p>
+                <strong style="font-size:28px">15</strong>
+              </div>
+            </section>
+          </div>
+        </div>
 
-              <div class="dh-criteria-group">
-                <div class="dh-criteria-item">
-                  <div class="dh-criteria-header">
-                    <span>Giá (40%)</span>
-                    <span>80 / 100</span>
+        <!-- Điều hướng nhanh 2 phân hệ -->
+        <h2 class="dh-section-title mb-3">Phân hệ điều hướng chính</h2>
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6">
+            <div class="dh-card h-100 d-flex flex-column" style="border-top: 4px solid var(--dh-primary);">
+              <div class="dh-card-body d-flex flex-column flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span style="font-size:28px;">🍲</span>
+                  <span class="dh-status dh-status-success">P0 · Bắt buộc</span>
+                </div>
+                <h3 class="dh-section-title" style="font-size:16px;">WhatShouldIEat (Đề xuất món ăn)</h3>
+                <p class="dh-muted mb-3 flex-grow-1" style="font-size:13px;">
+                  Tìm kiếm món ăn và gợi ý thông minh dựa trên ngân sách, bữa ăn, thời gian chuẩn bị và nguyên liệu cần tránh với mô hình WSM.
+                </p>
+                <a href="pages/food.html" class="dh-btn dh-btn-primary dh-btn-sm">Mở Đề xuất món ăn →</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="dh-card h-100 d-flex flex-column" style="border-top: 4px solid var(--dh-info);">
+              <div class="dh-card-body d-flex flex-column flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span style="font-size:28px;">✈️</span>
+                  <span class="dh-status dh-status-info">P1 · Cơ bản</span>
+                </div>
+                <h3 class="dh-section-title" style="font-size:16px;">WhereShouldITravel (Khám phá du lịch)</h3>
+                <p class="dh-muted mb-3 flex-grow-1" style="font-size:13px;">
+                  Tìm kiếm địa điểm du lịch theo vùng miền, chi phí tham khảo, thời lượng chuyến đi và trải nghiệm mong muốn.
+                </p>
+                <a href="pages/travel.html" class="dh-btn dh-btn-outline dh-btn-sm" style="border-color:var(--dh-info); color:var(--dh-info);">Mở Khám phá du lịch →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linh kiện mẫu -->
+        <h2 class="dh-section-title mb-3">Quy chuẩn linh kiện mẫu</h2>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <section class="dh-card h-100">
+              <div class="dh-card-header">
+                <h3 class="dh-section-title" style="font-size:15px;">Điểm WSM & Tiêu chí</h3>
+              </div>
+              <div class="dh-card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <div class="dh-score-box">
+                    <span class="dh-score-value">84.5</span>
+                    <span class="dh-score-label">Điểm WSM</span>
                   </div>
-                  <div class="dh-progress-track">
-                    <div class="dh-progress-bar" style="width: 80%;"></div>
+                  <div>
+                    <strong class="d-block text-success">Mức độ phù hợp cao</strong>
+                    <small class="dh-muted">Xếp hạng #1 trong Top 5 gợi ý</small>
                   </div>
                 </div>
-
-                <div class="dh-criteria-item">
-                  <div class="dh-criteria-header">
-                    <span>Sở thích (35%)</span>
-                    <span>100 / 100</span>
-                  </div>
-                  <div class="dh-progress-track">
-                    <div class="dh-progress-bar" style="width: 100%;"></div>
-                  </div>
-                </div>
-
-                <div class="dh-criteria-item">
-                  <div class="dh-criteria-header">
-                    <span>Thời gian (25%)</span>
-                    <span>70 / 100</span>
-                  </div>
-                  <div class="dh-progress-track">
-                    <div class="dh-progress-bar" style="width: 70%;"></div>
-                  </div>
-                </div>
+                <ul class="dh-reason-list border-top pt-2 mt-2">
+                  <li class="dh-reason-item">
+                    <span class="dh-reason-icon">✓</span>
+                    <span>Phù hợp với sở thích đã chọn (Ăn chay, Cay vừa)</span>
+                  </li>
+                  <li class="dh-reason-item">
+                    <span class="dh-reason-icon">✓</span>
+                    <span>Giá 35.000đ nằm trong ngân sách 50.000đ</span>
+                  </li>
+                </ul>
               </div>
-
-              <ul class="dh-reason-list border-top pt-2 mt-3">
-                <li class="dh-reason-item">
-                  <span class="dh-reason-icon">✓</span>
-                  <span>Phù hợp với 2/2 sở thích đã chọn (Ăn chay, Cay vừa)</span>
-                </li>
-                <li class="dh-reason-item">
-                  <span class="dh-reason-icon">✓</span>
-                  <span>Giá 35.000đ nằm trong ngân sách 50.000đ</span>
-                </li>
-              </ul>
-            </div>
-          </section>
+            </section>
+          </div>
+          <div class="col-12 col-md-6">
+            <section class="dh-card h-100">
+              <div class="dh-card-header">
+                <h3 class="dh-section-title" style="font-size:15px;">Huy hiệu trạng thái</h3>
+              </div>
+              <div class="dh-card-body d-flex flex-column gap-2">
+                <div><span class="dh-status dh-status-success">● Thành công (Success)</span></div>
+                <div><span class="dh-status dh-status-warning">▲ Cảnh báo (Warning)</span></div>
+                <div><span class="dh-status dh-status-danger">✕ Lỗi / Vi phạm (Danger)</span></div>
+                <div><span class="dh-status dh-status-info">ℹ Thông tin (Info)</span></div>
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 2. Standard Form Controls & Buttons -->
-      <h2 class="dh-section-title mb-3">2. Nút bấm, Biểu mẫu & Thẻ nội dung</h2>
-      <div class="row g-3 mb-4">
-        <!-- Buttons Demo -->
-        <div class="col-12 col-md-6">
-          <section class="dh-card h-100">
-            <div class="dh-card-header">
-              <h3 class="dh-section-title" style="font-size:16px;">Nút bấm chuẩn (Buttons)</h3>
-            </div>
-            <div class="dh-card-body">
-              <div class="d-flex flex-wrap gap-2 mb-3">
-                <button class="dh-btn dh-btn-primary">Primary Action</button>
-                <button class="dh-btn dh-btn-secondary">Secondary</button>
-                <button class="dh-btn dh-btn-outline">Outline</button>
-                <button class="dh-btn dh-btn-danger">Danger</button>
-              </div>
-              <div class="d-flex flex-wrap gap-2">
-                <button class="dh-btn dh-btn-sm dh-btn-primary">Small Primary</button>
-                <button class="dh-btn dh-btn-sm dh-btn-secondary">Small Secondary</button>
-                <button class="dh-btn dh-btn-sm dh-btn-outline">Small Outline</button>
-              </div>
-            </div>
-          </section>
+      <!-- ========================================================
+           2. PHẦN ĐỀ XUẤT MÓN ĂN (FOOD)
+           ======================================================== -->
+      <section id="view-food" class="dh-page-section d-none">
+        <div class="dh-page-heading">
+          <div>
+            <p class="dh-eyebrow">Phân hệ P0 · WhatShouldIEat</p>
+            <h1 class="dh-page-title">Đề xuất món ăn (Food)</h1>
+            <p class="dh-page-description">Tìm kiếm món ăn nhanh và gợi ý tối ưu theo tiêu chí ngân sách, bữa ăn và thời gian chuẩn bị.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="dh-btn dh-btn-sm dh-btn-outline" data-nav-to="overview">← Về Tổng quan</button>
+          </div>
         </div>
 
-        <!-- Form Controls Demo -->
-        <div class="col-12 col-md-6">
-          <section class="dh-card h-100">
-            <div class="dh-card-header">
-              <h3 class="dh-section-title" style="font-size:16px;">Ô nhập liệu (Inputs & Select)</h3>
-            </div>
-            <div class="dh-card-body">
-              <div class="dh-field">
-                <label class="dh-label" for="demo-input">Ngân sách tối đa (VND)</label>
-                <input id="demo-input" class="dh-input" type="number" placeholder="Ví dụ: 50000">
-                <small class="dh-help">Nhập ngân sách cho một bữa ăn.</small>
+        <!-- Bộ lọc & Tìm kiếm Food -->
+        <section class="dh-card mb-4">
+          <div class="dh-card-body">
+            <div class="d-flex flex-column flex-md-row gap-2 mb-3">
+              <div class="flex-grow-1">
+                <input
+                  id="food-search-input"
+                  class="dh-input"
+                  type="search"
+                  placeholder="Nhập tên món, nguyên liệu (VD: phở, cơm tấm, bún chả...)"
+                >
               </div>
-              <div class="dh-field">
-                <label class="dh-label" for="demo-select">Chọn loại bữa ăn</label>
-                <select id="demo-select" class="dh-select">
-                  <option value="">-- Tất cả bữa ăn --</option>
-                  <option value="breakfast">Bữa sáng</option>
-                  <option value="lunch">Bữa trưa</option>
-                  <option value="dinner">Bữa tối</option>
-                </select>
-              </div>
+              <button id="btn-food-search" class="dh-btn dh-btn-primary">Tìm kiếm</button>
+              <button id="btn-food-reset" class="dh-btn dh-btn-outline">Đặt lại</button>
             </div>
-          </section>
-        </div>
-      </div>
 
-      <!-- 3. Status Badges & Empty State -->
-      <h2 class="dh-section-title mb-3">3. Huy hiệu trạng thái & Empty State</h2>
-      <div class="row g-3">
-        <div class="col-12 col-md-5">
-          <section class="dh-card h-100">
-            <div class="dh-card-header">
-              <h3 class="dh-section-title" style="font-size:16px;">Trạng thái (Status Badges)</h3>
+            <p class="dh-muted dh-small mb-2">Bữa ăn:</p>
+            <div class="dh-chip-group" id="chip-food-meals">
+              <span class="dh-chip active" data-meal="all">Tất cả</span>
+              <span class="dh-chip" data-meal="breakfast">🌅 Bữa sáng</span>
+              <span class="dh-chip" data-meal="lunch">☀️ Bữa trưa</span>
+              <span class="dh-chip" data-meal="dinner">🌙 Bữa tối</span>
             </div>
-            <div class="dh-card-body d-flex flex-column gap-2">
-              <div><span class="dh-status dh-status-success">● Thành công (Success)</span></div>
-              <div><span class="dh-status dh-status-warning">▲ Cảnh báo (Warning)</span></div>
-              <div><span class="dh-status dh-status-danger">✕ Lỗi / Vi phạm (Danger)</span></div>
-              <div><span class="dh-status dh-status-info">ℹ Thông tin (Info)</span></div>
+
+            <p class="dh-muted dh-small mb-2 mt-2">Mức giá & Tiêu chuẩn:</p>
+            <div class="dh-chip-group" id="chip-food-criterias">
+              <span class="dh-chip" data-price="35000">Dưới 35.000đ</span>
+              <span class="dh-chip" data-price="50000">Dưới 50.000đ</span>
+              <span class="dh-chip" data-prep="15">Nhanh &lt; 15 phút</span>
+              <span class="dh-chip" data-diet="chay">Ăn chay</span>
             </div>
-          </section>
+          </div>
+        </section>
+
+        <!-- Khu vực hiển thị kết quả Food -->
+        <section class="dh-card">
+          <div class="dh-card-header">
+            <div>
+              <h2 class="dh-section-title mb-0" style="font-size:16px;">Khu vực hiển thị kết quả món ăn</h2>
+              <small class="dh-muted" id="food-results-count">Hiển thị các phương án phù hợp</small>
+            </div>
+            <div>
+              <span class="dh-status dh-status-success">Decision Engine (WSM Top 5)</span>
+            </div>
+          </div>
+          <div class="dh-card-body">
+            <!-- Empty state -->
+            <div id="food-empty" class="dh-empty-state d-none">
+              <div class="dh-empty-icon">🍽️</div>
+              <div class="dh-empty-title">Không tìm thấy món ăn phù hợp</div>
+              <p class="dh-empty-desc">Không có món nào thỏa mãn toàn bộ bộ lọc đã chọn. Hãy thử nới rộng ngân sách hoặc đổi từ khóa.</p>
+              <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-food-empty-reset">Đặt lại bộ lọc</button>
+            </div>
+
+            <!-- Grid kết quả món ăn -->
+            <div id="food-results-grid" class="row g-4">
+              <!-- Render động -->
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ========================================================
+           3. PHẦN KHÁM PHÁ DU LỊCH (TRAVEL)
+           ======================================================== -->
+      <section id="view-travel" class="dh-page-section d-none">
+        <div class="dh-page-heading">
+          <div>
+            <p class="dh-eyebrow">Phân hệ P1 · WhereShouldITravel</p>
+            <h1 class="dh-page-title">Khám phá du lịch (Travel)</h1>
+            <p class="dh-page-description">Tìm kiếm địa điểm du lịch theo vùng miền, chi phí tham khảo, thời lượng chuyến đi và trải nghiệm mong muốn.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="dh-btn dh-btn-sm dh-btn-outline" data-nav-to="overview">← Về Tổng quan</button>
+          </div>
         </div>
 
-        <div class="col-12 col-md-7">
-          <section class="dh-card h-100">
-            <div class="dh-card-body">
-              <div class="dh-empty-state py-3">
-                <div class="dh-empty-icon">🍽️</div>
-                <div class="dh-empty-title">Không tìm thấy món ăn phù hợp</div>
-                <p class="dh-empty-desc">Không có món nào thỏa mãn toàn bộ điều kiện ngân sách và thời gian đã chọn. Hãy thử nới rộng bộ lọc.</p>
-                <button class="dh-btn dh-btn-sm dh-btn-outline">Xóa bộ lọc</button>
+        <!-- Bộ lọc & Tìm kiếm Travel -->
+        <section class="dh-card mb-4">
+          <div class="dh-card-body">
+            <div class="d-flex flex-column flex-md-row gap-2 mb-3">
+              <div class="flex-grow-1">
+                <input
+                  id="travel-search-input"
+                  class="dh-input"
+                  type="search"
+                  placeholder="Nhập tên địa điểm, tỉnh thành (VD: Hạ Long, Hội An, Đà Lạt, Phú Quốc...)"
+                >
               </div>
+              <button id="btn-travel-search" class="dh-btn dh-btn-primary">Tìm kiếm</button>
+              <button id="btn-travel-reset" class="dh-btn dh-btn-outline">Đặt lại</button>
             </div>
-          </section>
+
+            <p class="dh-muted dh-small mb-2">Vùng miền:</p>
+            <div class="dh-chip-group" id="chip-travel-regions">
+              <span class="dh-chip active" data-region="all">Toàn quốc</span>
+              <span class="dh-chip" data-region="bac">Miền Bắc</span>
+              <span class="dh-chip" data-region="trung">Miền Trung</span>
+              <span class="dh-chip" data-region="nam">Miền Nam</span>
+            </div>
+
+            <p class="dh-muted dh-small mb-2 mt-2">Thời lượng & Loại hình:</p>
+            <div class="dh-chip-group" id="chip-travel-types">
+              <span class="dh-chip" data-duration="1">Đi trong ngày</span>
+              <span class="dh-chip" data-duration="2-3">2 - 3 ngày</span>
+              <span class="dh-chip" data-type="nghiduong">Nghỉ dưỡng</span>
+              <span class="dh-chip" data-type="khampha">Khám phá thiên nhiên</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Khu vực hiển thị kết quả Travel -->
+        <section class="dh-card">
+          <div class="dh-card-header">
+            <div>
+              <h2 class="dh-section-title mb-0" style="font-size:16px;">Khu vực hiển thị kết quả điểm đến</h2>
+              <small class="dh-muted" id="travel-results-count">Hiển thị các địa điểm gợi ý</small>
+            </div>
+            <div>
+              <span class="dh-status dh-status-info">Phạm vi cơ bản P1</span>
+            </div>
+          </div>
+          <div class="dh-card-body">
+            <!-- Empty state -->
+            <div id="travel-empty" class="dh-empty-state d-none">
+              <div class="dh-empty-icon">🏖️</div>
+              <div class="dh-empty-title">Không tìm thấy địa điểm phù hợp</div>
+              <p class="dh-empty-desc">Không có điểm đến nào khớp với vùng miền hoặc từ khóa bạn nhập. Hãy thử nới rộng điều kiện tìm kiếm.</p>
+              <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-travel-empty-reset">Đặt lại bộ lọc</button>
+            </div>
+
+            <!-- Grid kết quả địa điểm -->
+            <div id="travel-results-grid" class="row g-4">
+              <!-- Render động -->
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ========================================================
+           4. PHẦN LỊCH SỬ (HISTORY)
+           ======================================================== -->
+      <section id="view-history" class="dh-page-section d-none">
+        <div class="dh-page-heading">
+          <div>
+            <p class="dh-eyebrow">Phân hệ P2 · History</p>
+            <h1 class="dh-page-title">Lịch sử hoạt động (History)</h1>
+            <p class="dh-page-description">Xem lại các lần tìm kiếm và gợi ý món ăn, địa điểm du lịch gần đây theo Mục 6.1 của DecisionHub.md.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="dh-btn dh-btn-sm dh-btn-outline" data-nav-to="overview">← Về Tổng quan</button>
+          </div>
         </div>
-      </div>
+
+        <section class="dh-card">
+          <div class="dh-card-header">
+            <h2 class="dh-section-title mb-0" style="font-size:16px;">Nhật ký tìm kiếm & gợi ý gần đây</h2>
+            <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-clear-history">Xóa lịch sử</button>
+          </div>
+          <div class="dh-card-body p-0">
+            <div class="table-responsive">
+              <table class="table mb-0 align-middle">
+                <thead class="bg-light">
+                  <tr>
+                    <th style="padding:12px 16px; font-size:13px; color:var(--dh-text-muted);">Thời điểm</th>
+                    <th style="padding:12px 16px; font-size:13px; color:var(--dh-text-muted);">Phân hệ</th>
+                    <th style="padding:12px 16px; font-size:13px; color:var(--dh-text-muted);">Từ khóa / Tiêu chí</th>
+                    <th style="padding:12px 16px; font-size:13px; color:var(--dh-text-muted);">Kết quả tham chiếu</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td style="padding:12px 16px; font-size:13px;">Hôm nay, 12:15</td>
+                    <td style="padding:12px 16px;"><span class="badge bg-success">Food (Món ăn)</span></td>
+                    <td style="padding:12px 16px; font-size:13px;">Bữa trưa · Dưới 50.000đ · Nhanh &lt; 15p</td>
+                    <td style="padding:12px 16px; font-size:13px;"><strong>Cơm Tấm Sườn Bì Chả</strong> (Điểm WSM: 88)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px 16px; font-size:13px;">Hôm nay, 08:30</td>
+                    <td style="padding:12px 16px;"><span class="badge bg-success">Food (Món ăn)</span></td>
+                    <td style="padding:12px 16px; font-size:13px;">Bữa sáng · "Phở bò"</td>
+                    <td style="padding:12px 16px; font-size:13px;"><strong>Phở Bò Tái Nạm</strong> (45.000đ)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px 16px; font-size:13px;">Hôm qua, 19:40</td>
+                    <td style="padding:12px 16px;"><span class="badge bg-info text-dark">Travel (Du lịch)</span></td>
+                    <td style="padding:12px 16px; font-size:13px;">Miền Trung · Nghỉ dưỡng · 2-3 ngày</td>
+                    <td style="padding:12px 16px; font-size:13px;"><strong>Phố cổ Hội An</strong> (~1.200.000đ)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
 
     </div>
   </main>
 </div>
-
-<script>
-  // Mobile toggle sidebar
-  document.addEventListener("DOMContentLoaded", () => {
-    const sidebar = document.querySelector(".dh-sidebar");
-    const toggle = document.querySelector("[data-sidebar-toggle]");
-    if (sidebar && toggle) {
-      toggle.addEventListener("click", () => {
-        const opened = sidebar.classList.toggle("is-open");
-        toggle.setAttribute("aria-expanded", String(opened));
-      });
-    }
-  });
-</script>
-</body>
-</html>

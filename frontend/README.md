@@ -5,15 +5,14 @@ Khung frontend chung cho các nhóm thực tập lớp **HN-KS25-CNTT1**. Không
 - Layout chung (header + menu + footer) cho mọi trang
 - Module gọi API `js/api.js` dùng **axios**: cấu hình `baseURL` một lần, gom xử lý lỗi một chỗ bằng interceptor
 - Trang chủ kiểm tra kết nối **Frontend → Backend → MySQL**
-- Trang **Items**: ví dụ CRUD đầy đủ (thêm / sửa / xoá / tìm kiếm) gọi sang backend FastAPI
+- Trang **Giao diện mẫu (Demo)**: bộ design system chuẩn về màu sắc, nút bấm, form, thẻ
 
 ## 1. Cấu trúc thư mục
 
 ```
 frontend/
 ├── index.html             # Trang chủ (kiểm tra kết nối)
-├── pages/
-│   └── items.html         # Trang CRUD mẫu
+├── pages/                 # Các trang nghiệp vụ (mỗi trang 1 file HTML)
 ├── css/
 │   └── style.css          # Style chung, đổi màu ở :root
 ├── js/
@@ -22,8 +21,7 @@ frontend/
 │   ├── utils.js           # escapeHtml, formatMoney, showToast...
 │   ├── layout.js          # Chèn header/menu/footer vào mọi trang
 │   └── pages/             # Mỗi trang 1 file JS riêng
-│       ├── home.js
-│       └── items.js
+│       └── home.js
 └── assets/images/         # Ảnh, logo, icon
 ```
 
@@ -33,7 +31,7 @@ frontend/
 
 **Bước 2: mở frontend bằng Live Server.** Trong VS Code, cài extension *Live Server* (Ritwick Dey), chuột phải `frontend/index.html` → **Open with Live Server**. Trang mở ở `http://127.0.0.1:5500/index.html` và tự tải lại khi bạn lưu file.
 
-Trang chủ hiện **✅ Backend OK · MySQL: connected** là FE đã nối được BE. Bấm menu **Items (CRUD mẫu)** để thử thêm / sửa / xoá, rồi mở MySQL Workbench xem bảng `items` thay đổi theo.
+Trang chủ hiện **✅ Backend OK · MySQL: connected** là FE đã nối được BE.
 
 > Nhấp đúp mở thẳng file `index.html` (địa chỉ `file:///...`) thường vẫn chạy, nhưng hay gặp lỗi khó hiểu. Nên dùng Live Server.
 
@@ -52,11 +50,11 @@ Trình duyệt (FE: 127.0.0.1:5500) --axios--> Backend FastAPI (127.0.0.1:8000/a
 - Mọi lời gọi API đều qua `js/api.js`. File này tạo sẵn 1 axios instance (`http`) có `baseURL`, và bọc thành các hàm trả về thẳng `response.data`:
   ```js
   try {
-    const items = await api.get("/items");               // GET  /api/items
-    const found = await api.get("/items", { q: "trà" }); // GET  /api/items?q=trà
-    const item  = await api.post("/items", { name: "Trà đá", price: 5000 });
-    await api.put(`/items/${item.id}`, { price: 6000 });
-    await api.delete(`/items/${item.id}`);
+    const data = await api.get("/health");                    // GET  /health
+    const found = await api.get("/food/quick-search", { q: "phở" }); // GET  /food/quick-search?q=phở
+    const created = await api.post("/travel/recommend", { budget: 500000 });
+    await api.put(`/food/${created.id}`, { name: "Tên mới" });
+    await api.delete(`/food/${created.id}`);
   } catch (error) {
     showToast(error.message, "error");  // câu báo lỗi đã được dịch cho dễ đọc
     console.log(error.status);          // 404, 422, 500... hoặc 0 nếu không gọi được server
@@ -67,9 +65,9 @@ Trình duyệt (FE: 127.0.0.1:5500) --axios--> Backend FastAPI (127.0.0.1:8000/a
 
 ## 4. Thêm trang mới (vd: trang Sản phẩm)
 
-1. Copy `pages/items.html` thành `pages/products.html`, sửa `<title>` và nội dung HTML.
-2. Copy `js/pages/items.js` thành `js/pages/products.js`, đổi `/items` thành `/products` (API của nhóm bạn).
-3. Ở cuối `pages/products.html`, đổi `../js/pages/items.js` thành `../js/pages/products.js`.
+1. Tạo file `pages/products.html` với `<title>` và nội dung HTML của trang.
+2. Tạo file `js/pages/products.js` cho logic riêng của trang (gọi API qua `api.get/post/...`).
+3. Ở cuối `pages/products.html`, nạp script theo đúng thứ tự: axios (CDN) → `../js/config.js` → `../js/api.js` → `../js/utils.js` → `../js/layout.js` → `../js/pages/products.js`.
 4. Thêm link vào menu trong `js/layout.js`:
    ```js
    { href: "pages/products.html", label: "Sản phẩm" },

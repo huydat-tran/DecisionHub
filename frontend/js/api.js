@@ -2,11 +2,11 @@
 // (axios được nạp từ CDN bằng thẻ <script> trong từng trang HTML, trước file này)
 //
 // Cách dùng (trong các file js/pages/*.js):
-//   const items = await api.get("/items");
-//   const items = await api.get("/items", { q: "com" });          // -> /items?q=com
-//   const created = await api.post("/items", { name: "Trà đá", price: 5000 });
-//   await api.put("/items/1", { name: "Tên mới" });
-//   await api.delete("/items/1");
+//   const data = await api.get("/health");
+//   const data = await api.get("/food/quick-search", { q: "phở" });  // -> /food/quick-search?q=phở
+//   const created = await api.post("/travel/recommend", { budget: 500000 });
+//   await api.put("/food/1", { name: "Tên mới" });
+//   await api.delete("/food/1");
 //
 // Các hàm trả về thẳng dữ liệu JSON (đã lấy sẵn response.data).
 // Nếu lỗi, hàm sẽ throw ApiError -> bắt bằng try/catch và hiện error.message cho người dùng.

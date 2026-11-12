@@ -4,8 +4,10 @@ Tuân thủ cấu trúc Modular Monolith cho DecisionHub.
 """
 
 from pathlib import Path
+import secrets
 from urllib.parse import quote_plus
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Thư mục gốc backend (chứa file .env)
@@ -30,6 +32,12 @@ class Settings(BaseSettings):
 
     # CORS: chuỗi các origin cách nhau bằng dấu phẩy, hoặc "*"
     CORS_ORIGINS: str = "*"
+
+    # JWT: secret key lay tu bien moi truong, khong hardcode trong source code.
+    # Neu chua cau hinh trong .env, sinh key tam thoi cho tien trinh hien tai.
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     @property
     def database_url(self) -> str:
