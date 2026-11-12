@@ -23,7 +23,9 @@
 }
 
 .food-page .food-item-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   border: 1px solid var(--dh-border);
 }
 
@@ -33,3 +35,32 @@
   border-color: var(--dh-border-strong);
 }
 
+#food-results-grid {
+  display: flex;
+  justify-content: center;
+  gap: 4%;
+}
+.card-title {
+  font-size: 150%;
+}
+
+.card-title {
+  margin-bottom: 0%;
+}
+
+.card-text {
+  width: 100%;
+  margin-left: 0%;
+  margin-right: 0%;
+}
+
+.card-body {
+  width: 100%;
+  padding-left: 0%;
+  padding-right: 0%;
+}
+
+.card-detail-book {
+  display: flex;
+  gap: 25%;
+}
