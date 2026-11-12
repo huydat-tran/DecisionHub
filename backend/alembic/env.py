@@ -10,6 +10,11 @@ from app.core.database import Base
 # Import model để Alembic nhận diện toàn bộ metadata
 from app.modules.users import models  # noqa: F401
 
+# Bắt buộc import model module Decision (decision_criteria, hard_constraints) vào Base.metadata
+# để `alembic revision --autogenerate` và `alembic check` nhận diện đủ bảng,
+# tránh sinh nhầm lệnh drop_table khi thành viên khác tạo migration mới.
+from app.modules.decision import models as decision_models  # noqa: F401
+
 config = context.config
 
 if config.config_file_name is not None:
