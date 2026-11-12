@@ -1,55 +1,23 @@
 -- =====================================================================
--- DecisionHub - Module Travel: Schema DDL & Seed dữ liệu mẫu
+-- DecisionHub - Seed dữ liệu mẫu Travel Places
 --
--- File: backend/sql/seeds/travel_places.sql
--- Mục đích:
---   1. Tự động tạo bảng `travel_places` nếu chưa tồn tại (DDL đầy đủ Index,
---      Full-text search, kiểm tra ràng buộc chi phí, thời lượng).
---   2. Nạp toàn bộ 15 bản ghi dữ liệu mẫu đại diện cho 5 vùng miền Việt Nam,
---      đa dạng loại hình hoạt động, chi phí (150k - 3.5tr) và thời lượng (4h - 48h).
---   3. An toàn khi chạy lại nhiều lần (idempotent, không bị duplicate dữ liệu).
+-- Chạy SAU khi đã tạo database (sql/init.sql) và đã apply migration Alembic
+-- (tạo bảng travel_places).
+--
+-- 15 địa điểm du lịch đại diện cho 5 vùng miền Việt Nam:
+--   - Khu vực: Bắc, Trung, Nam, Tây Nguyên, Tây Nam Bộ
+--   - Loại hình: Nghỉ dưỡng biển, Khám phá thiên nhiên, Văn hóa lịch sử,
+--               Vui chơi giải trí, Sinh thái sông nước, Nghỉ dưỡng sinh thái
+--   - Chi phí: 250.000 VND - 3.500.000 VND
+--   - Thời lượng: 4.0h - 48.0h
+--
+-- INSERT IGNORE: an toàn khi chạy lại file nhiều lần (không duplicate).
 -- =====================================================================
 
 SET NAMES utf8mb4;
 USE decision_hub;
 
--- ---------------------------------------------------------------------
--- 1. DDL: TẠO BẢNG travel_places
--- ---------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS travel_places (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT 'Khóa chính định danh địa điểm',
-    name VARCHAR(200) NOT NULL COMMENT 'Tên địa điểm du lịch',
-    province_city VARCHAR(100) NOT NULL COMMENT 'Tỉnh/Thành phố trực thuộc',
-    region ENUM('Bắc', 'Trung', 'Nam', 'Tây Nguyên', 'Tây Nam Bộ') NOT NULL COMMENT 'Khu vực địa lý (phục vụ lọc vùng miền)',
-    estimated_cost INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Chi phí tham khảo trung bình (VND) - phục vụ lọc trần ngân sách và tính WSM Cost',
-    estimated_duration DECIMAL(4, 1) UNSIGNED NOT NULL DEFAULT 1.0 COMMENT 'Thời lượng trải nghiệm ước tính (giờ) - phục vụ lọc trần thời lượng và tính WSM Time',
-    activity_type VARCHAR(100) NOT NULL COMMENT 'Loại hình trải nghiệm chính (Nghỉ dưỡng biển, Khám phá thiên nhiên, Văn hóa lịch sử...)',
-    highlights TEXT NULL COMMENT 'Danh sách hoạt động nổi bật, trải nghiệm đặc trưng',
-    description TEXT NULL COMMENT 'Mô tả chi tiết về địa điểm',
-    image_url VARCHAR(500) NULL DEFAULT NULL COMMENT 'URL ảnh đại diện minh họa (nếu NULL frontend tự fallback)',
-    rating DECIMAL(2, 1) UNSIGNED NOT NULL DEFAULT 4.5 COMMENT 'Điểm đánh giá tham khảo (1.0 - 5.0)',
-    is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Trạng thái hoạt động (1: Đang hoạt động, 0: Tạm ngưng)',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời điểm tạo bản ghi',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Thời điểm cập nhật bản ghi',
-
-    -- Ràng buộc duy nhất theo tên địa điểm để tránh trùng lặp khi chạy seed lại
-    CONSTRAINT uq_travel_places_name UNIQUE (name),
-
-    -- Các chỉ mục tối ưu hóa cho Decision Engine và Quick Search
-    INDEX idx_travel_places_region (region),
-    INDEX idx_travel_places_cost (estimated_cost),
-    INDEX idx_travel_places_duration (estimated_duration),
-    INDEX idx_travel_places_activity_type (activity_type),
-    INDEX idx_travel_places_is_active (is_active),
-    INDEX idx_travel_places_composite_filter (region, estimated_cost, estimated_duration),
-    FULLTEXT INDEX ft_travel_places_search (name, province_city, description)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bảng lưu trữ thông tin địa điểm du lịch cho DecisionHub Travel Module';
-
--- ---------------------------------------------------------------------
--- 2. DML: SEED 15 ĐỊA ĐIỂM DU LỊCH MẪU
--- (Dùng INSERT IGNORE để an toàn khi chạy lại file nhiều lần)
--- ---------------------------------------------------------------------
-INSERT IGNORE INTO travel_places 
+INSERT IGNORE INTO travel_places
   (name, province_city, region, estimated_cost, estimated_duration, activity_type, highlights, description, image_url, rating, is_active)
 VALUES
 (
