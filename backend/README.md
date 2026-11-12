@@ -135,7 +135,7 @@ File seed dùng `INSERT IGNORE` (roles) và `INSERT ... WHERE NOT EXISTS` (users
 | Dữ liệu mẫu | `sql/seeds/` |
 | Tạo database | `sql/init.sql` |
 
-Tài khoản mẫu (mật khẩu dev `Password@123`, hash Argon2id):
+Tài khoản mẫu (mật khẩu dev `Password@123`, hash bcrypt):
 
 | Email | Role |
 |---|---|
