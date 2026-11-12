@@ -28,18 +28,28 @@
             <div class="forms-section">
                 <form class="auth-form login-form" id="loginForm">
                     <h2 class="form-heading">Sign In</h2>
-                    
-                    <div class="field-container">
-                        <i class="fas fa-user"></i>
-                        <input type="text" placeholder="Username" autocomplete="username">
-                        <span></span>
+
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="loginEmail" placeholder="Email" autocomplete="email"
+                                aria-describedby="loginEmailError">
+                            <span></span>
+                        </div>
+                        <p class="field-error" id="loginEmailError" aria-live="polite"></p>
                     </div>
 
-                    <div class="field-container">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
-                        <i class="far fa-eye eye-icon" onclick="togglePasswordVisibility('loginPass', this)"></i>
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password"
+                                aria-describedby="loginPassError">
+                            <i class="far fa-eye eye-icon" onclick="togglePasswordVisibility('loginPass', this)"></i>
+                        </div>
+                        <p class="field-error" id="loginPassError" aria-live="polite"></p>
                     </div>
+
+                    <p class="form-alert" id="loginAlert" role="alert"></p>
 
                     <a href="#" class="text-link">Forgot your password?</a>
 
@@ -50,29 +60,43 @@
 
                 <form class="auth-form signup-form" id="signupForm">
                     <h2 class="form-heading">Create Account</h2>
-                    
-                    <div class="field-container">
-                        <i class="fas fa-user"></i>
-                        <input type="text" placeholder="Username" autocomplete="username">
-                        <span></span>
+
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="signupUsername" placeholder="Username" autocomplete="username"
+                                aria-describedby="signupUsernameError">
+                            <span></span>
+                        </div>
+                        <p class="field-error" id="signupUsernameError" aria-live="polite"></p>
                     </div>
 
-                    <div class="field-container">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" placeholder="Email" autocomplete="email">
-                        <span></span>
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="signupEmail" placeholder="Email" autocomplete="email"
+                                aria-describedby="signupEmailError">
+                            <span></span>
+                        </div>
+                        <p class="field-error" id="signupEmailError" aria-live="polite"></p>
                     </div>
 
-                    <div class="field-container">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="signupPass" placeholder="Password" autocomplete="new-password">
-                        <i class="far fa-eye eye-icon" onclick="togglePasswordVisibility('signupPass', this)"></i>
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="signupPass" placeholder="Password" autocomplete="new-password"
+                                aria-describedby="signupPassError">
+                            <i class="far fa-eye eye-icon" onclick="togglePasswordVisibility('signupPass', this)"></i>
+                        </div>
+                        <p class="field-error" id="signupPassError" aria-live="polite"></p>
                     </div>
 
                     <div class="terms-check">
                         <input type="checkbox" id="acceptTerms">
                         <label for="acceptTerms">I accept the <a href="#">terms and conditions</a></label>
                     </div>
+
+                    <p class="form-alert" id="signupAlert" role="alert"></p>
 
                     <button type="submit" class="action-button">Sign Up</button>
 
@@ -101,6 +125,12 @@
         </div>
     </div>
 
+    <!-- Thứ tự quan trọng: axios -> config -> api -> utils -> sweetalert2 -> script riêng của trang -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script src="../js/pages/signup.js"></script>
 </body>
 </html>
