@@ -15,6 +15,7 @@ from app.modules.users.repository import (
     create_user,
     get_role_by_name,
     get_user_by_email,
+    get_user_by_username,
 )
 
 # Role được cấp mặc định khi đăng ký. Client không được tự chọn role.
@@ -28,6 +29,7 @@ def _to_user_data(user) -> UserData:
     """Chuyển model User sang schema trả về (không lộ password_hash)."""
     return UserData(
         id=user.id,
+        username=user.username,
         email=user.email,
         role=user.role.name,
         created_at=user.created_at,
@@ -46,6 +48,12 @@ def register_user(db: Session, data: RegisterRequest) -> UserData:
             status_code=409,
         )
 
+    if get_user_by_username(db, data.username) is not None:
+        raise DecisionHubException(
+            message="Username đã được sử dụng.",
+            status_code=409,
+        )
+
     role = get_role_by_name(db, DEFAULT_ROLE_NAME)
     if role is None:
         raise DecisionHubException(
@@ -57,17 +65,18 @@ def register_user(db: Session, data: RegisterRequest) -> UserData:
     try:
         user = create_user(
             db,
+            username=data.username,
             email=data.email,
             password_hash=password_hash,
             role_id=role.id,
         )
         db.commit()
     except IntegrityError:
-        # Hai request đăng ký cùng email gần như đồng thời: unique constraint chặn
-        # request thứ hai dù đã kiểm tra email tồn tại ở trên.
+        # Hai request đăng ký cùng email/username gần như đồng thời: unique constraint
+        # chặn request thứ hai dù đã kiểm tra tồn tại ở trên.
         db.rollback()
         raise DecisionHubException(
-            message="Email đã được đăng ký.",
+            message="Email hoặc username đã được đăng ký.",
             status_code=409,
         ) from None
     except Exception:

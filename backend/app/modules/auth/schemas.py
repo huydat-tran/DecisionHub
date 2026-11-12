@@ -11,7 +11,12 @@ MIN_PASSWORD_LENGTH = 8
 
 class RegisterRequest(BaseModel):
     """Dữ liệu đăng ký tài khoản mới (client không được tự chọn role)."""
-
+    username: str = Field(
+        ...,
+        min_length=5,
+        max_length=50,
+        description="Tên người dùng"
+    )
     email: EmailStr = Field(..., description="Email dùng để đăng nhập")
     password: str = Field(..., min_length=MIN_PASSWORD_LENGTH)
 
@@ -47,6 +52,7 @@ class UserData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    username: str
     email: EmailStr
     role: str
     created_at: datetime
