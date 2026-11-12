@@ -1,0 +1,34 @@
+/* ==========================================================
+   CSS riêng cho phân hệ Travel (WhereShouldITravel)
+   Tuân thủ UI Guidelines: Sử dụng namespace .travel-page
+   ========================================================== */
+
+.travel-page .travel-card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--dh-radius-sm);
+}
+
+.travel-page .travel-cost-tag {
+  color: var(--dh-primary);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.travel-page .travel-duration-tag {
+  color: var(--dh-text-muted);
+  font-size: 12px;
+}
+
+.travel-page .travel-item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--dh-border);
+}
+
+.travel-page .travel-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dh-shadow-md);
+  border-color: var(--dh-border-strong);
+}
+

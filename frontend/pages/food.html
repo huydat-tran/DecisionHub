@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đề xuất món ăn (Food) – DecisionHub</title>
+  <link rel="icon" href="../assets/images/logo.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/common.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/food.css">
+</head>
+<body class="food-page">
+<div class="dh-app">
+  <!-- Sidebar điều hướng chuẩn -->
+  <aside class="dh-sidebar">
+    <a class="dh-brand" href="../demo-design-system.html">
+      <span class="dh-brand-mark">D</span>
+      <span class="dh-brand-name">DecisionHub</span>
+    </a>
+    <div class="dh-nav-label">Workspace</div>
+    <nav class="dh-nav" aria-label="Điều hướng chính">
+      <a class="dh-nav-link" href="../demo-design-system.html">
+        <span class="dh-nav-icon">⌂</span> Tổng quan
+      </a>
+      <a class="dh-nav-link active" href="food.html">
+        <span class="dh-nav-icon">✦</span> Đề xuất món ăn
+      </a>
+      <a class="dh-nav-link" href="travel.html">
+        <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+      </a>
+      <a class="dh-nav-link" href="history.html">
+        <span class="dh-nav-icon">◷</span> Lịch sử
+      </a>
+    </nav>
+    <div class="dh-nav-label">Tài liệu</div>
+    <nav class="dh-nav">
+      <a class="dh-nav-link" href="../docs/UI-GUIDELINES.md" target="_blank">
+        <span class="dh-nav-icon">📘</span> UI Guidelines
+      </a>
+      <a class="dh-nav-link" href="items.html">
+        <span class="dh-nav-icon">📦</span> Items (CRUD mẫu)
+      </a>
+    </nav>
+    <div class="dh-sidebar-bottom">
+      <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 · Food Module</div>
+    </div>
+  </aside>
+
+  <!-- Navbar chuẩn -->
+  <header class="dh-navbar">
+    <div class="dh-navbar-left">
+      <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
+      <div class="dh-navbar-search">
+        <input class="dh-input" type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm">
+      </div>
+    </div>
+    <div class="dh-navbar-right">
+      <a href="../demo-design-system.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về Tổng quan</a>
+      <div class="dh-user-chip">
+        <span class="dh-avatar">DH</span>
+        <span class="dh-user-name">
+          <strong class="d-block" style="font-size:13px">Thành viên</strong>
+          <small class="dh-muted">Nhóm 6</small>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dh-main">
+    <div class="dh-page">
+      <div class="dh-page-heading">
+        <div>
+          <p class="dh-eyebrow">Phân hệ P0 · WhatShouldIEat</p>
+          <h1 class="dh-page-title">Đề xuất món ăn (Food)</h1>
+          <p class="dh-page-description">Tìm kiếm món ăn nhanh và gợi ý tối ưu theo tiêu chí ngân sách, bữa ăn và thời gian chuẩn bị theo DecisionHub.md.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <span class="dh-status dh-status-success">MVP Trọng tâm</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc & Tìm kiếm Food -->
+      <section class="dh-card mb-4">
+        <div class="dh-card-body">
+          <div class="d-flex flex-column flex-md-row gap-2 mb-3">
+            <div class="flex-grow-1">
+              <input
+                id="food-search-input"
+                class="dh-input"
+                type="search"
+                placeholder="Nhập tên món, nguyên liệu (VD: phở, cơm tấm, bún chả...)"
+              >
+            </div>
+            <button id="btn-food-search" class="dh-btn dh-btn-primary">Tìm kiếm</button>
+            <button id="btn-food-reset" class="dh-btn dh-btn-outline">Đặt lại</button>
+          </div>
+
+          <p class="dh-muted dh-small mb-2">Bữa ăn:</p>
+          <div class="dh-chip-group" id="chip-food-meals">
+            <span class="dh-chip active" data-meal="all">Tất cả</span>
+            <span class="dh-chip" data-meal="breakfast">🌅 Bữa sáng</span>
+            <span class="dh-chip" data-meal="lunch">☀️ Bữa trưa</span>
+            <span class="dh-chip" data-meal="dinner">🌙 Bữa tối</span>
+          </div>
+
+          <p class="dh-muted dh-small mb-2 mt-2">Mức giá & Tiêu chuẩn:</p>
+          <div class="dh-chip-group" id="chip-food-criterias">
+            <span class="dh-chip" data-price="35000">Dưới 35.000đ</span>
+            <span class="dh-chip" data-price="50000">Dưới 50.000đ</span>
+            <span class="dh-chip" data-prep="15">Nhanh &lt; 15 phút</span>
+            <span class="dh-chip" data-diet="chay">Ăn chay</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Khu vực hiển thị kết quả Food -->
+      <section class="dh-card">
+        <div class="dh-card-header">
+          <div>
+            <h2 class="dh-section-title mb-0" style="font-size:16px;">Khu vực hiển thị kết quả món ăn</h2>
+            <small class="dh-muted" id="food-results-count">Hiển thị các phương án phù hợp</small>
+          </div>
+          <div>
+            <span class="dh-status dh-status-success">Decision Engine (WSM Top 5)</span>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <!-- Empty state -->
+          <div id="food-empty" class="dh-empty-state d-none">
+            <div class="dh-empty-icon">🍽️</div>
+            <div class="dh-empty-title">Không tìm thấy món ăn phù hợp</div>
+            <p class="dh-empty-desc">Không có món nào thỏa mãn toàn bộ bộ lọc đã chọn. Hãy thử nới rộng ngân sách hoặc đổi từ khóa.</p>
+            <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-food-empty-reset">Đặt lại bộ lọc</button>
+          </div>
+
+          <!-- Grid kết quả món ăn -->
+          <div id="food-results-grid" class="row g-4"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="../js/pages/food.js"></script>
+</body>
+</html>
+
