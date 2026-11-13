@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đề xuất thông minh (Recommendations) – DecisionHub</title>
+  <link rel="icon" href="../assets/images/logo.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/common.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/results.css">
+</head>
+<body class="results-page">
+<div class="dh-app">
+  <!-- Sidebar điều hướng chuẩn -->
+  <aside class="dh-sidebar">
+    <a class="dh-brand" href="../demo-design-system.html">
+      <span class="dh-brand-mark">D</span>
+      <span class="dh-brand-name">DecisionHub</span>
+    </a>
+    <div class="dh-nav-label">Workspace</div>
+    <nav class="dh-nav" aria-label="Điều hướng chính">
+      <a class="dh-nav-link" href="../demo-design-system.html">
+        <span class="dh-nav-icon">⌂</span> Tổng quan
+      </a>
+      <a class="dh-nav-link" href="food.html">
+        <span class="dh-nav-icon">✦</span> Khám phá món ăn
+      </a>
+      <a class="dh-nav-link" href="travel.html">
+        <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+      </a>
+      <a class="dh-nav-link active" href="results.html" aria-current="page">
+        <span class="dh-nav-icon">☰</span> Đề xuất
+      </a>
+      <a class="dh-nav-link" href="history.html">
+        <span class="dh-nav-icon">◷</span> Lịch sử
+      </a>
+    </nav>
+    <div class="dh-nav-label">Tài liệu</div>
+    <nav class="dh-nav">
+      <a class="dh-nav-link" href="../docs/UI-GUIDELINES.md" target="_blank">
+        <span class="dh-nav-icon">📘</span> UI Guidelines
+      </a>
+    </nav>
+    <div class="dh-sidebar-bottom">
+      <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 · Recommendation Module</div>
+    </div>
+  </aside>
+
+  <!-- Navbar chuẩn -->
+  <header class="dh-navbar">
+    <div class="dh-navbar-left">
+      <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
+      <div class="dh-navbar-search">
+        <input class="dh-input" type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm">
+      </div>
+    </div>
+    <div class="dh-navbar-right">
+      <a href="../demo-design-system.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về Tổng quan</a>
+      <div class="dh-user-chip">
+        <span class="dh-avatar">DH</span>
+        <span class="dh-user-name">
+          <strong class="d-block" style="font-size:13px">Thành viên</strong>
+          <small class="dh-muted">Nhóm 6</small>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dh-main">
+    <div class="dh-page">
+      <div class="dh-page-heading">
+        <div>
+          <p class="dh-eyebrow">Decision Engine · Recommendations</p>
+          <h1 class="dh-page-title" id="page-main-title">Đề xuất thông minh</h1>
+          <p class="dh-page-description" id="page-main-desc">Các phương án được xếp hạng theo mô hình WSM: điểm tổng = Σ (trọng số × điểm tiêu chí). Chọn phân hệ bên dưới để xem gợi ý.</p>
+        </div>
+        <span class="dh-status dh-status-info" id="module-status-badge">Phân hệ Món ăn (Food)</span>
+      </div>
+
+      <!-- Bộ chọn 2 phân hệ Đề xuất (Food / Travel) -->
+      <div class="dh-chip-group mb-4" id="results-module-selector" role="tablist" aria-label="Chọn phân hệ đề xuất">
+        <button type="button" class="dh-chip active" data-module="food" role="tab" aria-selected="true">
+          🍲 Đề xuất món ăn (Food)
+        </button>
+        <button type="button" class="dh-chip" data-module="travel" role="tab" aria-selected="false">
+          ✈️ Đề xuất du lịch (Travel)
+        </button>
+      </div>
+
+      <!-- A. Khu vực thông tin kết quả -->
+      <section class="row g-3 mb-4" aria-label="Tổng quan kết quả">
+        <div class="col-12 col-md-4">
+          <div class="dh-card results-summary-card h-100">
+            <div class="dh-card-body">
+              <p class="results-summary-label">Tổng số phương án</p>
+              <p class="results-summary-value" id="results-total">–</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="dh-card results-summary-card h-100">
+            <div class="dh-card-body">
+              <p class="results-summary-label">Phương án điểm cao nhất</p>
+              <p class="results-summary-value" id="results-top-name">–</p>
+              <p class="results-summary-hint dh-muted dh-small" id="results-top-score"></p>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="dh-card results-summary-card h-100">
+            <div class="dh-card-body">
+              <p class="results-summary-label">Trạng thái phân tích</p>
+              <p class="results-summary-value">
+                <span class="dh-status dh-status-success">✓ Đã hoàn thành</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="row g-4">
+        <!-- B. Danh sách xếp hạng -->
+        <div class="col-12 col-lg-5">
+          <section class="dh-card" aria-labelledby="results-ranking-title">
+            <div class="dh-card-header">
+              <h2 class="dh-section-title" id="results-ranking-title">Bảng xếp hạng</h2>
+              <span class="dh-muted dh-small">Chọn một phương án để xem giải thích</span>
+            </div>
+            <div class="dh-card-body">
+              <ul class="results-rank-list" id="results-ranking-list"></ul>
+            </div>
+          </section>
+        </div>
+
+        <!-- C. Khung giải thích -->
+        <div class="col-12 col-lg-7">
+          <section class="dh-card results-explain-card" id="results-explanation" aria-labelledby="results-explanation-title" aria-live="polite">
+            <div class="dh-card-header">
+              <h2 class="dh-section-title" id="results-explanation-title">Giải thích kết quả</h2>
+            </div>
+            <div class="dh-card-body" id="results-explanation-body"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/pages/results.js"></script>
+</body>
+</html>
