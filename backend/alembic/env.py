@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import model để Alembic nhận diện toàn bộ metadata
+from app.modules.food import models_food  # noqa: F401
 from app.modules.travel import models as travel_models  # noqa: F401
 from app.modules.users import models  # noqa: F401
 

@@ -26,7 +26,7 @@ def upgrade() -> None:
     """
     op.add_column("users", sa.Column("username", sa.String(length=50), nullable=True))
     op.execute("UPDATE users SET username = CONCAT('legacy_user_', id) WHERE username IS NULL")
-    op.alter_column("users", "username", nullable=False)
+    op.alter_column("users", "username", existing_type=sa.String(length=50), nullable=False)
     op.create_unique_constraint("uq_users_username", "users", ["username"])
 
 
