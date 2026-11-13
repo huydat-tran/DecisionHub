@@ -113,6 +113,128 @@
             </div>
           </div>
 
+          <!-- Form gợi ý món ăn theo tiêu chí (Food Recommendation) -->
+          <section class="dh-card mb-4" aria-labelledby="food-recommend-title">
+            <div class="dh-card-header">
+              <div>
+                <h2
+                  id="food-recommend-title"
+                  class="dh-section-title mb-0"
+                  style="font-size: 16px"
+                >
+                  Gợi ý món ăn theo tiêu chí
+                </h2>
+                <small class="dh-muted"
+                  >Nhập ngân sách tối đa, loại bữa ăn và nguyên liệu cần tránh</small
+                >
+              </div>
+            </div>
+            <div class="dh-card-body">
+              <form id="food-recommend-form" novalidate>
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-max-budget">
+                        Ngân sách tối đa (VNĐ) <span class="text-danger">*</span>
+                      </label>
+                      <input
+                        id="food-max-budget"
+                        name="max_budget"
+                        class="dh-input"
+                        type="number"
+                        min="1000"
+                        step="1000"
+                        inputmode="numeric"
+                        placeholder="VD: 50000"
+                        aria-describedby="food-max-budget-help food-max-budget-error"
+                        required
+                      />
+                      <span id="food-max-budget-help" class="dh-help">
+                        Số tiền lớn hơn 0 (đơn vị VNĐ).
+                      </span>
+                      <span
+                        id="food-max-budget-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-meal-type">
+                        Loại bữa ăn <span class="text-danger">*</span>
+                      </label>
+                      <select
+                        id="food-meal-type"
+                        name="meal_type"
+                        class="dh-select"
+                        aria-describedby="food-meal-type-error"
+                        required
+                      >
+                        <option value="">-- Chọn loại bữa ăn --</option>
+                        <option value="breakfast">Bữa sáng</option>
+                        <option value="lunch">Bữa trưa</option>
+                        <option value="dinner">Bữa tối</option>
+                        <option value="snack">Bữa phụ / Ăn vặt</option>
+                      </select>
+                      <span
+                        id="food-meal-type-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-avoid-ingredients">
+                        Nguyên liệu cần tránh
+                      </label>
+                      <input
+                        id="food-avoid-ingredients"
+                        name="avoid_ingredients"
+                        class="dh-input"
+                        type="text"
+                        maxlength="200"
+                        placeholder="VD: hành, hải sản, đậu phộng"
+                        aria-describedby="food-avoid-ingredients-help food-avoid-ingredients-error"
+                      />
+                      <span id="food-avoid-ingredients-help" class="dh-help">
+                        Tùy chọn, phân tách nhiều nguyên liệu bằng dấu phẩy.
+                      </span>
+                      <span
+                        id="food-avoid-ingredients-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button type="submit" class="dh-btn dh-btn-primary">
+                    Gợi ý món ăn
+                  </button>
+                  <button
+                    type="reset"
+                    id="btn-food-recommend-reset"
+                    class="dh-btn dh-btn-outline"
+                  >
+                    Đặt lại form
+                  </button>
+                </div>
+
+                <div
+                  id="food-recommend-status"
+                  class="food-form-status d-none mt-3"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+              </form>
+            </div>
+          </section>
+
           <!-- Bộ lọc & Tìm kiếm Food -->
           <section class="dh-card mb-4">
             <div class="dh-card-body">
@@ -288,6 +410,7 @@
       </main>
     </div>
 
+    <script src="../js/utils.js"></script>
     <script src="../js/pages/food.js"></script>
   </body>
 </html>
