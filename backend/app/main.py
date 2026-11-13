@@ -11,6 +11,7 @@ from app.common.exceptions import register_exception_handlers
 from app.common.responses import success_response
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
+from app.modules.travel.router import router as travel_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -30,10 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Khi module nghiệp vụ có router, đăng ký tại đây:
-# from app.modules.food import router as food_router
-# app.include_router(food_router.router, prefix="/api/v1/food", tags=["Food"])
+# Đăng ký routers nghiệp vụ
 app.include_router(auth_router)
+app.include_router(travel_router)
 
 
 @app.get("/health", summary="Kiểm tra sức khỏe hệ thống", tags=["Hệ thống"])
