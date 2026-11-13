@@ -120,13 +120,17 @@ Sinh migration mới sau khi đổi `models.py`:
 alembic revision --autogenerate -m "mô tả thay đổi"
 ```
 
-**Bước 3 — Nạp dữ liệu mẫu** (`sql/seeds/users.sql`):
+**Bước 3 — Nạp dữ liệu mẫu** (`sql/seeds/`):
 
 ```bash
 mysql -u root -p decision_hub < sql/seeds/users.sql
+mysql -u root -p decision_hub < sql/seeds/foods.sql
+mysql -u root -p decision_hub < sql/seeds/travel_places.sql
+mysql -u root -p decision_hub < sql/seeds/decision_criteria.sql
+mysql -u root -p decision_hub < sql/seeds/hard_constraints.sql
 ```
 
-File seed dùng `INSERT IGNORE` (roles) và `INSERT ... WHERE NOT EXISTS` (users) nên
+Các file seed đều dùng `INSERT IGNORE` hoặc `WHERE NOT EXISTS` nên
 **chạy lại nhiều lần không tạo bản ghi trùng**.
 
 | Nội dung | Ở đâu |
