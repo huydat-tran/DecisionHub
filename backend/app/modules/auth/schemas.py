@@ -1,8 +1,8 @@
 """Pydantic schemas cho module Auth (đăng ký / đăng nhập)."""
 
-from datetime import datetime
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from app.modules.users.schemas import UserProfile
 
 # bcrypt chỉ xử lý tối đa 72 byte mật khẩu (sau khi encode UTF-8).
 BCRYPT_MAX_PASSWORD_BYTES = 72
@@ -46,16 +46,8 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class UserData(BaseModel):
-    """Thông tin tài khoản được trả về (không chứa password / password_hash)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    username: str
-    email: EmailStr
-    role: str
-    created_at: datetime
+# Giữ tên UserData để không phá vỡ code đang dùng; nội dung giống UserProfile.
+UserData = UserProfile
 
 
 class TokenData(BaseModel):
