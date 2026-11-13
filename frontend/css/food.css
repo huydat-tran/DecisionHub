@@ -64,3 +64,21 @@
   display: flex;
   gap: 25%;
 }
+
+.food-page .food-input-invalid {
+  border-color: var(--dh-danger);
+}
+
+.food-page .food-input-invalid:focus {
+  border-color: var(--dh-danger);
+  box-shadow: 0 0 0 3px rgba(194, 65, 59, 0.12);
+}
+
+.food-page .food-form-status {
+  padding: 12px 14px;
+  border-radius: var(--dh-radius-md);
+  font-size: 13px;
+  color: var(--dh-text);
+  background: var(--dh-primary-soft);
+  border: 1px solid rgba(22, 132, 91, 0.25);
+}
