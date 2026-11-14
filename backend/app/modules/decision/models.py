@@ -26,18 +26,31 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
+DECISION_DOMAINS = ("food", "travel")
+
 
 class DecisionCriterion(Base):
-    """Tiêu chí đánh giá dùng trong thuật toán tính điểm quyết định."""
+    """Tiêu chí đánh giá dùng chung cho Food và Travel.
+
+    Cặp (domain, name) là duy nhất. `direction` cho biết chiều tối ưu khi
+    chuẩn hóa (min hoặc max). Engine đọc direction từ dữ liệu, không gắn
+    cứng chiều cho từng tiêu chí.
+    """
 
     __tablename__ = "decision_criteria"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    domain: Mapped[str] = mapped_column(String(20), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     direction: Mapped[str] = mapped_column(String(10), nullable=False)
     weight: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False)
 
     __table_args__ = (
+        UniqueConstraint("domain", "name", name="uq_decision_criteria_domain_name"),
+        CheckConstraint(
+            "domain IN ('food', 'travel')",
+            name="ck_decision_criteria_domain",
+        ),
         CheckConstraint(
             "direction IN ('min', 'max')",
             name="ck_decision_criteria_direction",
