@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.modules.food.schemas_food import (
     FoodDetailResponse,
+    FoodListResponse,
     FoodQuickSearchFilters,
     FoodQuickSearchResponse,
     FoodRecommendRequest,
@@ -14,12 +15,26 @@ from app.modules.food.schemas_food import (
     MealType,
 )
 from app.modules.food.services import (
+    get_all_foods,
     get_food_detail,
     quick_search_foods,
     recommend_foods,
 )
 
 router = APIRouter(prefix="/api/v1/food", tags=["Food"])
+
+
+@router.get(
+    "",
+    response_model=FoodListResponse,
+    summary="Lấy danh sách tất cả món ăn",
+)
+def list_foods(
+    db: Session = Depends(get_db),
+) -> FoodListResponse:
+    """Trả về danh sách toàn bộ món ăn đang hoạt động."""
+    foods = get_all_foods(db=db)
+    return FoodListResponse(message="Lấy danh sách món ăn thành công.", data=foods)
 
 
 @router.get(
