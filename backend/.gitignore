@@ -17,5 +17,3 @@ env/
 # IDE
 .vscode/
 .idea/
-../agents
-../skills-lock.json 
