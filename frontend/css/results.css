@@ -4,37 +4,6 @@
    không ghi đè token hay selector toàn cục.
    ========================================================== */
 
-/* ---------- Bộ chọn phân hệ Đề xuất (Food / Travel) ---------- */
-.results-page #results-module-selector {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.results-page #results-module-selector .dh-chip {
-  padding: 8px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: var(--dh-radius-full, 9999px);
-  border: 1.5px solid var(--dh-border, #E3EBE6);
-  background: var(--dh-surface, #ffffff);
-  color: var(--dh-text, #172B23);
-  cursor: pointer;
-  transition: all var(--dh-transition, 0.2s ease);
-}
-
-.results-page #results-module-selector .dh-chip:hover {
-  background: var(--dh-surface-subtle, #f5f8f6);
-  border-color: var(--dh-border-strong, #CBDAD2);
-}
-
-.results-page #results-module-selector .dh-chip.active {
-  background: var(--dh-primary, #16845B);
-  border-color: var(--dh-primary, #16845B);
-  color: #ffffff;
-  box-shadow: var(--dh-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
-}
-
 /* ---------- Ảnh món ăn trong khung giải thích & danh sách ---------- */
 .results-page .results-explain-title-group {
   display: flex;
