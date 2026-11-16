@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <rect width="160" height="160" rx="20" fill="#F8FAFC"/>
+  <!-- Đĩa cơm tấm lớn hình tròn viền xanh ngọc -->
+  <circle cx="80" cy="82" r="62" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4"/>
+  <circle cx="80" cy="82" r="54" fill="#F1F5F9"/>
+  <!-- Phần cơm tấm úp bát tròn hạt tấm dẻo thơm -->
+  <ellipse cx="62" cy="74" rx="28" ry="22" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <circle cx="58" cy="70" r="1.5" fill="#CBD5E1"/>
+  <circle cx="68" cy="72" r="1.5" fill="#CBD5E1"/>
+  <circle cx="62" cy="78" r="1.5" fill="#CBD5E1"/>
+  <!-- Mỡ hành bóng bẩy rải lên cơm -->
+  <circle cx="56" cy="65" r="2.5" fill="#16A34A"/>
+  <circle cx="64" cy="63" r="3" fill="#22C55E"/>
+  <circle cx="70" cy="67" r="2.5" fill="#15803D"/>
+  <!-- Miếng sườn nướng mỡ màng thơm phức -->
+  <path d="M72,78 C80,68 115,64 122,76 C126,84 120,105 106,108 C90,111 76,96 72,78 Z" fill="#9A3412" stroke="#7C2D12" stroke-width="2"/>
+  <!-- Vết nướng than hoa trên miếng sườn -->
+  <line x1="86" y1="74" x2="108" y2="84" stroke="#431407" stroke-width="3" stroke-linecap="round"/>
+  <line x1="88" y1="88" x2="114" y2="96" stroke="#431407" stroke-width="3" stroke-linecap="round"/>
+  <!-- Chả trứng hấp vàng tươi một góc -->
+  <polygon points="50,96 70,92 68,110 46,110" fill="#FBBF24" stroke="#D97706" stroke-width="1.5"/>
+  <rect x="52" y="94" width="16" height="3" fill="#DC2626"/>
+  <!-- Dưa chuột thái lát và cà chua -->
+  <circle cx="42" cy="72" r="8" fill="#4ADE80" stroke="#16A34A" stroke-width="1.5"/>
+  <circle cx="44" cy="86" r="8" fill="#EF4444" stroke="#DC2626" stroke-width="1.5"/>
+  <!-- Chén nước mắm ớt chua ngọt nhỏ bên cạnh -->
+  <circle cx="108" cy="52" r="12" fill="#FEF08A" stroke="#F59E0B" stroke-width="2"/>
+  <circle cx="108" cy="52" r="2" fill="#DC2626"/>
+</svg>

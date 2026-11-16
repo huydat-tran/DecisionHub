@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <rect width="160" height="160" rx="20" fill="#FEF2F2"/>
+  <!-- Bếp cồn / đế nồi lẩu -->
+  <ellipse cx="80" cy="128" rx="42" ry="12" fill="#94A3B8"/>
+  <ellipse cx="80" cy="124" rx="36" ry="8" fill="#F97316" opacity="0.8"/>
+  <!-- Nồi lẩu mini inox sáng bóng với 2 quai cầm -->
+  <path d="M22,78 C24,116 52,126 80,126 C108,126 136,116 138,78 Z" fill="#E2E8F0" stroke="#64748B" stroke-width="2.5"/>
+  <!-- Quai cầm hai bên -->
+  <path d="M18,74 C10,74 10,90 20,90" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <path d="M142,74 C150,74 150,90 140,90" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <!-- Nước lẩu Thái chua cay đỏ cam đậm đà -->
+  <ellipse cx="80" cy="78" rx="55" ry="24" fill="#EA580C" stroke="#C2410C" stroke-width="2"/>
+  <!-- Đồ nhúng: tôm đỏ tươi -->
+  <path d="M50,72 C55,60 70,62 68,76 C66,80 58,82 50,72 Z" fill="#EF4444" stroke="#B91C1C" stroke-width="1.5"/>
+  <!-- Nấm kim châm / nấm đông cô -->
+  <circle cx="94" cy="74" r="8" fill="#78350F"/>
+  <line x1="88" y1="74" x2="100" y2="74" stroke="#FEF3C7" stroke-width="2"/>
+  <line x1="94" y1="68" x2="94" y2="80" stroke="#FEF3C7" stroke-width="2"/>
+  <!-- Đậu phụ non mềm trắng -->
+  <rect x="74" y="68" width="14" height="12" rx="2" fill="#FEF9C3" stroke="#FDE047" stroke-width="1.5"/>
+  <!-- Rau cải, bắp ngọt vàng tươi -->
+  <circle cx="106" cy="80" r="7" fill="#FACC15"/>
+  <circle cx="58" cy="84" r="6" fill="#22C55E"/>
+  <circle cx="70" cy="86" r="5" fill="#16A34A"/>
+  <circle cx="86" cy="86" r="6" fill="#15803D"/>
+  <!-- Bong bóng nước lẩu sôi sùng sục -->
+  <circle cx="80" cy="76" r="3" fill="#FED7AA" opacity="0.8"/>
+  <circle cx="64" cy="74" r="2" fill="#FED7AA" opacity="0.8"/>
+  <circle cx="98" cy="84" r="2.5" fill="#FED7AA" opacity="0.8"/>
+  <!-- Khói hương thơm ngào ngạt -->
+  <path d="M68,44 Q62,32 70,20" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <path d="M82,40 Q90,28 84,16" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  <path d="M96,44 Q90,32 98,20" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+</svg>

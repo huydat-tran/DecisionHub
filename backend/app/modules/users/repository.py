@@ -1,7 +1,7 @@
 """Truy vấn dữ liệu người dùng và vai trò (module Users)."""
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.modules.users.models import Role, User
 
@@ -15,6 +15,12 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 def get_user_by_username(db: Session, username: str) -> User | None:
     """Lấy user theo username, trả về None nếu không tồn tại."""
     stmt = select(User).where(User.username == username)
+    return db.execute(stmt).scalar_one_or_none()
+
+
+def get_user_by_id(db: Session, user_id: int) -> User | None:
+    """Lấy user theo id (kèm quan hệ role), trả về None nếu không tồn tại."""
+    stmt = select(User).options(selectinload(User.role)).where(User.id == user_id)
     return db.execute(stmt).scalar_one_or_none()
 
 

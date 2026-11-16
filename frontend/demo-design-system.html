@@ -20,14 +20,17 @@
     </a>
     <div class="dh-nav-label">Workspace</div>
     <nav class="dh-nav" aria-label="Điều hướng chính">
-      <a class="dh-nav-link active" href="demo-design-system.html">
+      <a class="dh-nav-link active" href="demo-design-system.html" aria-current="page">
         <span class="dh-nav-icon">⌂</span> Tổng quan
       </a>
       <a class="dh-nav-link" href="pages/food.html">
-        <span class="dh-nav-icon">✦</span> Đề xuất món ăn
+        <span class="dh-nav-icon">✦</span> Khám phá món ăn
       </a>
       <a class="dh-nav-link" href="pages/travel.html">
         <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+      </a>
+      <a class="dh-nav-link" href="pages/results.html">
+        <span class="dh-nav-icon">☰</span> Đề xuất
       </a>
       <a class="dh-nav-link" href="pages/history.html">
         <span class="dh-nav-icon">◷</span> Lịch sử
@@ -37,9 +40,6 @@
     <nav class="dh-nav">
       <a class="dh-nav-link" href="docs/UI-GUIDELINES.md" target="_blank">
         <span class="dh-nav-icon">📘</span> UI Guidelines
-      </a>
-      <a class="dh-nav-link" href="pages/items.html">
-        <span class="dh-nav-icon">📦</span> Items (CRUD mẫu)
       </a>
     </nav>
     <div class="dh-sidebar-bottom">
@@ -125,11 +125,14 @@
                   <span style="font-size:28px;">🍲</span>
                   <span class="dh-status dh-status-success">P0 · Bắt buộc</span>
                 </div>
-                <h3 class="dh-section-title" style="font-size:16px;">WhatShouldIEat (Đề xuất món ăn)</h3>
+                <h3 class="dh-section-title" style="font-size:16px;">WhatShouldIEat (Khám phá & Đề xuất món ăn)</h3>
                 <p class="dh-muted mb-3 flex-grow-1" style="font-size:13px;">
                   Tìm kiếm món ăn và gợi ý thông minh dựa trên ngân sách, bữa ăn, thời gian chuẩn bị và nguyên liệu cần tránh với mô hình WSM.
                 </p>
-                <a href="pages/food.html" class="dh-btn dh-btn-primary dh-btn-sm">Mở Đề xuất món ăn →</a>
+                <div class="d-flex gap-2 flex-wrap">
+                  <a href="pages/food.html" class="dh-btn dh-btn-primary dh-btn-sm">Khám phá món ăn →</a>
+                  <a href="pages/results.html" class="dh-btn dh-btn-outline dh-btn-sm">Xem trang Đề xuất (WSM) →</a>
+                </div>
               </div>
             </div>
           </div>
@@ -412,3 +415,22 @@
     </div>
   </main>
 </div>
+
+<script>
+  // Xử lý đóng/mở menu sidebar trên mobile
+  const sidebarEl = document.querySelector(".dh-sidebar");
+  const sidebarToggleEl = document.querySelector("[data-sidebar-toggle]");
+  if (sidebarToggleEl && sidebarEl) {
+    sidebarToggleEl.addEventListener("click", () => {
+      const isOpen = sidebarEl.classList.toggle("is-open");
+      sidebarToggleEl.setAttribute("aria-expanded", String(isOpen));
+    });
+    document.addEventListener("click", (event) => {
+      if (event.target.closest(".dh-sidebar, [data-sidebar-toggle]")) return;
+      sidebarEl.classList.remove("is-open");
+      sidebarToggleEl.setAttribute("aria-expanded", "false");
+    });
+  }
+</script>
+</body>
+</html>
