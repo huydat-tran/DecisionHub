@@ -58,13 +58,14 @@
     </div>
     <div class="dh-navbar-right">
       <a href="../demo-design-system.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về Tổng quan</a>
-      <div class="dh-user-chip">
-        <span class="dh-avatar">DH</span>
+      <a href="profile.html" class="dh-user-chip d-none" data-user-chip>
+        <span class="dh-avatar" data-user-avatar>DH</span>
         <span class="dh-user-name">
-          <strong class="d-block" style="font-size:13px">Thành viên</strong>
-          <small class="dh-muted">Nhóm 6</small>
+          <strong class="d-block" style="font-size:13px" data-user-name>Thành viên</strong>
+          <small class="dh-muted" data-user-role>Thành viên</small>
         </span>
-      </div>
+      </a>
+      <a href="signup.html" class="dh-btn dh-btn-sm dh-btn-primary" style="text-decoration:none;" data-login-btn>Đăng nhập</a>
     </div>
   </header>
 
@@ -149,7 +150,11 @@
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
 <script src="../js/utils.js"></script>
+<script src="../js/navbar-auth.js"></script>
 <script src="../js/pages/results.js"></script>
 </body>
 </html>
