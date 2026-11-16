@@ -1,4 +1,4 @@
-from app.modules.decision.decision_request import DecisionRecommendRequest
+from app.modules.decision.schema import DecisionRecommendRequest
 
 from app.modules.decision.decision_response import (
     AppliedFilters,

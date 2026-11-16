@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.modules.decision.decision_request import DecisionRecommendRequest
+from app.modules.decision.schema import DecisionRecommendRequest
 from app.modules.decision.decision_response import DecisionResponse
 from app.modules.decision.mock_data import build_mock_response
 
