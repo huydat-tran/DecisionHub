@@ -176,6 +176,17 @@ def quick_search_foods(
     return data, message
 
 
+def get_all_foods(db: Session) -> list[FoodOut]:
+    """Lấy danh sách tất cả món ăn đang hoạt động."""
+    stmt = (
+        select(Food)
+        .options(selectinload(Food.ingredients))
+        .where(Food.is_active.is_(True))
+        .order_by(Food.id.asc())
+    )
+    return [FoodOut.model_validate(food) for food in db.scalars(stmt).all()]
+
+
 def get_food_detail(db: Session, food_id: int) -> FoodOut:
     """Lấy thông tin chi tiết của một món ăn đang hoạt động theo ID."""
     stmt = (

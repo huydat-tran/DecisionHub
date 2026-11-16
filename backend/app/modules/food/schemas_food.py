@@ -149,6 +149,14 @@ class FoodQuickSearchResponse(BaseModel):
     data: FoodQuickSearchData
 
 
+class FoodListResponse(BaseModel):
+    """Response chuẩn cho API lấy danh sách tất cả món ăn."""
+
+    success: bool = True
+    message: str
+    data: list[FoodOut]
+
+
 class FoodDetailResponse(BaseModel):
     """Response chuẩn cho API chi tiết món ăn."""
 
