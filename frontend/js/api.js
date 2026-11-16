@@ -27,11 +27,11 @@ const http = axios.create({
 });
 
 // Muốn gửi token đăng nhập cho mọi request (khi nhóm làm chức năng login), bỏ comment đoạn dưới:
-// http.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) config.headers.Authorization = `Bearer ${token}`;
-//   return config;
-// });
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 // Lấy câu thông báo lỗi dễ đọc từ response của FastAPI
 function getErrorMessage(data, status) {
@@ -63,5 +63,6 @@ const api = {
   get: (path, params) => http.get(path, { params }).then((res) => res.data),
   post: (path, body) => http.post(path, body).then((res) => res.data),
   put: (path, body) => http.put(path, body).then((res) => res.data),
+  patch: (path, body) => http.patch(path, body).then((res) => res.data),
   delete: (path) => http.delete(path).then((res) => res.data),
 };

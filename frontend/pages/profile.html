@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hồ sơ cá nhân (Profile) – DecisionHub</title>
+  <link rel="icon" href="../assets/images/logo.svg">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/common.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/profile.css">
+</head>
+<body class="profile-page" data-navbar-auth="skip">
+<div class="dh-app">
+  <!-- Sidebar điều hướng chuẩn -->
+  <aside class="dh-sidebar">
+    <a class="dh-brand" href="../demo-design-system.html">
+      <span class="dh-brand-mark">D</span>
+      <span class="dh-brand-name">DecisionHub</span>
+    </a>
+    <div class="dh-nav-label">Workspace</div>
+    <nav class="dh-nav" aria-label="Điều hướng chính">
+      <a class="dh-nav-link" href="../demo-design-system.html">
+        <span class="dh-nav-icon">⌂</span> Tổng quan
+      </a>
+      <a class="dh-nav-link" href="food.html">
+        <span class="dh-nav-icon">✦</span> Khám phá món ăn
+      </a>
+      <a class="dh-nav-link" href="travel.html">
+        <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+      </a>
+      <a class="dh-nav-link" href="results.html">
+        <span class="dh-nav-icon">☰</span> Đề xuất
+      </a>
+      <a class="dh-nav-link" href="history.html">
+        <span class="dh-nav-icon">◷</span> Lịch sử
+      </a>
+    </nav>
+    <div class="dh-nav-label">Tài liệu</div>
+    <nav class="dh-nav">
+      <a class="dh-nav-link" href="../docs/UI-GUIDELINES.md" target="_blank">
+        <span class="dh-nav-icon">📘</span> UI Guidelines
+      </a>
+    </nav>
+    <div class="dh-sidebar-bottom">
+      <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 · Users Module</div>
+    </div>
+  </aside>
+
+  <!-- Navbar chuẩn -->
+  <header class="dh-navbar">
+    <div class="dh-navbar-left">
+      <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
+      <div class="dh-navbar-search">
+        <input class="dh-input" type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm">
+      </div>
+    </div>
+    <div class="dh-navbar-right">
+      <a href="../demo-design-system.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về Tổng quan</a>
+      <a href="profile.html" class="dh-user-chip d-none" data-user-chip aria-current="page">
+        <span class="dh-avatar" id="nav-avatar" data-user-avatar>DH</span>
+        <span class="dh-user-name">
+          <strong class="d-block" style="font-size:13px" id="nav-username" data-user-name>Thành viên</strong>
+          <small class="dh-muted" id="nav-role" data-user-role>Thành viên</small>
+        </span>
+      </a>
+      <a href="signup.html" class="dh-btn dh-btn-sm dh-btn-primary" style="text-decoration:none;" data-login-btn>Đăng nhập</a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dh-main">
+    <div class="dh-page">
+      <div class="dh-page-heading">
+        <div>
+          <p class="dh-eyebrow">Phân hệ P1 · Users</p>
+          <h1 class="dh-page-title">Hồ sơ cá nhân</h1>
+          <p class="dh-page-description">Thông tin tài khoản DecisionHub của bạn và các tuỳ chỉnh hiện có.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-profile-refresh">↻ Tải lại</button>
+          <button class="dh-btn dh-btn-sm dh-btn-primary d-none" id="btn-profile-edit">Chỉnh sửa hồ sơ</button>
+        </div>
+      </div>
+
+      <!-- Trạng thái chưa đăng nhập -->
+      <section class="dh-card d-none" id="profile-auth-required">
+        <div class="dh-empty-state">
+          <div class="dh-empty-icon">🔒</div>
+          <div class="dh-empty-title">Bạn chưa đăng nhập</div>
+          <p class="dh-empty-desc">Hồ sơ cá nhân chỉ hiển thị với tài khoản đang đăng nhập. Hãy đăng nhập để xem và chỉnh sửa thông tin.</p>
+          <a class="dh-btn dh-btn-primary" href="signup.html">Đăng nhập ngay</a>
+        </div>
+      </section>
+
+      <!-- Lỗi tải dữ liệu -->
+      <section class="dh-card d-none" id="profile-error">
+        <div class="dh-empty-state">
+          <div class="dh-empty-icon">⚠️</div>
+          <div class="dh-empty-title">Không tải được hồ sơ</div>
+          <p class="dh-empty-desc" id="profile-error-text">Đã xảy ra lỗi. Vui lòng thử lại.</p>
+          <button class="dh-btn dh-btn-outline" id="btn-profile-retry">Thử lại</button>
+        </div>
+      </section>
+
+      <!-- Nội dung hồ sơ -->
+      <div id="profile-content" class="d-none">
+
+        <!-- Profile Hero: nơi dồn toàn bộ điểm nhấn thị giác của trang -->
+        <section class="profile-hero" aria-labelledby="profile-hero-name">
+          <div class="profile-hero-grid" aria-hidden="true"></div>
+          <div class="profile-hero-glow" aria-hidden="true"></div>
+
+          <div class="profile-hero-main">
+            <div class="profile-monogram" id="profile-monogram" aria-hidden="true">DH</div>
+            <div class="profile-hero-text">
+              <p class="profile-hero-label">Hồ sơ cá nhân</p>
+              <h2 class="profile-hero-name" id="profile-hero-name">Thành viên</h2>
+              <p class="profile-hero-email" id="profile-hero-email">—</p>
+              <div class="profile-hero-tags">
+                <span class="profile-hero-tag" id="profile-hero-role">Vai trò: —</span>
+                <span class="profile-hero-tag" id="profile-hero-created">Thành viên từ —</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Thanh thao tác: chỉ hiện khi vào chế độ chỉnh sửa -->
+          <div class="profile-hero-actions d-none" id="profile-edit-bar">
+            <span class="profile-edit-hint" id="profile-edit-hint">Chỉ tên người dùng có thể thay đổi.</span>
+            <button class="dh-btn dh-btn-sm dh-btn-secondary" id="btn-profile-cancel">Hủy</button>
+            <button class="dh-btn dh-btn-sm dh-btn-primary" id="btn-profile-save">Lưu thay đổi</button>
+          </div>
+        </section>
+
+        <!-- Sheet: một bề mặt duy nhất, chia bằng đường kẻ mảnh -->
+        <section class="profile-sheet">
+          <div class="profile-sheet-grid">
+
+            <!-- Thông tin cá nhân -->
+            <div class="profile-column">
+              <h3 class="profile-section-title">Thông tin cá nhân</h3>
+              <p class="profile-section-desc">Thông tin hiển thị cùng tài khoản của bạn.</p>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Tên người dùng</span>
+                  <span class="profile-row-note">Dùng để nhận diện trong DecisionHub</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="profile-value-text" id="profile-username-text">—</span>
+                  <div class="profile-edit-field d-none" id="profile-username-field">
+                    <input class="dh-input" type="text" id="profile-username-input" maxlength="50"
+                           aria-describedby="profile-username-help">
+                    <span class="dh-error d-none" id="profile-username-error"></span>
+                    <span class="dh-help" id="profile-username-help">Tối thiểu 5 ký tự, tối đa 50 ký tự.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Email</span>
+                  <span class="profile-row-note">Dùng để đăng nhập</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="profile-value-text" id="profile-email-text">—</span>
+                  <span class="profile-locked">Đang khóa</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thông tin tài khoản -->
+            <div class="profile-column">
+              <h3 class="profile-section-title">Thông tin tài khoản</h3>
+              <p class="profile-section-desc">Các thông tin hệ thống quản lý, không thể sửa tại đây.</p>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Mã tài khoản</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="profile-value-text profile-value-mono" id="profile-id-text">—</span>
+                </div>
+              </div>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Vai trò</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="profile-value-text" id="profile-role-text">—</span>
+                </div>
+              </div>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Ngày tham gia</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="profile-value-text" id="profile-created-text">—</span>
+                </div>
+              </div>
+
+              <div class="profile-row">
+                <div class="profile-row-label">
+                  <span class="profile-row-name">Trạng thái</span>
+                </div>
+                <div class="profile-row-value">
+                  <span class="dh-status dh-status-success">Đã xác thực</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script src="../js/pages/profile.js"></script>
+</body>
+</html>

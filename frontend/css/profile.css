@@ -1,0 +1,304 @@
+/* ==========================================================
+   CSS riêng cho trang Hồ sơ cá nhân (Profile)
+   Tuân thủ UI Guidelines: namespace .profile-page, không ghi
+   đè token dùng chung, chỉ bổ sung thành phần riêng của module.
+   ========================================================== */
+
+/* ---------- Hero: điểm nhấn duy nhất của trang ---------- */
+.profile-page .profile-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: -1px;
+  padding: 30px 32px 28px;
+  color: #fff;
+  background:
+    radial-gradient(120% 140% at 88% -20%, #1B5942 0%, rgba(27, 89, 66, 0) 58%),
+    linear-gradient(135deg, #0E241C 0%, #123528 55%, #0C1F19 100%);
+  border-radius: var(--dh-radius-lg) var(--dh-radius-lg) 0 0;
+}
+
+/* Lưới tín hiệu mảnh nền hero */
+.profile-page .profile-hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(115deg, rgba(0, 0, 0, .9), rgba(0, 0, 0, 0) 78%);
+  pointer-events: none;
+}
+
+/* Quầng sáng nhẹ phía góc phải */
+.profile-page .profile-hero-glow {
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22, 132, 91, .38), rgba(22, 132, 91, 0) 68%);
+  pointer-events: none;
+}
+
+.profile-page .profile-hero-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+/* Ô chữ cái: hình vuông bo góc, không dùng avatar tròn để tránh lặp lại mẫu quen thuộc */
+.profile-page .profile-monogram {
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(145deg, #1E9B6C, #116B49);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 22px;
+  box-shadow: 0 10px 26px rgba(8, 26, 20, .45);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.profile-page .profile-hero-text {
+  min-width: 0;
+}
+
+.profile-page .profile-hero-label {
+  margin: 0 0 4px;
+  color: rgba(255, 255, 255, .62);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.profile-page .profile-hero-name {
+  margin: 0;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.6px;
+  overflow-wrap: anywhere;
+}
+
+.profile-page .profile-hero-email {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, .78);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.profile-page .profile-hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.profile-page .profile-hero-tag {
+  padding: 4px 11px;
+  color: rgba(255, 255, 255, .86);
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Thanh thao tác chỉnh sửa nằm ngay dưới hero, dùng chung nền tối */
+.profile-page .profile-hero-actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, .14);
+}
+
+.profile-page .profile-edit-hint {
+  flex: 1 1 220px;
+  color: rgba(255, 255, 255, .72);
+  font-size: 13px;
+}
+
+/* ---------- Sheet: một bề mặt duy nhất, chia bằng đường kẻ ---------- */
+.profile-page .profile-sheet {
+  background: var(--dh-surface);
+  border: 1px solid var(--dh-border);
+  border-top: 0;
+  border-radius: 0 0 var(--dh-radius-lg) var(--dh-radius-lg);
+  box-shadow: var(--dh-shadow-md);
+}
+
+.profile-page .profile-sheet-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.profile-page .profile-column {
+  padding: 26px 30px 28px;
+}
+
+.profile-page .profile-column + .profile-column {
+  border-left: 1px solid var(--dh-border);
+}
+
+.profile-page .profile-section-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.profile-page .profile-section-desc {
+  margin: 4px 0 0;
+  color: var(--dh-text-muted);
+  font-size: 13px;
+}
+
+/* Hàng thông tin: nhãn bên trái, giá trị bên phải */
+.profile-page .profile-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--dh-border);
+}
+
+.profile-page .profile-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-page .profile-row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-page .profile-row-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-page .profile-row-note {
+  color: var(--dh-text-muted);
+  font-size: 12px;
+}
+
+.profile-page .profile-row-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  text-align: right;
+}
+
+.profile-page .profile-value-text {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.profile-page .profile-value-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+}
+
+.profile-page .profile-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  color: var(--dh-text-muted);
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-page .profile-edit-field {
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+
+.profile-page .profile-edit-field .dh-input {
+  min-height: 40px;
+}
+
+.profile-page .profile-edit-field .dh-input.is-invalid {
+  border-color: var(--dh-danger);
+  box-shadow: 0 0 0 3px rgba(194, 65, 59, .12);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 991.98px) {
+  .profile-page .profile-sheet-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-page .profile-column + .profile-column {
+    border-left: 0;
+    border-top: 1px solid var(--dh-border);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .profile-page .profile-hero {
+    padding: 22px 20px 20px;
+  }
+
+  .profile-page .profile-monogram {
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    font-size: 21px;
+  }
+
+  .profile-page .profile-hero-main {
+    gap: 16px;
+  }
+
+  .profile-page .profile-hero-name {
+    font-size: 26px;
+  }
+
+  .profile-page .profile-column {
+    padding: 20px 18px 22px;
+  }
+
+  .profile-page .profile-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .profile-page .profile-row-value {
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+  }
+
+  .profile-page .profile-edit-field {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-page * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
