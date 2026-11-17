@@ -1,66 +1,215 @@
 /* ==========================================================
    CSS riêng cho phân hệ Food (WhatShouldIEat)
-   Tuân thủ UI Guidelines: Sử dụng namespace .food-page
-   Không ghi đè các token toàn cục
    ========================================================== */
-
-.food-page .food-card-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: var(--dh-radius-sm);
-}
-
-.food-page .food-price-tag {
-  color: var(--dh-primary);
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.food-page .food-time-tag {
-  color: var(--dh-text-muted);
-  font-size: 12px;
-}
-
-.food-page .food-item-card {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-  border: 1px solid var(--dh-border);
-}
-
-.food-page .food-item-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--dh-shadow-md);
-  border-color: var(--dh-border-strong);
-}
 
 #food-results-grid {
   display: flex;
   justify-content: center;
-  gap: 4%;
+  gap: 3%;
 }
-.card-title {
-  font-size: 150%;
+
+#food-results-grid .card {
+  border-radius: 14px;
+  overflow: hidden;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+#food-results-grid .card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.card {
+  display: flex;
+  width: 500px;
 }
 
 .card-title {
-  margin-bottom: 0%;
+  font-size: 150%;
+  margin-bottom: 0;
 }
 
 .card-text {
   width: 100%;
-  margin-left: 0%;
-  margin-right: 0%;
+  margin-left: 0;
+  margin-right: 0;
+  flex-grow: 1;
 }
 
 .card-body {
   width: 100%;
-  padding-left: 0%;
-  padding-right: 0%;
+  padding-left: 0;
+  padding-right: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-detail-book {
+  margin-top: auto;
+}
+
+.btn-food-detail {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 6px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0d6efd;
+  background-color: transparent;
+  border: 1.5px solid #0d6efd;
+  border-radius: 20px;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.btn-food-detail:hover {
+  background-color: #0d6efd;
+  color: #ffffff;
+}
+
+.card-img-top {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+/* ==========================================================
+   Khối chi tiết món ăn (Modal Overlay căn giữa màn hình, nền đen 50%)
+   ========================================================== */
+#detall_food {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1050;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#detall_food.active {
   display: flex;
-  gap: 25%;
+}
+
+.food-card {
+  width: 100%;
+  max-width: 410px;
+  background-color: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.food-card-image-wrapper {
+  width: 100%;
+  height: 240px;
+  position: relative;
+  overflow: hidden;
+  background-color: #cbd5e1;
+}
+
+.food-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.food-card:hover .food-card-img {
+  transform: scale(1.08);
+}
+
+.image-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.35) 0%,
+    rgba(15, 23, 42, 0) 40%,
+    rgba(15, 23, 42, 0.65) 100%
+  );
+  pointer-events: none;
+}
+
+.category-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(22, 132, 91, 0.95);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 50rem;
+  z-index: 2;
+}
+
+.detail-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #172b23;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.detail-close-btn:hover {
+  background: #ffffff;
+}
+
+.food-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #172b23;
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.food-desc {
+  font-size: 0.85rem;
+  color: #66776f;
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+
+.ingredients-list {
+  max-height: 185px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 0;
+}
+
+.ingredient-item {
+  background-color: #f5f8f6;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 7px;
+}
+
+.ingredient-item:last-child {
+  margin-bottom: 0;
+}
+
+.ingredient-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #172b23;
 }
