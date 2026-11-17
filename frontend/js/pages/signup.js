@@ -180,6 +180,17 @@ function validatePasswordLogin(value) {
     return value ? [] : ["Mật khẩu không được để trống."];
 }
 
+// Chỉ dùng ở frontend: xác nhận mật khẩu phải khớp với mật khẩu đã nhập.
+function validateConfirmPassword(value, password) {
+    if (!value) {
+        return ["Vui lòng xác nhận mật khẩu."];
+    }
+    if (value !== password) {
+        return ["Xác nhận mật khẩu không khớp với mật khẩu đã nhập."];
+    }
+    return [];
+}
+
 // ---------------------------------------------------------------------------
 // Hiển thị lỗi ngay dưới input tương ứng
 // ---------------------------------------------------------------------------
@@ -224,7 +235,7 @@ function setFormAlert(alertId, message) {
 
 const FORM_FIELDS = {
     loginForm: ["loginEmail", "loginPass"],
-    signupForm: ["signupUsername", "signupEmail", "signupPass"],
+    signupForm: ["signupUsername", "signupEmail", "signupPass", "signupConfirmPass"],
 };
 
 function clearAllErrors(formId) {
@@ -342,6 +353,20 @@ bindLiveValidation("signupPass", validatePasswordSignup);
 // Email đăng nhập: chỉ kiểm tra định dạng, không áp dụng quy tắc password.
 bindLiveValidation("loginEmail", validateEmail);
 
+// Xác nhận mật khẩu: kiểm tra khớp với ô mật khẩu khi gõ.
+document.getElementById("signupConfirmPass").addEventListener("input", function () {
+    const password = document.getElementById("signupPass").value;
+    setFieldError("signupConfirmPass", validateConfirmPassword(this.value, password));
+});
+
+// Đổi mật khẩu thì phải kiểm tra lại xác nhận mật khẩu cho khớp.
+document.getElementById("signupPass").addEventListener("input", function () {
+    const confirmInput = document.getElementById("signupConfirmPass");
+    if (confirmInput.value) {
+        setFieldError("signupConfirmPass", validateConfirmPassword(confirmInput.value, this.value));
+    }
+});
+
 document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -396,16 +421,19 @@ document.getElementById('signupForm').addEventListener('submit', async function 
     const username = document.getElementById('signupUsername').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPass').value;
+    const confirmPassword = document.getElementById('signupConfirmPass').value;
 
     clearAllErrors("signupForm");
 
     const usernameErrors = validateUsername(username);
     const emailErrors = validateEmail(email);
     const passwordErrors = validatePasswordSignup(password);
+    const confirmPasswordErrors = validateConfirmPassword(confirmPassword, password);
     setFieldError("signupUsername", usernameErrors);
     setFieldError("signupEmail", emailErrors);
     setFieldError("signupPass", passwordErrors);
-    if (usernameErrors.length || emailErrors.length || passwordErrors.length) {
+    setFieldError("signupConfirmPass", confirmPasswordErrors);
+    if (usernameErrors.length || emailErrors.length || passwordErrors.length || confirmPasswordErrors.length) {
         return;
     }
 

@@ -91,6 +91,17 @@
                         <p class="field-error" id="signupPassError" aria-live="polite"></p>
                     </div>
 
+                    <div class="field-wrap">
+                        <div class="field-container">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="signupConfirmPass" name="confirm_password"
+                                placeholder="Confirm Password" autocomplete="new-password"
+                                aria-describedby="signupConfirmPassError">
+                            <i class="far fa-eye eye-icon" onclick="togglePasswordVisibility('signupConfirmPass', this)"></i>
+                        </div>
+                        <p class="field-error" id="signupConfirmPassError" aria-live="polite"></p>
+                    </div>
+
                     <div class="terms-check">
                         <input type="checkbox" id="acceptTerms">
                         <label for="acceptTerms">I accept the <a href="#">terms and conditions</a></label>
