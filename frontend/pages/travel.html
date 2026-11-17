@@ -86,49 +86,137 @@
         </div>
       </div>
 
-      <!-- Bộ lọc & Tìm kiếm Travel -->
-      <section class="dh-card mb-4">
+      <!-- Form nhập ngân sách, thời lượng, sở thích & bộ lọc Travel -->
+      <section class="dh-card mb-4" aria-labelledby="travel-filter-heading">
+        <div class="dh-card-header">
+          <div>
+            <h2 id="travel-filter-heading" class="dh-section-title mb-0" style="font-size:16px;">Tiêu chí tìm kiếm & gợi ý điểm đến</h2>
+            <small class="dh-muted">Nhập ngân sách dự kiến, thời lượng chuyến đi và sở thích trải nghiệm</small>
+          </div>
+          <div>
+            <span class="dh-status dh-status-info">Bộ lọc thông minh</span>
+          </div>
+        </div>
         <div class="dh-card-body">
-          <div class="d-flex flex-column flex-md-row gap-2 mb-3">
-            <div class="flex-grow-1">
-              <input
-                id="travel-search-input"
-                class="dh-input"
-                type="search"
-                placeholder="Nhập tên địa điểm, tỉnh thành (VD: Hạ Long, Hội An, Đà Lạt, Phú Quốc...)"
-              >
+          <form id="travel-filter-form" onsubmit="return false;" novalidate>
+            <!-- Hàng 1: Từ khóa tìm kiếm & Vùng miền -->
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-lg-7">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="travel-search-input">Tìm kiếm theo tên địa điểm hoặc tỉnh thành</label>
+                  <input
+                    id="travel-search-input"
+                    class="dh-input"
+                    type="search"
+                    placeholder="VD: Hạ Long, Hội An, Đà Lạt, Phú Quốc, Ninh Bình..."
+                    aria-label="Tìm kiếm địa điểm"
+                  >
+                </div>
+              </div>
+              <div class="col-12 col-lg-5">
+                <div class="dh-field mb-0">
+                  <label class="dh-label">Vùng miền</label>
+                  <div class="dh-chip-group mb-0" id="chip-travel-regions">
+                    <span class="dh-chip active" data-region="all">Toàn quốc</span>
+                    <span class="dh-chip" data-region="bac">Miền Bắc</span>
+                    <span class="dh-chip" data-region="trung">Miền Trung</span>
+                    <span class="dh-chip" data-region="nam">Miền Nam</span>
+                    <span class="dh-chip" data-region="tay-nguyen">Tây Nguyên</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <button id="btn-travel-search" class="dh-btn dh-btn-primary">Tìm kiếm</button>
-            <button id="btn-travel-reset" class="dh-btn dh-btn-outline">Đặt lại</button>
-          </div>
 
-          <p class="dh-muted dh-small mb-2">Vùng miền:</p>
-          <div class="dh-chip-group" id="chip-travel-regions">
-            <span class="dh-chip active" data-region="all">Toàn quốc</span>
-            <span class="dh-chip" data-region="bac">Miền Bắc</span>
-            <span class="dh-chip" data-region="trung">Miền Trung</span>
-            <span class="dh-chip" data-region="nam">Miền Nam</span>
-          </div>
+            <!-- Hàng 2: Form 3 tiêu chí chính (Ngân sách, Thời lượng, Sở thích) -->
+            <div class="row g-3 mb-3">
+              <!-- 1. Ngân sách -->
+              <div class="col-12 col-md-4">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="travel-max-budget">
+                    Ngân sách tối đa (VNĐ)
+                  </label>
+                  <input
+                    id="travel-max-budget"
+                    name="max_budget"
+                    class="dh-input"
+                    type="number"
+                    min="100000"
+                    step="100000"
+                    inputmode="numeric"
+                    placeholder="VD: 3000000"
+                    aria-describedby="travel-budget-help"
+                  >
+                  <span id="travel-budget-help" class="dh-help">
+                    Nhập số tiền hoặc chọn mức giá nhanh bên dưới.
+                  </span>
+                  <!-- Quick chips ngân sách -->
+                  <div class="travel-quick-budget" id="chip-travel-budgets">
+                    <span class="dh-chip active" data-budget="all">Tất cả</span>
+                    <span class="dh-chip" data-budget="1000000">&lt; 1 triệu</span>
+                    <span class="dh-chip" data-budget="3000000">1 - 3 triệu</span>
+                    <span class="dh-chip" data-budget="5000000">3 - 5 triệu</span>
+                    <span class="dh-chip" data-budget="5000001">&gt; 5 triệu</span>
+                  </div>
+                </div>
+              </div>
 
-          <p class="dh-muted dh-small mb-2 mt-2">Thời lượng & Loại hình:</p>
-          <div class="dh-chip-group" id="chip-travel-types">
-            <span class="dh-chip" data-duration="1">Đi trong ngày</span>
-            <span class="dh-chip" data-duration="2-3">2 - 3 ngày</span>
-            <span class="dh-chip" data-type="nghiduong">Nghỉ dưỡng</span>
-            <span class="dh-chip" data-type="khampha">Khám phá thiên nhiên</span>
-          </div>
+              <!-- 2. Thời lượng -->
+              <div class="col-12 col-md-4">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="travel-duration-select">
+                    Thời lượng chuyến đi
+                  </label>
+                  <select id="travel-duration-select" name="duration" class="dh-select" aria-label="Chọn thời lượng chuyến đi">
+                    <option value="all">-- Tất cả thời lượng --</option>
+                    <option value="1">Đi trong ngày (&lt; 12 giờ)</option>
+                    <option value="2-3">2 - 3 ngày (24 - 48 giờ)</option>
+                    <option value="4-5">4 - 5 ngày (&gt; 48 giờ)</option>
+                  </select>
+                  <span class="dh-help">Ước tính thời gian lưu trú và di chuyển.</span>
+                </div>
+              </div>
+
+              <!-- 3. Sở thích -->
+              <div class="col-12 col-md-4">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="travel-preference-select">
+                    Sở thích & Phong cách trải nghiệm
+                  </label>
+                  <select id="travel-preference-select" name="preference" class="dh-select" aria-label="Chọn sở thích trải nghiệm">
+                    <option value="all">-- Tất cả sở thích --</option>
+                    <option value="bien">🏖️ Nghỉ dưỡng biển</option>
+                    <option value="thien-nhien">🌲 Khám phá thiên nhiên</option>
+                    <option value="van-hoa">🏛️ Văn hóa lịch sử & Di sản</option>
+                    <option value="giai-tri">🎡 Vui chơi giải trí & Check-in</option>
+                    <option value="chua-lanh">🌿 Nghỉ dưỡng & Chữa lành</option>
+                  </select>
+                  <span class="dh-help">Lựa chọn phong cách du lịch mong muốn.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nút hành động -->
+            <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+              <button id="btn-travel-search" class="dh-btn dh-btn-primary" type="button">
+                🔍 Tìm kiếm & Gợi ý điểm đến
+              </button>
+              <button id="btn-travel-reset" class="dh-btn dh-btn-outline" type="button">
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 
       <!-- Khu vực hiển thị kết quả Travel -->
-      <section class="dh-card">
+      <section class="dh-card" aria-labelledby="travel-results-title">
         <div class="dh-card-header">
           <div>
-            <h2 class="dh-section-title mb-0" style="font-size:16px;">Khu vực hiển thị kết quả điểm đến</h2>
+            <h2 id="travel-results-title" class="dh-section-title mb-0" style="font-size:16px;">Khu vực hiển thị kết quả điểm đến</h2>
             <small class="dh-muted" id="travel-results-count">Hiển thị các địa điểm gợi ý</small>
           </div>
-          <div>
-            <span class="dh-status dh-status-info">Phạm vi cơ bản P1</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="dh-status dh-status-info">Chế độ xem trước (Client)</span>
           </div>
         </div>
         <div class="dh-card-body">
@@ -136,7 +224,7 @@
           <div id="travel-empty" class="dh-empty-state d-none">
             <div class="dh-empty-icon">🏖️</div>
             <div class="dh-empty-title">Không tìm thấy địa điểm phù hợp</div>
-            <p class="dh-empty-desc">Không có điểm đến nào khớp với vùng miền hoặc từ khóa bạn nhập. Hãy thử nới rộng điều kiện tìm kiếm.</p>
+            <p class="dh-empty-desc">Không có điểm đến nào khớp với ngân sách, thời lượng hoặc sở thích bạn đã chọn. Hãy thử nới rộng điều kiện tìm kiếm.</p>
             <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-travel-empty-reset">Đặt lại bộ lọc</button>
           </div>
 
