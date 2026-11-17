@@ -1,16 +1,18 @@
 """Decision Engine - Module tính điểm WSM (Weighted Sum Model) cho Food Recommendation.
 
 Tuân thủ chặt chẽ tài liệu: PHỤ LỤC A – API CONTRACT FOOD RECOMMEND.
-1. Trọng số cố định: Giá 40% (0.40), Sở thích 35% (0.35), Thời gian chuẩn bị 25% (0.25).
-2. Thang điểm chuẩn hóa: [0.0 - 100.0].
-3. Điểm trung tính: 50.0 (áp dụng khi người dùng không chọn tag hoặc không giới hạn thời gian).
-4. Tính toán bằng số thực để xếp hạng chính xác, làm tròn 2 chữ số khi hiển thị / serialize.
+1. Thang điểm chuẩn hóa: [0.0 - 100.0].
+2. Điểm trung tính: 50.0 (áp dụng khi người dùng không chọn tag hoặc không giới hạn thời gian).
+3. Tính toán bằng số thực để xếp hạng chính xác, làm tròn 2 chữ số khi hiển thị / serialize.
+4. Trọng số KHÔNG hardcode ở đây — được truyền vào từ ngoài (lấy từ DB qua repository).
 """
 
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-# Trọng số WSM cố định theo API Contract (Tổng trọng số = 1.0)
+# ---------------------------------------------------------------------------
+# Trọng số FALLBACK (chỉ dùng khi repository không lấy được dữ liệu từ DB)
+# ---------------------------------------------------------------------------
 WEIGHT_PRICE: float = 0.40
 WEIGHT_PREFERENCE: float = 0.35
 WEIGHT_PREP_TIME: float = 0.25
@@ -130,15 +132,31 @@ def calculate_food_wsm(
     budget_max: float,
     max_prep_time: float | None = None,
     preferred_tags: Sequence[str] | set[str] | None = None,
+    weights: dict[str, float] | None = None,
 ) -> FoodWSMResult:
     """Hàm tính điểm WSM chính cho một món ăn theo đúng API Contract.
 
     Công thức:
-        Total Score = (0.40 * price_score) + (0.35 * preference_score) + (0.25 * prep_time_score)
+        Total Score = (w_price * price_score) + (w_pref * pref_score) + (w_prep * prep_score)
 
-    Trả về:
+    Args:
+        price: Giá món ăn (VND).
+        prep_time: Thời gian chuẩn bị (phút).
+        food_tags: Danh sách tag của món ăn.
+        budget_max: Ngân sách tối đa người dùng nhập.
+        max_prep_time: Giới hạn thời gian chuẩn bị (None = không giới hạn).
+        preferred_tags: Tag ưa thích người dùng chọn (None = không chọn).
+        weights: Trọng số từ DB (load bằng load_food_weights).
+                 Nếu None → tự dùng hằng số FALLBACK.
+
+    Returns:
         FoodWSMResult: Chứa tổng điểm `score` (số thực chưa làm tròn) và chi tiết `criteria_scores`.
     """
+    # Dùng trọng số từ DB nếu có, ngược lại dùng hằng số fallback
+    w_price = weights["price"] if weights else WEIGHT_PRICE
+    w_pref = weights["preference"] if weights else WEIGHT_PREFERENCE
+    w_prep = weights["prep_time"] if weights else WEIGHT_PREP_TIME
+
     # 1. Tính điểm chuẩn hóa từng tiêu chí (0.0 - 100.0)
     price_score = calculate_price_score(price, budget_max)
     pref_score = calculate_preference_score(food_tags, preferred_tags)
@@ -146,9 +164,9 @@ def calculate_food_wsm(
 
     # 2. Nhân trọng số và cộng dồn WSM
     total_score = (
-        (WEIGHT_PRICE * price_score)
-        + (WEIGHT_PREFERENCE * pref_score)
-        + (WEIGHT_PREP_TIME * prep_score)
+        (w_price * price_score)
+        + (w_pref * pref_score)
+        + (w_prep * prep_score)
     )
 
     # 3. Giới hạn trong khoảng [0.0, 100.0]
