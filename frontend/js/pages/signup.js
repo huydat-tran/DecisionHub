@@ -104,6 +104,10 @@ const toggleTheme = () => {
 // Quy ước lưu token đã có sẵn trong project (js/api.js: localStorage "token").
 const TOKEN_STORAGE_KEY = "token";
 
+// Sau khi đăng ký / đăng nhập thành công thì điều hướng về trang demo giao diện.
+// Đường dẫn tương đối vì trang này nằm ở frontend/pages/.
+const POST_AUTH_REDIRECT_URL = "../demo-design-system.html";
+
 // ---------------------------------------------------------------------------
 // Quy tắc validate - đồng bộ với backend/app/modules/auth/schemas.py
 // ---------------------------------------------------------------------------
@@ -369,6 +373,9 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             confirmButtonText: "Bắt đầu",
             customClass: { popup: "auth-login-popup" },
         });
+
+        // Đăng nhập xong -> sang trang demo giao diện.
+        window.location.href = POST_AUTH_REDIRECT_URL;
     } catch (error) {
         showApiError(error, {
             alertId: "loginAlert",
@@ -405,26 +412,22 @@ document.getElementById('signupForm').addEventListener('submit', async function 
     setLoading(button, true, "Đang đăng ký...");
     try {
         // Không gửi confirm password và không gửi role (client không được tự chọn quyền).
-        const data = await api.post("/auth/register", {
+        await api.post("/auth/register", {
             username: username,
             email: email,
             password: password,
         });
 
-        const result = await Swal.fire({
+        await Swal.fire({
             icon: "success",
             title: "Đăng ký thành công!",
-            html: "Tài khoản của bạn đã được tạo. Bạn có thể đăng nhập ngay bây giờ.",
-            confirmButtonText: "Đăng nhập ngay",
+            html: "Tài khoản của bạn đã được tạo thành công.",
+            confirmButtonText: "Bắt đầu",
             customClass: { popup: "auth-success-popup" },
         });
 
-        if (result.isConfirmed) {
-            // Chuyển về chế độ đăng nhập và điền sẵn email vừa đăng ký.
-            switchToLogin();
-            document.getElementById('loginEmail').value = email;
-        }
-    } catch (error) {
+        // Đăng ký xong -> sang trang demo giao diện.
+        window.location.href = POST_AUTH_REDIRECT_URL;    } catch (error) {
         showApiError(error, {
             alertId: "signupAlert",
             emailField: "signupEmail",
