@@ -33,7 +33,7 @@ class DecisionCriterion(Base):
     """Tiêu chí đánh giá dùng chung cho Food và Travel.
 
     Cặp (domain, name) là duy nhất. `direction` cho biết chiều tối ưu khi
-    chuẩn hóa (min hoặc max). Engine đọc direction từ dữ liệu, không gắn
+    chuẩn hóa (min hoặc max). Engine đọc direction từ dữ liệu, không gắn    
     cứng chiều cho từng tiêu chí.
     """
 
