@@ -1,34 +1,207 @@
 /* ==========================================================
    CSS riêng cho phân hệ Travel (WhereShouldITravel)
    Tuân thủ UI Guidelines: Sử dụng namespace .travel-page
+   Đồng bộ 100% token mã màu Green SaaS của DecisionHub
    ========================================================== */
 
-.travel-page .travel-card-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: var(--dh-radius-sm);
-}
-
-.travel-page .travel-cost-tag {
-  color: var(--dh-primary);
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.travel-page .travel-duration-tag {
-  color: var(--dh-text-muted);
-  font-size: 12px;
-}
-
+/* Thẻ điểm đến du lịch */
 .travel-page .travel-item-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--dh-transition), box-shadow var(--dh-transition), border-color var(--dh-transition);
   border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-lg);
+  background: var(--dh-surface);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .travel-page .travel-item-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--dh-shadow-md);
   border-color: var(--dh-border-strong);
 }
+
+/* Khung hình ảnh điểm đến */
+.travel-page .travel-card-media {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  background: var(--dh-surface-subtle);
+}
+
+.travel-page .travel-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.travel-page .travel-item-card:hover .travel-card-img {
+  transform: scale(1.04);
+}
+
+/* Badge nổi trên ảnh */
+.travel-page .travel-floating-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--dh-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: var(--dh-radius-sm);
+  box-shadow: var(--dh-shadow-sm);
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.02em;
+}
+
+.travel-page .travel-region-pill {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  background: rgba(23, 43, 35, 0.82);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--dh-radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+/* Nội dung chi tiết trong card */
+.travel-page .travel-card-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.travel-page .travel-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dh-text);
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
+.travel-page .travel-card-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dh-text-muted);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Thông tin thông số: Ngân sách & Thời lượng */
+.travel-page .travel-card-specs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--dh-surface-subtle);
+  border-radius: var(--dh-radius-md);
+  border: 1px solid var(--dh-border);
+}
+
+.travel-page .travel-cost-val {
+  color: var(--dh-primary);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.travel-page .travel-cost-lbl {
+  font-size: 11px;
+  color: var(--dh-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.travel-page .travel-duration-val {
+  color: var(--dh-text);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Tag sở thích / phong cách */
+.travel-page .travel-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.travel-page .travel-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--dh-primary-soft);
+  color: var(--dh-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Mô tả tóm tắt điểm đến */
+.travel-page .travel-card-desc {
+  font-size: 12px;
+  color: var(--dh-text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+/* Footer card */
+.travel-page .travel-card-footer {
+  padding-top: 12px;
+  border-top: 1px solid var(--dh-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.travel-page .travel-rating-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dh-text);
+}
+
+.travel-page .travel-rating-star {
+  color: var(--dh-warning);
+}
+
+/* Form lọc & điều kiện */
+.travel-page .travel-form-group {
+  margin-bottom: 16px;
+}
+
+.travel-page .travel-quick-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.travel-page .travel-quick-budget .dh-chip {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 
