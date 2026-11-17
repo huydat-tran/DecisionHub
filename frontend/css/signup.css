@@ -1,23 +1,23 @@
 :root {
     --background: #f0faf8;
-    --circle-gradient-start: #4ecdc4;
-    --circle-gradient-end: #44a08d;
+    --circle-gradient-start: #2edd4b;
+    --circle-gradient-end: #3bdd3b;
     --panel-text: #fff;
     --heading-color: #2c5f5d;
     --input-bg: #e1f5f3;
-    --input-icon-color: #5fb3a9;
+    --input-icon-color: #2edd4b;
     --text-color: #2d4a4a;
     --text-hover: #1a3333;
-    --primary-btn: #4ecdc4;
+    --primary-btn: #2edd4b;
     --btn-text: #fff;
-    --primary-hover: #3db5ac;
-    --social-color: #4a6363;
-    --icon-border: #5fb3a9;
-    --link-color: #44a08d;
-    --secondary-text: #6b8585;
+    --primary-hover: #2edd4b;
+    --social-color: #2edd4b;
+    --icon-border: #2edd4b;
+    --link-color: #2edd4b;
+    --secondary-text: #2edd4b;
     --error-color: #e05a5a;
-    --error-bg: rgba(224, 90, 90, 0.12);
-    --error-border: rgba(224, 90, 90, 0.35);
+    --error-bg: rgba(46, 221, 75, 0.12);
+    --error-border: rgba(46, 221, 75, 0.35);
 }
 
 [data-theme="dark"] {
