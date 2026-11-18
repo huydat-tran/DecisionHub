@@ -102,11 +102,34 @@ const toggleTheme = () => {
 // ---------------------------------------------------------------------------
 
 // Quy ước lưu token đã có sẵn trong project (js/api.js: localStorage "token").
-const TOKEN_STORAGE_KEY = "token";
 
 // Sau khi đăng ký / đăng nhập thành công thì điều hướng về trang demo giao diện.
 // Đường dẫn tương đối vì trang này nằm ở frontend/pages/.
 const POST_AUTH_REDIRECT_URL = "../demo-design-system.html";
+
+// Đọc tham số trên URL: ?redirect= (quay lại trang đang xem sau khi đăng nhập)
+// và ?mode=register (mở thẳng form đăng ký).
+function getQueryParam(name) {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+// Trang cần quay lại sau khi đăng nhập.
+// Giá trị trên URL là đường dẫn tính từ thư mục gốc frontend (vd "pages/food.html").
+function getRedirectUrl() {
+  const target = getQueryParam("redirect");
+  if (!target) return POST_AUTH_REDIRECT_URL;
+  // Chỉ cho phép đường dẫn nội bộ của frontend, không chuyển ra ngoài domain.
+  if (!target.startsWith("pages/") && !target.startsWith("demo-design-system.html")) {
+    return POST_AUTH_REDIRECT_URL;
+  }
+  // Chuyển sang đường dẫn tương đối với thư mục pages/ của trang này.
+  return api.appUrl(target);
+}
+
+// Mở thẳng form đăng ký khi được yêu cầu (nút "Đăng ký" ở navbar).
+if (getQueryParam("mode") === "register") {
+  switchToRegister();
+}
 
 // ---------------------------------------------------------------------------
 // Quy tắc validate - đồng bộ với backend/app/modules/auth/schemas.py
@@ -388,7 +411,8 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     try {
         const data = await api.post("/auth/login", { email: email, password: password });
         // Backend trả về { success, message, data: { access_token, token_type, user } }
-        localStorage.setItem(TOKEN_STORAGE_KEY, data.data.access_token);
+        api.session.setToken(data.data.access_token);
+        api.session.setUser(data.data.user);
 
         // Chỉ hiện popup sau khi API xác nhận đăng nhập thành công.
         await Swal.fire({
@@ -399,8 +423,8 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             customClass: { popup: "auth-login-popup" },
         });
 
-        // Đăng nhập xong -> sang trang demo giao diện.
-        window.location.href = POST_AUTH_REDIRECT_URL;
+        // Đăng nhập xong -> quay lại trang đang xem, hoặc sang trang demo giao diện.
+        window.location.href = getRedirectUrl();
     } catch (error) {
         showApiError(error, {
             alertId: "loginAlert",
