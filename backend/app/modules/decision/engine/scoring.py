@@ -149,11 +149,13 @@ def score_candidates(
     candidates: Iterable[Any],
     criteria: Sequence[Any],
 ) -> list[dict[str, Any]]:
-    """Chấm điểm từng tiêu chí (0-100) và tổng điểm WSM cho danh sách ứng viên.
+    """Chuẩn hóa điểm từng tiêu chí (0-100) cho danh sách ứng viên.
 
-    Quy tắc xử lý dữ liệu thiếu (DecisionHub.md mục 7.5):
+    Trả về danh sách dict với trường `criteria_scores` chứa điểm đã chuẩn hóa.
+    Không tính tổng WSM — việc đó thuộc về calculator.py.
+
+    Quy tắc xử lý dữ liệu thiếu:
     - Không tự suy diễn điểm cho trường bị thiếu: `criteria_scores[field]` là None.
-    - Tiêu chí thiếu không đóng góp điểm giả vào tổng điểm WSM.
     """
     candidate_list = list(candidates)
     if not candidate_list:
@@ -171,16 +173,12 @@ def score_candidates(
     for idx, cand in enumerate(candidate_list):
         base = dict(cand) if isinstance(cand, dict) else {"item": cand}
         criteria_scores: dict[str, float | None] = {}
-        total_score = 0.0
 
-        for field_name, _direction, weight in resolved_criteria:
+        for field_name, _direction, _weight in resolved_criteria:
             c_score = per_criterion_scores[field_name][idx]
             criteria_scores[field_name] = round(c_score, 2) if c_score is not None else None
-            if c_score is not None:
-                total_score += weight * c_score
 
         base["criteria_scores"] = criteria_scores
-        base["score"] = round(_clamp_score(total_score), 2)
         results.append(base)
 
     return results
