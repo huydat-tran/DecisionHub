@@ -2,7 +2,6 @@
 // API: GET /users/me (đọc), PATCH /users/me (chỉ cho phép đổi username).
 // Backend trả { success, message, data: { id, username, email, role, created_at } }.
 
-const TOKEN_STORAGE_KEY = "token";
 const USERNAME_MIN_LENGTH = 5;
 const USERNAME_MAX_LENGTH = 50;
 
@@ -78,11 +77,8 @@ function renderProfile(profile) {
   els.navUsername.textContent = profile.username;
   els.navRole.textContent = profile.role;
 
-  // Đã đăng nhập: hiện avatar, ẩn nút Đăng nhập.
-  const navChip = document.querySelector("[data-user-chip]");
-  if (navChip) navChip.classList.remove("d-none");
-  const loginBtn = document.querySelector("[data-login-btn]");
-  if (loginBtn) loginBtn.classList.add("d-none");
+  // Đã đăng nhập: hiện avatar + dropdown tài khoản, ẩn nút Đăng nhập.
+  window.DHNavbarAuth.mount(profile);
 }
 
 // ---------- Chế độ chỉnh sửa ----------
@@ -142,21 +138,18 @@ async function loadProfile() {
   els.errorBox.classList.add("d-none");
   els.authRequired.classList.add("d-none");
 
-  if (!localStorage.getItem(TOKEN_STORAGE_KEY)) {
-    showLoginState();
-    els.authRequired.classList.remove("d-none");
-    return;
-  }
-
   try {
-    const response = await api.get("/users/me");
+    // authMode "required": thiếu token hoặc token hết hạn -> api.js báo người dùng
+    // và chuyển về trang đăng nhập.
+    const response = await api.get("/users/me", undefined, { authMode: "required" });
+    api.session.setUser(response.data);
     renderProfile(response.data);
     els.content.classList.remove("d-none");
     setEditing(false);
   } catch (error) {
-    // 401: token hết hạn hoặc không hợp lệ -> yêu cầu đăng nhập lại.
+    // 401: token hết hạn hoặc không hợp lệ -> api.js đã xoá token và chuyển
+    // về trang đăng nhập; hiển thị lại trạng thái yêu cầu đăng nhập.
     if (error && error.status === 401) {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
       showLoginState();
       els.authRequired.classList.remove("d-none");
       return;
@@ -168,11 +161,7 @@ async function loadProfile() {
 
 // Chưa đăng nhập: ẩn avatar ở navbar, chỉ hiện nút Đăng nhập.
 function showLoginState() {
-  const chip = document.querySelector("[data-user-chip]");
-  if (chip) chip.classList.add("d-none");
-
-  const button = document.querySelector("[data-login-btn]");
-  if (button) button.classList.remove("d-none");
+  window.DHNavbarAuth.mount(null);
 }
 
 async function saveProfile() {
@@ -192,7 +181,7 @@ async function saveProfile() {
   els.btnSave.disabled = true;
   els.btnSave.textContent = "Đang lưu...";
   try {
-    const response = await api.patch("/users/me", { username });
+    const response = await api.patch("/users/me", { username }, { authMode: "required" });
     renderProfile(response.data);
     setEditing(false);
     await Swal.fire({

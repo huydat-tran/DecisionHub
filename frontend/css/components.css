@@ -123,6 +123,52 @@
   font-weight: 700;
 }
 
+/* Account dropdown (avatar + menu tài khoản) */
+.dh-account-menu { position: relative; }
+.dh-account-dropdown {
+  position: absolute;
+  z-index: 1050;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--dh-surface);
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-lg);
+  box-shadow: var(--dh-shadow-md);
+}
+.dh-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--dh-border);
+}
+.dh-account-username { color: var(--dh-text); font-size: 14px; font-weight: 700; }
+.dh-account-email {
+  color: var(--dh-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dh-account-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  color: var(--dh-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--dh-radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dh-transition), color var(--dh-transition);
+}
+.dh-account-item:hover { color: var(--dh-primary); background: var(--dh-primary-soft); }
+.dh-account-logout { color: var(--dh-danger); }
+.dh-account-logout:hover { color: var(--dh-danger); background: var(--dh-danger-soft); }
+
 /* Sidebar */
 .dh-sidebar {
   position: fixed;
