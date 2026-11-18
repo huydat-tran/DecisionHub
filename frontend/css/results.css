@@ -285,3 +285,79 @@
   background: var(--dh-primary-soft);
   border: 1px solid rgba(22, 132, 91, 0.25);
 }
+
+/* ---------- Chọn tiêu chí & Weight ---------- */
+.results-page .food-criteria-box {
+  padding: 16px;
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-md);
+}
+
+.results-page .food-criteria-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.results-page .food-weight-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--dh-radius);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.results-page .food-weight-total.is-valid {
+  color: var(--dh-primary);
+  background: var(--dh-primary-soft);
+  border-color: rgba(22, 132, 91, 0.25);
+}
+
+.results-page .food-weight-total.is-invalid {
+  color: var(--dh-warning);
+  background: rgba(183, 121, 31, 0.1);
+  border-color: rgba(183, 121, 31, 0.35);
+}
+
+.results-page .food-criterion-item {
+  height: 100%;
+  padding: 12px;
+  background: var(--dh-surface);
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius);
+}
+
+.results-page .food-criterion-item.is-disabled {
+  opacity: 0.65;
+  background: var(--dh-surface-subtle);
+}
+
+.results-page .food-criterion-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dh-text);
+  cursor: pointer;
+}
+
+.results-page .food-weight-sublabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dh-text-muted);
+  margin-bottom: 4px;
+}
+
+.results-page .food-weight-warning {
+  padding: 10px 12px;
+  border-radius: var(--dh-radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dh-danger);
+  background: rgba(194, 65, 59, 0.08);
+  border: 1px solid rgba(194, 65, 59, 0.28);
+}

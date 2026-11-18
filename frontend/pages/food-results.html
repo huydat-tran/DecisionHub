@@ -164,6 +164,135 @@
               </div>
             </div>
 
+            <!-- Chọn tiêu chí & nhập trọng số (Weight) -->
+            <div class="food-criteria-box mt-3" id="food-criteria-box">
+              <div class="food-criteria-header">
+                <div>
+                  <span class="dh-label mb-0">Chọn tiêu chí &amp; trọng số (Weight)</span>
+                  <span class="dh-help mt-1">
+                    Chọn ít nhất 1 tiêu chí, nhập weight không âm (≥ 0) sao cho tổng bằng 100%.
+                  </span>
+                </div>
+                <div
+                  id="food-weight-total-badge"
+                  class="food-weight-total is-valid"
+                  aria-live="polite"
+                >
+                  Tổng weight: <strong id="food-weight-total-value">100%</strong>
+                </div>
+              </div>
+
+              <div class="row g-3 mt-1">
+                <div class="col-12 col-md-4">
+                  <div class="food-criterion-item" data-criterion-row="price">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="food-criterion-price"
+                        name="criterion_price"
+                        value="price"
+                        checked
+                      />
+                      <label class="form-check-label food-criterion-label" for="food-criterion-price">
+                        Giá (Price)
+                      </label>
+                    </div>
+                    <label class="dh-label food-weight-sublabel" for="food-weight-price">
+                      Weight (%)
+                    </label>
+                    <input
+                      id="food-weight-price"
+                      name="weight_price"
+                      class="dh-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value="40"
+                      inputmode="decimal"
+                      aria-describedby="food-weight-price-error"
+                    />
+                    <span id="food-weight-price-error" class="dh-error" role="alert"></span>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <div class="food-criterion-item" data-criterion-row="preference">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="food-criterion-preference"
+                        name="criterion_preference"
+                        value="preference"
+                        checked
+                      />
+                      <label class="form-check-label food-criterion-label" for="food-criterion-preference">
+                        Phù hợp khẩu vị
+                      </label>
+                    </div>
+                    <label class="dh-label food-weight-sublabel" for="food-weight-preference">
+                      Weight (%)
+                    </label>
+                    <input
+                      id="food-weight-preference"
+                      name="weight_preference"
+                      class="dh-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value="35"
+                      inputmode="decimal"
+                      aria-describedby="food-weight-preference-error"
+                    />
+                    <span id="food-weight-preference-error" class="dh-error" role="alert"></span>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-4">
+                  <div class="food-criterion-item" data-criterion-row="prep_time">
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="food-criterion-prep-time"
+                        name="criterion_prep_time"
+                        value="prep_time"
+                        checked
+                      />
+                      <label class="form-check-label food-criterion-label" for="food-criterion-prep-time">
+                        Thời gian chuẩn bị
+                      </label>
+                    </div>
+                    <label class="dh-label food-weight-sublabel" for="food-weight-prep-time">
+                      Weight (%)
+                    </label>
+                    <input
+                      id="food-weight-prep-time"
+                      name="weight_prep_time"
+                      class="dh-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value="25"
+                      inputmode="decimal"
+                      aria-describedby="food-weight-prep-time-error"
+                    />
+                    <span id="food-weight-prep-time-error" class="dh-error" role="alert"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="food-weight-warning"
+                class="food-weight-warning d-none mt-2"
+                role="alert"
+              ></div>
+            </div>
+
             <div class="d-flex flex-wrap gap-2 mt-3">
               <button type="submit" class="dh-btn dh-btn-primary">
                 Gợi ý món ăn
