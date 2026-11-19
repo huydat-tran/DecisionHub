@@ -273,8 +273,8 @@
 
   function showValidatedSummary(payload) {
     const mealLabel = ALLOWED_MEAL_TYPES[payload.meal_type];
-    const avoidText = payload.avoid_ingredients.length > 0
-      ? escapeHtml(payload.avoid_ingredients.join(", "))
+    const avoidText = payload.excluded_ingredients.length > 0
+      ? escapeHtml(payload.excluded_ingredients.join(", "))
       : "Không có";
     const criteriaText = payload.selected_criteria_labels.length > 0
       ? escapeHtml(payload.selected_criteria_labels.join(", "))
@@ -376,7 +376,7 @@
     const payload = {
       max_budget: budgetResult.value,
       meal_type: mealResult.value,
-      avoid_ingredients: avoidResult.value,
+      excluded_ingredients: avoidResult.value,
       weights: criteriaResult.weights,
       selected_criteria_labels: criteriaResult.selectedLabels,
     };
