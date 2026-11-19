@@ -94,17 +94,18 @@ class TestScoreCandidatesFood(unittest.TestCase):
         ]
         scored = score_candidates(candidates, self.food_criteria)
 
-        # Món 1: price=100, preference=100, prep_time=100 -> 100.0
+        # score_candidates() chỉ chuẩn hóa, không tính tổng WSM
+        self.assertNotIn("score", scored[0])
+
+        # Món 1: price=100, preference=100, prep_time=100
         self.assertEqual(scored[0]["criteria_scores"], {"price": 100.0, "preference": 100.0, "prep_time": 100.0})
-        self.assertEqual(scored[0]["score"], 100.0)
 
-        # Món 2: price=0, preference=0, prep_time=0 -> 0.0
+        # Món 2: price=0, preference=0, prep_time=0
         self.assertEqual(scored[1]["criteria_scores"], {"price": 0.0, "preference": 0.0, "prep_time": 0.0})
-        self.assertEqual(scored[1]["score"], 0.0)
 
-        # Món 3: price=50, preference=50, prep_time=None (không tự suy diễn) -> 0.4*50 + 0.35*50 = 37.5
+        # Món 3: price=50, preference=50, prep_time=None (không tự suy diễn)
         self.assertEqual(scored[2]["criteria_scores"], {"price": 50.0, "preference": 50.0, "prep_time": None})
-        self.assertEqual(scored[2]["score"], 37.5)
+
         # Không mutate dict gốc
         self.assertNotIn("criteria_scores", candidates[2])
 
@@ -115,7 +116,8 @@ class TestScoreCandidatesFood(unittest.TestCase):
             scored[0]["criteria_scores"],
             {"price": EQUAL_RANGE_SCORE, "preference": EQUAL_RANGE_SCORE, "prep_time": EQUAL_RANGE_SCORE},
         )
-        self.assertEqual(scored[0]["score"], 100.0)
+        # Không có trường score — tính score là việc của calculator
+        self.assertNotIn("score", scored[0])
 
 
 if __name__ == "__main__":
