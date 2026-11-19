@@ -10,10 +10,10 @@ Hai tầng trách nhiệm:
    - Giữ nguyên để tương thích với code hiện tại của module food.
 """
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-import math
 from typing import Any
 
 from app.modules.decision.criterion_fields import (
@@ -167,9 +167,7 @@ def calculate_food_wsm(
 
     # 2. Nhân trọng số và cộng dồn WSM
     total_score = (
-        (w_price * price_score)
-        + (w_pref * pref_score)
-        + (w_prep * prep_score)
+        (w_price * price_score) + (w_pref * pref_score) + (w_prep * prep_score)
     )
 
     # 3. Giới hạn trong khoảng [0.0, 100.0]
@@ -249,11 +247,22 @@ def validate_weights(
             result[field_name] = w
     else:
         for item in criteria:
-            name = str((item.get("name") if isinstance(item, dict) else getattr(item, "name", "")) or "").strip()
+            name = str(
+                (
+                    item.get("name")
+                    if isinstance(item, dict)
+                    else getattr(item, "name", "")
+                )
+                or ""
+            ).strip()
             # field_name chuẩn dùng chung với Scoring (nguồn định nghĩa duy nhất).
             field_name = resolve_criterion_field(item)
 
-            raw = item.get("weight") if isinstance(item, dict) else getattr(item, "weight", None)
+            raw = (
+                item.get("weight")
+                if isinstance(item, dict)
+                else getattr(item, "weight", None)
+            )
             w = _to_numeric_weight(raw)
             if w is None:
                 raise ValueError(f"Weight không hợp lệ cho tiêu chí {name!r}: {raw!r}")
@@ -277,8 +286,11 @@ def calculate_wsm(
 ) -> list[dict[str, Any]]:
     """Tính tổng điểm WSM cho danh sách ứng viên đã có criteria_scores.
 
-    Công thức: total_score = Σ(weight × normalized_score)
-    - Tiêu chí có normalized_score là None không đóng góp vào tổng.
+    Công thức:
+        contribution = weight * normalized_score
+        total_score = SUM(contribution)
+
+    - Tiêu chí có normalized_score là None không đóng góp vào tổng (contribution = 0.0).
     - Kết quả được làm tròn 2 chữ số thập phân và giới hạn trong [0.0, 100.0].
     - Không mutate dict ứng viên đầu vào.
 
@@ -287,7 +299,15 @@ def calculate_wsm(
         criteria: Tiêu chí kèm weight (list hoặc dict).
 
     Returns:
-        Danh sách dict mới, mỗi dict có thêm trường `score`.
+        Danh sách dict mới, mỗi dict có thêm:
+        - `score`: Tổng điểm WSM (để tương thích ngược với Ranking hiện tại).
+        - `total_score`: Tổng điểm WSM (bằng `score`).
+        - `criteria_details`: Mapping field_name -> {
+              "normalized_score": float | None,
+              "weight": float,
+              "contribution": float,
+          }
+        - `criteria_contributions`: Mapping field_name -> contribution (float).
     """
     if not candidates:
         return []
@@ -300,13 +320,37 @@ def calculate_wsm(
         criteria_scores: dict[str, Any] = out.get("criteria_scores", {})
 
         total = 0.0
+        criteria_details: dict[str, dict[str, Any]] = {}
+        criteria_contributions: dict[str, float] = {}
+
         for field_name, w in weights.items():
             s = criteria_scores.get(field_name)
             if s is not None:
-                total += w * float(s)
+                s_val = float(s)
+                # contribution = weight * normalized_score
+                contribution = round(w * s_val, 4)
+                total += contribution
+                contrib_rounded = round(w * s_val, 2)
+                criteria_details[field_name] = {
+                    "normalized_score": round(s_val, 2),
+                    "weight": round(w, 4),
+                    "contribution": contrib_rounded,
+                }
+                criteria_contributions[field_name] = contrib_rounded
+            else:
+                criteria_details[field_name] = {
+                    "normalized_score": None,
+                    "weight": round(w, 4),
+                    "contribution": 0.0,
+                }
+                criteria_contributions[field_name] = 0.0
 
         # Giới hạn [0.0, 100.0] và làm tròn 2 chữ số
-        out["score"] = round(max(0.0, min(100.0, total)), 2)
+        total_score = round(max(0.0, min(100.0, total)), 2)
+        out["score"] = total_score
+        out["total_score"] = total_score
+        out["criteria_details"] = criteria_details
+        out["criteria_contributions"] = criteria_contributions
         results.append(out)
 
     return results

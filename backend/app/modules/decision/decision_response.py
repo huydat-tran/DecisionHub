@@ -1,11 +1,20 @@
-from typing import Literal
-from pydantic import BaseModel, Field
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class CriteriaScores(BaseModel):
     price: float
     preference: float
     prep_time: float
+
+
+class CriterionDetail(BaseModel):
+    """Thông tin chi tiết của một tiêu chí đánh giá theo công thức WSM."""
+
+    normalized_score: float | None = None
+    weight: float
+    contribution: float = 0.0
 
 
 class AppliedFilters(BaseModel):
@@ -25,8 +34,21 @@ class RecommendedFoodResponse(BaseModel):
     image_url: str | None = None
     tags: list[str] = Field(default_factory=list)
     score: float = Field(ge=0, le=100)
+    total_score: float = Field(ge=0, le=100)
+    rank: int = Field(default=1, ge=1)
     criteria_scores: CriteriaScores
+    criteria_details: dict[str, CriterionDetail] = Field(default_factory=dict)
     reasons: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "total_score" not in data and "score" in data:
+                data["total_score"] = data["score"]
+            if "rank" not in data:
+                data["rank"] = 1
+        return data
 
 
 class ScoringWeights(BaseModel):
@@ -40,10 +62,28 @@ class ScoringResponse(BaseModel):
     weights: ScoringWeights = Field(default_factory=ScoringWeights)
 
 
+class ExcludedOptionResponse(BaseModel):
+    """Thống kê phương án bị loại qua các điều kiện bắt buộc."""
+
+    id: int | str
+    name: str
+    status: Literal["excluded"] = "excluded"
+    is_excluded: bool = True
+    exclusion_reason: str
+    exclusion_reasons: list[str] = Field(default_factory=list)
+
+
 class DecisionResponse(BaseModel):
-    items: list[RecommendedFoodResponse]
-    total: int
-    limit: int
+    """Response trả về kết quả gợi ý theo WSM và thống kê phương án bị loại."""
+
+    success: bool = True
+    message: str = "Đánh giá thành công."
+    has_valid_candidates: bool = True
+    items: list[RecommendedFoodResponse] = Field(default_factory=list)
+    excluded_items: list[ExcludedOptionResponse] = Field(default_factory=list)
+    total: int = 0
+    total_excluded: int = 0
+    limit: int = 5
     applied_filters: AppliedFilters
     scoring: ScoringResponse = Field(default_factory=ScoringResponse)
 
