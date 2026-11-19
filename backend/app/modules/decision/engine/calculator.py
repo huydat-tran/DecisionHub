@@ -16,7 +16,11 @@ from decimal import Decimal
 import math
 from typing import Any
 
-from app.modules.decision.engine.scoring import CRITERION_FIELD_MAP
+from app.modules.decision.criterion_fields import (
+    resolve_criterion_field,
+    resolve_field_name,
+)
+from app.modules.decision.engine.scoring import score_preference
 
 # ---------------------------------------------------------------------------
 # Trọng số FALLBACK (chỉ dùng khi repository không lấy được dữ liệu từ DB)
@@ -94,20 +98,11 @@ def calculate_preference_score(
     - Nếu có chọn tag: 100 * (số tag khớp / tổng tag người dùng chọn)
     - Nếu KHÔNG chọn tag: mặc định 50.0 (điểm trung tính).
     Ví dụ: Người dùng chọn 2 tags, món khớp 1 tag -> 100 * (1/2) = 50.0 điểm.
+
+    Dùng chung `score_preference()` của scoring.py để chỉ có một nơi định nghĩa
+    cách khớp tag (chuẩn hóa hoa/thường, khoảng trắng, trùng lặp).
     """
-    if not preferred_tags:
-        return NEUTRAL_SCORE
-
-    # Chuẩn hóa chữ thường và bỏ khoảng trắng thừa
-    user_tags = {t.strip().lower() for t in preferred_tags if t and t.strip()}
-    if not user_tags:
-        return NEUTRAL_SCORE
-
-    dish_tags = {t.strip().lower() for t in food_tags if t and t.strip()} if food_tags else set()
-
-    matched_count = len(user_tags.intersection(dish_tags))
-    raw_score = 100.0 * (matched_count / len(user_tags))
-    return max(0.0, min(100.0, raw_score))
+    return 100.0 * score_preference(food_tags, preferred_tags)
 
 
 def calculate_prep_time_score(prep_time: float, max_prep_time: float | None) -> float:
@@ -243,21 +238,20 @@ def validate_weights(
 
     if isinstance(criteria, dict):
         for field, raw in criteria.items():
+            # Dict đầu vào dùng field_name chuẩn làm key; vẫn resolve để chặn
+            # key sai (vd. tên hiển thị "Giá") lọt vào Engine.
+            field_name = resolve_field_name(str(field))
             w = _to_numeric_weight(raw)
             if w is None:
                 raise ValueError(f"Weight không hợp lệ cho trường {field!r}: {raw!r}")
             if w < 0:
                 raise ValueError(f"Weight không được âm cho trường {field!r}: {w}")
-            result[str(field)] = w
+            result[field_name] = w
     else:
         for item in criteria:
-            # Lấy tên trường
             name = str((item.get("name") if isinstance(item, dict) else getattr(item, "name", "")) or "").strip()
-            explicit_field = (item.get("field_name") if isinstance(item, dict) else getattr(item, "field_name", None))
-            if explicit_field:
-                field_name = str(explicit_field).strip()
-            else:
-                field_name = CRITERION_FIELD_MAP.get(name.lower(), name)
+            # field_name chuẩn dùng chung với Scoring (nguồn định nghĩa duy nhất).
+            field_name = resolve_criterion_field(item)
 
             raw = item.get("weight") if isinstance(item, dict) else getattr(item, "weight", None)
             w = _to_numeric_weight(raw)

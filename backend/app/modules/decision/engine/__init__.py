@@ -14,21 +14,26 @@ from app.modules.decision.engine.calculator import (
     validate_weights,
 )
 from app.modules.decision.engine.filters import (
+    Constraints,
     filter_candidates,
     passes_hard_constraints,
 )
 from app.modules.decision.engine.ranking import rank_candidates
 from app.modules.decision.engine.scoring import (
     EQUAL_RANGE_SCORE,
+    NEUTRAL_PREFERENCE_SCORE,
     normalize_benefit,
     normalize_cost,
     normalize_value,
     score_candidates,
     score_criterion,
+    score_preference,
 )
 
 __all__ = [
     "EQUAL_RANGE_SCORE",
+    "NEUTRAL_PREFERENCE_SCORE",
+    "Constraints",
     "CriteriaScoresResult",
     "FoodWSMResult",
     "calculate_food_wsm",
@@ -46,6 +51,7 @@ __all__ = [
     "rank_candidates",
     "score_candidates",
     "score_criterion",
+    "score_preference",
     "validate_weights",
 ]
 
