@@ -3,7 +3,22 @@
 // - Khi bấm nút "detal", truyền thẳng item.id vào hàm xử lý để gọi GET /api/v1/food/{id}
 //   và hiển thị khối chi tiết món ăn (#detall_food) ở giữa màn hình.
 
-const DEFAULT_FOOD_IMAGE = "../assets/images/foods/hihi.png";
+const DEFAULT_FOOD_IMAGE = "../assets/images/foods/phobo.jpg";
+
+function resolveFoodImage(foodName, imageUrl) {
+  if (imageUrl && typeof imageUrl === "string" && imageUrl.trim() && !imageUrl.includes("hihi.png")) {
+    return imageUrl;
+  }
+  const lower = (foodName || "").toLowerCase();
+  if (lower.includes("phở")) return "../assets/images/foods/phobo.jpg";
+  if (lower.includes("bánh mì")) return "../assets/images/foods/banhmi.jpg";
+  if (lower.includes("bún chả")) return "../assets/images/foods/buncha.jpg";
+  if (lower.includes("cơm")) return "../assets/images/foods/comtam.jpg";
+  if (lower.includes("lẩu")) return "../assets/images/foods/laumini.jpg";
+  if (lower.includes("mì") || lower.includes("bún")) return "../assets/images/foods/buncha.jpg";
+  if (lower.includes("cuốn") || lower.includes("gỏi")) return "../assets/images/foods/banhmi.jpg";
+  return "../assets/images/foods/phobo.jpg";
+}
 
 const MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -37,7 +52,7 @@ function renderFoods(foods) {
     .map((item) => {
       const name = escapeHtml(item.name);
       const description = escapeHtml(item.description || "");
-      const imageSrc = escapeHtml(item.image_url || DEFAULT_FOOD_IMAGE);
+      const imageSrc = escapeHtml(resolveFoodImage(item.name, item.image_url));
 
       return `
         <div class="card" style="width: 12rem" data-food-id="${item.id}">
@@ -77,7 +92,7 @@ function renderFoodDetail(food) {
   const ingListEl = document.getElementById("ingredientList");
 
   if (imgEl) {
-    imgEl.src = food.image_url || DEFAULT_FOOD_IMAGE;
+    imgEl.src = resolveFoodImage(food.name, food.image_url);
     imgEl.alt = food.name || "Chi tiết món ăn";
   }
   if (mealBadgeEl) {
