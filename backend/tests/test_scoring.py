@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 import unittest
 
@@ -40,6 +41,14 @@ class TestNormalization(unittest.TestCase):
         self.assertIsNone(normalize_value(None, 0, 100, "benefit"))
         self.assertIsNone(normalize_value(True, 0, 100, "cost"))
         self.assertIsNone(normalize_value(float("nan"), 0, 100, "min"))
+        self.assertIsNone(normalize_value(float("inf"), 0, 100, "max"))
+        self.assertIsNone(normalize_value(float("-inf"), 0, 100, "cost"))
+        self.assertIsNone(normalize_value("", 0, 100, "benefit"))
+        self.assertIsNone(normalize_value("abc", 0, 100, "cost"))
+
+    def test_normalize_value_numeric_string_and_decimal(self) -> None:
+        self.assertEqual(normalize_value(" 50 ", 0, 100, "benefit"), 50.0)
+        self.assertEqual(normalize_value(Decimal("30000"), 10_000, 50_000, "cost"), 50.0)
 
     def test_invalid_direction_or_bounds_raises(self) -> None:
         with self.assertRaises(ValueError):
@@ -116,6 +125,49 @@ class TestScoreCandidatesFood(unittest.TestCase):
             {"price": EQUAL_RANGE_SCORE, "preference": EQUAL_RANGE_SCORE, "prep_time": EQUAL_RANGE_SCORE},
         )
         self.assertEqual(scored[0]["score"], 100.0)
+
+    def test_multiple_candidates_min_equals_max(self) -> None:
+        candidates = [
+            {"id": 1, "name": "Món A", "price": 40_000, "preference": 80, "prep_time": 15},
+            {"id": 2, "name": "Món B", "price": 40_000, "preference": 80, "prep_time": 15},
+        ]
+        scored = score_candidates(candidates, self.food_criteria)
+        for item in scored:
+            self.assertEqual(
+                item["criteria_scores"],
+                {"price": EQUAL_RANGE_SCORE, "preference": EQUAL_RANGE_SCORE, "prep_time": EQUAL_RANGE_SCORE},
+            )
+            self.assertEqual(item["score"], 100.0)
+
+    def test_all_candidates_missing_one_criterion(self) -> None:
+        candidates = [
+            {"id": 1, "price": 30_000, "preference": 80, "prep_time": None},
+            {"id": 2, "price": 50_000, "preference": 40, "prep_time": None},
+        ]
+        scored = score_candidates(candidates, self.food_criteria)
+        self.assertEqual(scored[0]["criteria_scores"], {"price": 100.0, "preference": 100.0, "prep_time": None})
+        self.assertEqual(scored[0]["score"], 75.0)
+        self.assertEqual(scored[1]["criteria_scores"], {"price": 0.0, "preference": 0.0, "prep_time": None})
+        self.assertEqual(scored[1]["score"], 0.0)
+
+    def test_invalid_weight_raises_value_error(self) -> None:
+        bad_criteria = [{"domain": "food", "name": "Giá", "direction": "min", "weight": -0.5}]
+        with self.assertRaises(ValueError):
+            score_candidates([{"id": 1, "price": 20_000}], bad_criteria)
+
+    def test_travel_criteria_mapping_and_object_candidate(self) -> None:
+        travel_criteria = [
+            {"domain": "travel", "name": "cost", "direction": "min", "weight": 0.4},
+            {"domain": "travel", "name": "duration", "direction": "min", "weight": 0.3},
+            {"domain": "travel", "name": "activities", "direction": "max", "weight": 0.3},
+        ]
+        candidates = [
+            SimpleNamespace(id=1, estimated_cost=300_000, estimated_duration=4.0, activities=90),
+            SimpleNamespace(id=2, estimated_cost=700_000, estimated_duration=8.0, activities=50),
+        ]
+        scored = score_candidates(candidates, travel_criteria)
+        self.assertEqual(scored[0]["score"], 100.0)
+        self.assertEqual(scored[1]["score"], 0.0)
 
 
 if __name__ == "__main__":

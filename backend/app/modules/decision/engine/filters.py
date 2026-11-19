@@ -8,9 +8,24 @@ không truy vấn database. Vi phạm bất kỳ điều kiện bắt buộc nà
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
 from enum import Enum
+import math
 from typing import Any, TypeVar
 
 CandidateT = TypeVar("CandidateT")
+
+
+def _to_finite_float(raw: Any) -> float | None:
+    """Chuyển giá trị số sang float hữu hạn; trả về None nếu thiếu hoặc không hợp lệ."""
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, (int, float, Decimal)):
+        val = float(raw)
+        return val if math.isfinite(val) else None
+    try:
+        val = float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    return val if math.isfinite(val) else None
 
 
 def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
@@ -33,8 +48,9 @@ def _extract_ingredient_names(raw_ingredients: Any) -> list[str]:
     """Trích xuất danh sách tên nguyên liệu dạng chữ thường."""
     if not raw_ingredients:
         return []
+    items = [raw_ingredients] if isinstance(raw_ingredients, str) else raw_ingredients
     names: list[str] = []
-    for item in raw_ingredients:
+    for item in items:
         if isinstance(item, str):
             name = item
         elif isinstance(item, dict):
@@ -59,11 +75,11 @@ def passes_hard_constraints(
     Vi phạm ít nhất một điều kiện sẽ trả về False (bị loại).
     """
     if budget_max is not None:
-        raw_price = _get_field(candidate, "price")
-        if raw_price is None:
-            return False
-        price = float(raw_price)
-        if price < 0 or price > float(budget_max):
+        max_budget = _to_finite_float(budget_max)
+        if max_budget is None or max_budget < 0:
+            raise ValueError("Ngân sách tối đa (budget_max) không được âm hoặc không hợp lệ.")
+        price = _to_finite_float(_get_field(candidate, "price"))
+        if price is None or price < 0 or price > max_budget:
             return False
 
     required_meal = _normalize_meal_type(meal_type)
@@ -92,8 +108,10 @@ def filter_candidates(
     excluded_ingredients: Sequence[str] | None = None,
 ) -> list[CandidateT]:
     """Lọc danh sách ứng viên theo hard constraints trước bước chấm điểm."""
-    if budget_max is not None and float(budget_max) < 0:
-        raise ValueError("Ngân sách tối đa (budget_max) không được âm.")
+    if budget_max is not None:
+        max_budget = _to_finite_float(budget_max)
+        if max_budget is None or max_budget < 0:
+            raise ValueError("Ngân sách tối đa (budget_max) không được âm hoặc không hợp lệ.")
 
     return [
         candidate
