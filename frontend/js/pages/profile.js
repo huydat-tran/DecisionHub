@@ -63,9 +63,11 @@ function renderProfile(profile) {
 
   els.monogram.textContent = toMonogram(profile.username);
   els.heroName.textContent = profile.username;
-  els.heroEmail.textContent = profile.email;
-  els.heroRole.textContent = `Vai trò: ${profile.role}`;
-  els.heroCreated.textContent = `Thành viên từ ${formatCreatedAt(profile.created_at)}`;
+  if (els.heroEmail) els.heroEmail.textContent = profile.email;
+  if (els.heroRole) els.heroRole.textContent = profile.role;
+  if (els.heroCreated) {
+    els.heroCreated.textContent = `Thành viên từ ${formatCreatedAt(profile.created_at)}`;
+  }
 
   els.usernameText.textContent = profile.username;
   els.emailText.textContent = profile.email;
@@ -203,8 +205,25 @@ async function saveProfile() {
 els.btnEdit.addEventListener("click", () => setEditing(true));
 els.btnCancel.addEventListener("click", () => setEditing(false));
 els.btnSave.addEventListener("click", saveProfile);
-els.btnRefresh.addEventListener("click", loadProfile);
+if (els.btnRefresh) els.btnRefresh.addEventListener("click", loadProfile);
 els.btnRetry.addEventListener("click", loadProfile);
+
+const btnCopyEmailEl = document.getElementById("btn-copy-email");
+if (btnCopyEmailEl) {
+  btnCopyEmailEl.addEventListener("click", async () => {
+    if (!currentProfile || !currentProfile.email || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(currentProfile.email);
+      if (typeof showToast === "function") {
+        showToast("Đã sao chép email đăng nhập.", "success");
+      }
+    } catch {
+      if (typeof showToast === "function") {
+        showToast("Không thể sao chép email.", "error");
+      }
+    }
+  });
+}
 
 els.usernameInput.addEventListener("input", () => {
   const message = validateUsername(els.usernameInput.value.trim());
