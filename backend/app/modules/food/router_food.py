@@ -17,8 +17,7 @@ from app.modules.food.schemas_food import (
 from app.modules.food.services import (
     get_all_foods,
     get_food_detail,
-    # quick_search_foods,
-    # recommend_foods,
+    recommend_foods,
 )
 
 router = APIRouter(prefix="/api/v1/food", tags=["Food"])
@@ -88,18 +87,18 @@ def list_foods(
 #     return FoodQuickSearchResponse(message=message, data=data)
 
 
-# @router.post(
-#     "/recommend",
-#     response_model=FoodRecommendResponse,
-#     summary="Gợi ý món ăn theo tiêu chí (WSM)",
-# )
-# def recommend(
-#     payload: FoodRecommendRequest,
-#     db: Session = Depends(get_db),
-# ) -> FoodRecommendResponse:
-#     """Nhận tiêu chí từ client, lọc điều kiện bắt buộc, chấm điểm WSM và xếp hạng Top N."""
-#     data, message = recommend_foods(db=db, payload=payload)
-#     return FoodRecommendResponse(message=message, data=data)
+@router.post(
+    "/recommend",
+    response_model=FoodRecommendResponse,
+    summary="Gợi ý món ăn theo tiêu chí (WSM)",
+)
+def recommend(
+    payload: FoodRecommendRequest,
+    db: Session = Depends(get_db),
+) -> FoodRecommendResponse:
+    """Nhận tiêu chí từ client, lọc điều kiện bắt buộc, chấm điểm WSM và xếp hạng Top N."""
+    data, message = recommend_foods(db=db, payload=payload)
+    return FoodRecommendResponse(message=message, data=data)
 
 
 @router.get(
