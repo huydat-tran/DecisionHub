@@ -3,7 +3,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import DecisionHubException
+from app.common.exceptions import BadRequestException, DecisionHubException
 from app.modules.users.models import User
 from app.modules.users.repository import get_user_by_username
 from app.modules.users.schemas import UpdateProfileRequest, UserProfile
@@ -30,13 +30,10 @@ def update_profile(db: Session, user: User, data: UpdateProfileRequest) -> UserP
 
     Raises:
         DecisionHubException: 409 nếu username đã thuộc tài khoản khác,
-            400 nếu request không có trường nào cần cập nhật.
+            BadRequestException: 400 nếu request không có trường nào cần cập nhật.
     """
     if data.username is None:
-        raise DecisionHubException(
-            message="Không có trường nào được cập nhật.",
-            status_code=400,
-        )
+        raise BadRequestException("Không có trường nào được cập nhật.")
 
     if data.username != user.username:
         existing = get_user_by_username(db, data.username)

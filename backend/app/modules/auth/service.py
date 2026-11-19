@@ -3,7 +3,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import DecisionHubException
+from app.common.exceptions import DecisionHubException, UnauthorizedException
 from app.core.security import create_access_token, hash_password, verify_password
 from app.modules.auth.schemas import (
     LoginRequest,
@@ -90,14 +90,11 @@ def login_user(db: Session, data: LoginRequest) -> TokenData:
     """Xác thực thông tin đăng nhập và tạo access token.
 
     Raises:
-        DecisionHubException: 401 khi email không tồn tại hoặc mật khẩu sai.
+        UnauthorizedException: 401 khi email không tồn tại hoặc mật khẩu sai.
     """
     user = get_user_by_email(db, data.email)
     if user is None or not verify_password(data.password, user.password_hash):
-        raise DecisionHubException(
-            message=INVALID_CREDENTIALS_MESSAGE,
-            status_code=401,
-        )
+        raise UnauthorizedException(INVALID_CREDENTIALS_MESSAGE)
 
     access_token = create_access_token(user_id=user.id)
     return TokenData(
