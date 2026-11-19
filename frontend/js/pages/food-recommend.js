@@ -1,7 +1,6 @@
 // ==========================================================
 // Module: Food Recommendation (Đề xuất món ăn thông minh)
-// Nối form → API (/api/v1/food/recommend) → Xếp hạng WSM → Giải thích chi tiết
-// Tuân thủ UI Guidelines & Clean Code
+// Nối form → API/Engine → Bảng xếp hạng WSM → Giải thích chi tiết
 // ==========================================================
 
 (function () {
@@ -37,7 +36,13 @@
   const resultsTopNameEl = document.getElementById("results-top-name");
   const resultsTopScoreEl = document.getElementById("results-top-score");
 
-  // ---------- Quản lý trạng thái lỗi form ----------
+  // Helper an toàn tiền tệ
+  function moneyStr(val) {
+    if (typeof formatMoney === "function") return formatMoney(val);
+    return Number(val || 0).toLocaleString("vi-VN") + " ₫";
+  }
+
+  // Quản lý lỗi form
   function setFieldError(inputEl, errorEl, message) {
     if (errorEl) errorEl.textContent = message;
     if (inputEl) {
@@ -118,7 +123,6 @@
       };
     }
 
-    // Loại bỏ trùng lặp
     const uniqueParts = Array.from(new Set(parts.map((p) => p.toLowerCase())));
     return { valid: true, value: uniqueParts };
   }
@@ -138,149 +142,7 @@
     statusBox.classList.remove("d-none");
   }
 
-  // ---------- Ánh xạ hình ảnh món ăn ----------
-  function resolveFoodImage(foodName, imageUrl) {
-    if (imageUrl && typeof imageUrl === "string" && imageUrl.trim()) {
-      return imageUrl;
-    }
-    const lower = (foodName || "").toLowerCase();
-    if (lower.includes("phở")) return "../assets/images/foods/phobo.jpg";
-    if (lower.includes("bánh mì")) return "../assets/images/foods/banhmi.jpg";
-    if (lower.includes("bún chả")) return "../assets/images/foods/buncha.jpg";
-    if (lower.includes("cơm")) return "../assets/images/foods/comtam.jpg";
-    if (lower.includes("lẩu")) return "../assets/images/foods/laumini.jpg";
-    if (lower.includes("mì") || lower.includes("bún") || lower.includes("quảng")) {
-      return "../assets/images/foods/buncha.jpg";
-    }
-    if (lower.includes("cuốn") || lower.includes("gỏi")) {
-      return "../assets/images/foods/banhmi.jpg";
-    }
-    return "../assets/images/foods/phobo.jpg";
-  }
-
-  // ---------- Xây dựng Ưu điểm & Hạn chế từ tiêu chí WSM ----------
-  function buildProsAndCons(item, rank) {
-    const pros = [];
-    const cons = [];
-
-    // Ưu điểm từ reasons do Decision Engine cung cấp
-    if (Array.isArray(item.reasons) && item.reasons.length > 0) {
-      pros.push(...item.reasons);
-    }
-
-    const scores = item.criteria_scores || {};
-    const priceScore = Number(scores.price ?? 0);
-    const prefScore = Number(scores.preference ?? 0);
-    const prepScore = Number(scores.prep_time ?? 0);
-
-    if (priceScore >= 70 && !pros.some((p) => p.includes("ngân sách") || p.includes("Giá"))) {
-      pros.push(`Mức giá ${formatMoney(item.price)} rất tiết kiệm trong tầm ngân sách.`);
-    }
-    if (prepScore >= 70 && item.prep_time) {
-      pros.push(`Thời gian chuẩn bị nhanh (${item.prep_time} phút), không phải chờ lâu.`);
-    }
-    if (prefScore >= 70 && item.tags && item.tags.length > 0) {
-      pros.push(`Đặc trưng món phù hợp sở thích: ${item.tags.join(", ")}.`);
-    }
-
-    if (pros.length === 0) {
-      pros.push(`Giá ${formatMoney(item.price)} nằm trong giới hạn ngân sách.`);
-    }
-
-    // Hạn chế
-    if (priceScore < 50) {
-      cons.push(`Giá ${formatMoney(item.price)} tiệm cận mức ngân sách tối đa.`);
-    }
-    if (prepScore < 50 && item.prep_time) {
-      cons.push(`Thời gian chế biến (${item.prep_time} phút) lâu hơn các món ăn nhanh khác.`);
-    }
-    if (prefScore < 40) {
-      cons.push("Chưa tối ưu cao cho các sở thích ẩm thực đặc thù.");
-    }
-
-    if (cons.length === 0) {
-      if (rank > 1) {
-        cons.push("Điểm tổng hợp WSM thấp hơn một chút so với phương án đứng đầu.");
-      } else {
-        cons.push("Không có hạn chế đáng kể trong các tiêu chí đã chọn.");
-      }
-    }
-
-    return {
-      advantages: pros.slice(0, 3),
-      disadvantages: cons.slice(0, 2),
-    };
-  }
-
-  // ---------- Xây dựng câu giải thích xếp hạng ----------
-  function buildExplanation(item, rank, total) {
-    const reasonsText = Array.isArray(item.reasons) && item.reasons.length > 0
-      ? item.reasons.join(". ") + "."
-      : "";
-
-    if (rank === 1) {
-      return `Đứng đầu với ${Number(item.score).toFixed(1)}/100 điểm tổng hợp WSM. ${reasonsText} Đây là phương án tối ưu và cân bằng nhất giữa ngân sách, loại bữa ăn và thời gian chuẩn bị.`;
-    }
-    return `Xếp hạng ${rank}/${total} với ${Number(item.score).toFixed(1)}/100 điểm. ${reasonsText}`;
-  }
-
-  // ---------- Chuyển đổi dữ liệu API sang format UI ----------
-  function formatApiResults(items) {
-    return items.map((item, index) => {
-      const rank = index + 1;
-      const { advantages, disadvantages } = buildProsAndCons(item, rank);
-      return {
-        id: item.food_id || item.id || (index + 1),
-        name: item.name,
-        price: item.price,
-        prep_time: item.prep_time,
-        meal_type: item.meal_type,
-        tags: item.tags || [],
-        image: resolveFoodImage(item.name, item.image_url),
-        score: Number(item.score || 0),
-        ranking: rank,
-        criteria: {
-          price: Math.round(item.criteria_scores?.price ?? 0),
-          preference: Math.round(item.criteria_scores?.preference ?? 0),
-          prep_time: Math.round(item.criteria_scores?.prep_time ?? 0),
-        },
-        explanation: buildExplanation(item, rank, items.length),
-        advantages,
-        disadvantages,
-      };
-    });
-  }
-
-  // ---------- Lưu phiên vào Lịch sử (LocalStorage) ----------
-  function saveToDecisionHistory(data) {
-    try {
-      const STORAGE_KEY = "dh_decision_history";
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const list = raw ? JSON.parse(raw) : [];
-
-      const record = {
-        id: "hist_" + Date.now(),
-        createdAt: new Date().toISOString(),
-        module: "food",
-        moduleLabel: "Gợi ý Món ăn",
-        criteriaSummary: `Ngân sách ≤ ${formatMoney(data.budget_max)}, ${ALLOWED_MEAL_TYPES[data.meal_type] || data.meal_type}${data.avoid_ingredients && data.avoid_ingredients.length ? `, tránh: ${data.avoid_ingredients.join(", ")}` : ""}`,
-        resultSummary: data.top_name ? `Top 1: ${data.top_name} (${Number(data.top_score).toFixed(1)}đ)` : "Không có kết quả",
-        total: data.total,
-        budget_max: data.budget_max,
-        meal_type: data.meal_type,
-        avoid_ingredients: data.avoid_ingredients,
-      };
-
-      list.unshift(record);
-      // Giữ tối đa 30 bản ghi gần nhất
-      const trimmed = list.slice(0, 30);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch (err) {
-      console.warn("Không thể lưu lịch sử quyết định:", err);
-    }
-  }
-
-  // ---------- Quản lý UI Loading State ----------
+  // Quản lý trạng thái loading
   function setLoading(isLoading) {
     if (!submitBtn) return;
     if (isLoading) {
@@ -310,140 +172,219 @@
     }
   }
 
-  // ---------- Luồng chính: Gọi API và hiển thị kết quả ----------
+  // Lưu lịch sử vào LocalStorage
+  function saveToDecisionHistory(data) {
+    try {
+      const STORAGE_KEY = "dh_decision_history";
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+
+      const record = {
+        id: "hist_" + Date.now(),
+        createdAt: new Date().toISOString(),
+        module: "food",
+        moduleLabel: "Gợi ý Món ăn",
+        criteriaSummary: `Ngân sách ≤ ${moneyStr(data.budget_max)}, ${ALLOWED_MEAL_TYPES[data.meal_type] || data.meal_type}${data.avoid_ingredients && data.avoid_ingredients.length ? `, tránh: ${data.avoid_ingredients.join(", ")}` : ""}`,
+        resultSummary: data.top_name ? `Top 1: ${data.top_name} (${Number(data.top_score).toFixed(1)}đ)` : "Không có kết quả",
+        total: data.total,
+        budget_max: data.budget_max,
+        meal_type: data.meal_type,
+        avoid_ingredients: data.avoid_ingredients,
+      };
+
+      list.unshift(record);
+      const trimmed = list.slice(0, 30);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    } catch (err) {
+      console.warn("Không thể lưu lịch sử quyết định:", err);
+    }
+  }
+
+  // Ánh xạ ảnh
+  function resolveFoodImage(foodName, imageUrl) {
+    if (imageUrl && typeof imageUrl === "string" && imageUrl.trim()) {
+      return imageUrl;
+    }
+    const lower = (foodName || "").toLowerCase();
+    if (lower.includes("phở")) return "../assets/images/foods/phobo.jpg";
+    if (lower.includes("bánh mì")) return "../assets/images/foods/banhmi.jpg";
+    if (lower.includes("bún chả")) return "../assets/images/foods/buncha.jpg";
+    if (lower.includes("cơm")) return "../assets/images/foods/comtam.jpg";
+    if (lower.includes("lẩu")) return "../assets/images/foods/laumini.jpg";
+    if (lower.includes("mì") || lower.includes("bún") || lower.includes("quảng")) {
+      return "../assets/images/foods/buncha.jpg";
+    }
+    if (lower.includes("cuốn") || lower.includes("gỏi")) {
+      return "../assets/images/foods/banhmi.jpg";
+    }
+    return "../assets/images/foods/phobo.jpg";
+  }
+
+  // Định dạng dữ liệu từ API Backend sang cấu trúc UI
+  function formatApiResults(items) {
+    return items.map((item, index) => {
+      const rank = index + 1;
+      const isTop = rank === 1;
+
+      const reasons = Array.isArray(item.reasons) ? [...item.reasons] : [];
+      if (reasons.length === 0) {
+        if (item.price) reasons.push(`Mức giá ${moneyStr(item.price)} phù hợp với ngân sách của bạn`);
+        if (item.prep_time) reasons.push(`Thời gian chuẩn bị ${item.prep_time} phút nhanh chóng`);
+      }
+
+      const pros = [...reasons];
+      const cons = [];
+      const pScore = item.criteria_scores?.price ?? 70;
+      if (pScore < 60 && item.price) {
+        cons.push(`Mức giá ${moneyStr(item.price)} tiệm cận mức ngân sách tối đa`);
+      }
+      if (item.prep_time && item.prep_time > 20) {
+        cons.push(`Thời gian chuẩn bị (${item.prep_time} phút) cần đợi lâu hơn`);
+      }
+      if (cons.length === 0) {
+        cons.push(isTop ? "Là lựa chọn hài hòa nhất trong tầm giá" : "Điểm tổng hợp thấp hơn phương án đứng đầu");
+      }
+
+      return {
+        id: item.food_id || item.id || (index + 1),
+        name: item.name,
+        price: item.price,
+        prep_time: item.prep_time,
+        image: resolveFoodImage(item.name, item.image_url),
+        score: Number(item.score || 0),
+        ranking: rank,
+        criteria: {
+          price: Math.round(item.criteria_scores?.price ?? 0),
+          preference: Math.round(item.criteria_scores?.preference ?? 0),
+          prep_time: Math.round(item.criteria_scores?.prep_time ?? 0),
+        },
+        explanation: isTop
+          ? `Đứng đầu với ${Number(item.score).toFixed(1)}/100 điểm WSM. Món ăn cân bằng tối ưu giữa ngân sách, loại bữa ăn và thời gian chuẩn bị.`
+          : `Xếp hạng ${rank} với ${Number(item.score).toFixed(1)}/100 điểm WSM. ${reasons[0] || ""}`,
+        advantages: pros.slice(0, 3),
+        disadvantages: cons.slice(0, 2),
+      };
+    });
+  }
+
+  // ---------- HÀM THỰC THI GỢI Ý MÓN ĂN CHÍNH ----------
   async function executeRecommendation(payload) {
     setLoading(true);
     clearStatus();
 
-    try {
+    const criteriaList = window.FOOD_CRITERIA || [
+      { key: "price", label: "Giá", weight: 0.4 },
+      { key: "preference", label: "Mức phù hợp nhu cầu/khẩu vị", weight: 0.35 },
+      { key: "prep_time", label: "Thời gian chuẩn bị", weight: 0.25 },
+    ];
+
+    let finalResults = [];
+    let isFromBackend = false;
+
+    // 1. Thử gọi API Backend trước nếu có server chạy
+    if (typeof api !== "undefined" && typeof api.post === "function") {
+      try {
+        let res;
+        try {
+          res = await api.post("/api/v1/decisions/recommend", payload);
+        } catch {
+          res = await api.post("/api/v1/food/recommend", payload);
+        }
+
+        const data = res && res.data ? res.data : res;
+        const rawItems = (data && data.items) || [];
+        if (Array.isArray(rawItems) && rawItems.length > 0) {
+          finalResults = formatApiResults(rawItems);
+          isFromBackend = true;
+        }
+      } catch (apiErr) {
+        console.info("Backend chưa sẵn sàng hoặc gặp lỗi, sử dụng Client-Side Decision Engine:", apiErr.message);
+      }
+    }
+
+    // 2. Nếu Backend offline hoặc chưa có kết quả: dùng Engine lọc động thông minh của Frontend
+    if (!isFromBackend) {
+      if (typeof window.filterAndScoreFoods === "function") {
+        finalResults = window.filterAndScoreFoods(payload);
+      }
+    }
+
+    // 3. Render kết quả lên giao diện
+    if (!finalResults || finalResults.length === 0) {
+      // Trạng thái Empty State (Không có món thỏa mãn)
+      if (typeof DHResults !== "undefined" && typeof DHResults.renderEmptyState === "function") {
+        DHResults.renderEmptyState(
+          `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${ALLOWED_MEAL_TYPES[payload.meal_type] || payload.meal_type}. Hãy thử tăng ngân sách hoặc bỏ bớt nguyên liệu cần tránh!`,
+        );
+      }
+      if (resultsTotalEl) resultsTotalEl.textContent = "0";
+      if (resultsTopNameEl) resultsTopNameEl.textContent = "Không có phương án";
+      if (resultsTopScoreEl) resultsTopScoreEl.textContent = "";
+
       showStatus(
-        `Đang phân tích tiêu chí: Ngân sách <strong>${escapeHtml(formatMoney(payload.budget_max))}</strong> · Bữa: <strong>${escapeHtml(ALLOWED_MEAL_TYPES[payload.meal_type] || payload.meal_type)}</strong>...`,
-        "info",
+        `<strong>Không có món ăn phù hợp:</strong> Với ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong> cho <strong>${ALLOWED_MEAL_TYPES[payload.meal_type] || payload.meal_type}</strong>, không có món nào thỏa mãn. Bạn hãy thử nới lỏng ngân sách nhé!`,
+        "error",
       );
 
-      // 1. Gọi API Backend (Endpoint chính: /api/v1/food/recommend; fallback: /api/v1/decisions/recommend)
-      let res;
-      try {
-        res = await api.post("/api/v1/food/recommend", payload);
-      } catch (primaryError) {
-        console.warn("Lỗi gọi /api/v1/food/recommend, thử fallback /api/v1/decisions/recommend:", primaryError);
-        res = await api.post("/api/v1/decisions/recommend", payload);
+      saveToDecisionHistory({
+        budget_max: payload.budget_max,
+        meal_type: payload.meal_type,
+        avoid_ingredients: payload.excluded_ingredients,
+        top_name: "",
+        top_score: 0,
+        total: 0,
+      });
+
+      if (typeof showToast === "function") {
+        showToast("Không tìm thấy món ăn phù hợp với tiêu chí.", "error");
       }
-
-      // Chuẩn hóa cấu trúc dữ liệu trả về từ backend
-      const data = res && res.data ? res.data : res;
-      const rawItems = (data && data.items) || [];
-      const total = typeof data.total === "number" ? data.total : rawItems.length;
-
-      // 2. Xử lý trường hợp không có món nào thỏa mãn (Empty State)
-      if (!rawItems || rawItems.length === 0) {
-        if (typeof DHResults !== "undefined" && typeof DHResults.renderEmptyState === "function") {
-          DHResults.renderEmptyState(
-            `Không tìm thấy món ăn nào thỏa mãn ngân sách ≤ ${formatMoney(payload.budget_max)} và các điều kiện đã chọn. Hãy thử tăng ngân sách hoặc giảm bớt nguyên liệu cần tránh!`,
-          );
-        }
-        if (resultsTotalEl) resultsTotalEl.textContent = "0";
-        if (resultsTopNameEl) resultsTopNameEl.textContent = "Không có phương án";
-        if (resultsTopScoreEl) resultsTopScoreEl.textContent = "";
-
-        showStatus(
-          `<strong>Không có kết quả phù hợp:</strong> Không có món ăn nào trong tầm giá <strong>${escapeHtml(formatMoney(payload.budget_max))}</strong>. Vui lòng nới lỏng ngân sách!`,
-          "error",
-        );
-
-        saveToDecisionHistory({
-          budget_max: payload.budget_max,
-          meal_type: payload.meal_type,
-          avoid_ingredients: payload.excluded_ingredients,
-          top_name: "",
-          top_score: 0,
-          total: 0,
-        });
-
-        if (typeof showToast === "function") {
-          showToast("Không tìm thấy món ăn phù hợp với tiêu chí.", "error");
-        }
-        return;
-      }
-
-      // 3. Có kết quả -> Chuyển đổi và hiển thị qua DHResults
-      const formattedResults = formatApiResults(rawItems);
-      const criteriaList = window.FOOD_CRITERIA || [
-        { key: "price", label: "Giá", weight: 0.4 },
-        { key: "preference", label: "Mức phù hợp nhu cầu/khẩu vị", weight: 0.35 },
-        { key: "prep_time", label: "Thời gian chuẩn bị", weight: 0.25 },
-      ];
-
+    } else {
+      // Có kết quả -> Render bảng xếp hạng và giải thích chi tiết
       if (typeof DHResults !== "undefined" && typeof DHResults.initResultsPage === "function") {
         DHResults.initResultsPage({
-          results: formattedResults,
+          results: finalResults,
           criteria: criteriaList,
         });
       }
 
-      // Cập nhật thông tin tóm tắt
-      const topOption = formattedResults[0];
-      if (resultsTotalEl) resultsTotalEl.textContent = total;
+      const topOption = finalResults[0];
+      if (resultsTotalEl) resultsTotalEl.textContent = finalResults.length;
       if (resultsTopNameEl) resultsTopNameEl.textContent = topOption.name;
       if (resultsTopScoreEl) {
         resultsTopScoreEl.textContent = `${Number(topOption.score).toFixed(1)}/100 điểm (WSM)`;
       }
 
       showStatus(
-        `✓ Đã tìm thấy <strong>${formattedResults.length}</strong> phương án món ăn tối ưu nhất cho bạn. Lựa chọn số 1: <strong>${escapeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)} điểm).`,
+        `✓ Đã tìm thấy <strong>${finalResults.length}</strong> món ăn tối ưu nhất cho bạn. Lựa chọn số 1: <strong>${escapeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)} điểm WSM).`,
         "success",
       );
 
-      // Lưu lại vào Lịch sử
       saveToDecisionHistory({
         budget_max: payload.budget_max,
         meal_type: payload.meal_type,
         avoid_ingredients: payload.excluded_ingredients,
         top_name: topOption.name,
         top_score: topOption.score,
-        total: formattedResults.length,
+        total: finalResults.length,
       });
 
       if (typeof showToast === "function") {
-        showToast(`Đã đề xuất ${formattedResults.length} món ăn phù hợp!`, "success");
+        showToast(`Đã đề xuất ${finalResults.length} món ăn phù hợp!`, "success");
       }
 
-      // Tự động cuộn đến danh sách kết quả nếu trên màn hình nhỏ
+      // Cuộn mượt màn hình tới bảng xếp hạng nếu đang trên màn hình nhỏ
       if (window.matchMedia("(max-width: 991.98px)").matches) {
         const rankingHeader = document.getElementById("results-ranking-title");
         if (rankingHeader) {
           rankingHeader.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
-    } catch (error) {
-      console.error("Lỗi khi gọi API gợi ý món ăn:", error);
-      const errMsg = error.message || "Không thể kết nối đến máy chủ API. Vui lòng kiểm tra backend!";
-
-      showStatus(`<strong>Lỗi xử lý:</strong> ${escapeHtml(errMsg)}`, "error");
-
-      // Fallback hiển thị dữ liệu mẫu nếu mất kết nối server hoàn toàn
-      if (window.FOOD_MOCK_RESULTS && window.FOOD_CRITERIA && typeof DHResults !== "undefined") {
-        DHResults.initResultsPage({
-          results: window.FOOD_MOCK_RESULTS,
-          criteria: window.FOOD_CRITERIA,
-        });
-        showStatus(
-          `<strong>Lưu ý:</strong> Đang hiển thị kết quả giả lập mẫu do máy chủ chưa phản hồi (${escapeHtml(errMsg)}).`,
-          "error",
-        );
-      } else if (typeof DHResults !== "undefined") {
-        DHResults.renderEmptyState("Đã xảy ra lỗi khi kết nối máy chủ: " + errMsg);
-      }
-
-      if (typeof showToast === "function") {
-        showToast(errMsg, "error");
-      }
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }
 
-  // ---------- Lắng nghe sự kiện người dùng ----------
+  // ---------- GẮN SỰ KIỆN FORM ----------
   maxBudgetInput.addEventListener("input", () => {
     setFieldError(maxBudgetInput, maxBudgetError, "");
     clearStatus();
@@ -503,7 +444,7 @@
     executeRecommendation(payload);
   });
 
-  // ---------- Khởi tạo lần đầu khi nạp trang (URL Params hoặc Dữ liệu mặc định) ----------
+  // ---------- Khởi tạo lần đầu khi nạp trang ----------
   function initPage() {
     const params = new URLSearchParams(window.location.search);
     const qBudget = params.get("budget_max") || params.get("max_budget") || params.get("budget");
@@ -513,20 +454,19 @@
     if (qBudget) {
       maxBudgetInput.value = qBudget;
     } else if (!maxBudgetInput.value) {
-      maxBudgetInput.value = "50000"; // Mặc định 50.000đ
+      maxBudgetInput.value = "50000";
     }
 
     if (qMeal && Object.prototype.hasOwnProperty.call(ALLOWED_MEAL_TYPES, qMeal)) {
       mealTypeSelect.value = qMeal;
     } else if (!mealTypeSelect.value) {
-      mealTypeSelect.value = "lunch"; // Mặc định Bữa trưa
+      mealTypeSelect.value = "lunch";
     }
 
     if (qAvoid) {
       avoidInput.value = qAvoid;
     }
 
-    // Tự động chạy lần đầu từ API để hiển thị kết quả thực tế từ DB ngay
     const initBudget = Number(maxBudgetInput.value) || 50000;
     const initMeal = mealTypeSelect.value || "lunch";
     const initAvoid = avoidInput.value
@@ -541,7 +481,6 @@
     });
   }
 
-  // Chạy khi DOM sẵn sàng
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initPage);
   } else {
