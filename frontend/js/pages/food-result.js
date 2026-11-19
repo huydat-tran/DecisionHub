@@ -1,7 +1,7 @@
-// Trang Đề xuất món ăn (Food Recommendation).
-//
-// Dữ liệu mẫu + tiêu chí riêng của phân hệ Food; phần hiển thị dùng chung
-// nằm trong result-common.js (DHResults).
+// ==========================================================
+// Module: Food Results Data & Client-Side Decision Engine
+// Chứa danh mục món ăn chuẩn và thuật toán lọc + chấm điểm WSM
+// ==========================================================
 
 const FOOD_CRITERIA = [
   { key: "price", label: "Giá", weight: 0.4 },
@@ -9,85 +9,90 @@ const FOOD_CRITERIA = [
   { key: "prep_time", label: "Thời gian chuẩn bị", weight: 0.25 },
 ];
 
-const FOOD_RESULTS = [
+// Danh mục toàn bộ món ăn thực tế của hệ thống
+const FOOD_CATALOG = [
   {
     id: 1,
-    name: "Bún chả Hà Nội",
-    image: "../assets/images/foods/hihi.png",
-    score: 87.3,
-    ranking: 1,
-    criteria: { price: 86, preference: 94, prep_time: 80 },
-    explanation:
-      "Đứng đầu nhờ điểm phù hợp khẩu vị cao nhất (94/100) và mức giá nằm trong ngân sách. Thời gian chuẩn bị ở mức khá nên chỉ bị trừ nhẹ ở tiêu chí này.",
-    advantages: [
-      "Mức phù hợp khẩu vị cao nhất trong 5 phương án",
-      "Giá thấp hơn ngân sách tối đa",
-      "Đủ đạm và rau, hợp một bữa trưa đầy đủ",
-    ],
-    disadvantages: [
-      "Thời gian chuẩn bị lâu hơn phở và bánh mì",
-      "Giá cao hơn bánh mì thịt",
-    ],
+    name: "Phở bò tái",
+    price: 45000,
+    prep_time: 15,
+    meal_types: ["breakfast", "dinner"],
+    ingredients: ["bánh phở", "thịt bò", "hành lá", "nước dùng ninh xương"],
+    tags: ["nước", "truyền thống", "nóng", "đậm đà"],
+    image: "../assets/images/foods/phobo.jpg",
   },
   {
     id: 2,
-    name: "Phở bò tái",
-    image: "../assets/images/foods/hihi.png",
-    score: 85.2,
-    ranking: 2,
-    criteria: { price: 78, preference: 90, prep_time: 90 },
-    explanation:
-      "Xếp thứ hai nhờ chuẩn bị nhanh (90/100) và khẩu vị tốt (90/100). Giá cao hơn bún chả nên kém phương án đứng đầu 2,1 điểm.",
-    advantages: [
-      "Phục vụ nhanh, ít phải chờ",
-      "Mức phù hợp khẩu vị cao",
-      "Món nước nóng, dễ ăn",
-    ],
-    disadvantages: [
-      "Giá cao hơn bún chả và bánh mì",
-      "Thiên về đạm và tinh bột, ít rau",
-    ],
+    name: "Bánh mì thịt đặc biệt",
+    price: 25000,
+    prep_time: 5,
+    meal_types: ["breakfast", "lunch", "snack"],
+    ingredients: ["bánh mì", "thịt heo", "chả lụa", "pate", "dưa leo", "hành ngò"],
+    tags: ["nhanh", "khô", "giòn", "tiết kiệm"],
+    image: "../assets/images/foods/banhmi.jpg",
   },
   {
     id: 3,
-    name: "Bánh mì thịt",
-    image: "../assets/images/foods/hihi.png",
-    score: 84.5,
-    ranking: 3,
-    criteria: { price: 90, preference: 70, prep_time: 96 },
-    explanation:
-      "Thắng ở giá (90/100) và tốc độ chuẩn bị (96/100), nhưng mức phù hợp khẩu vị chỉ đạt 70/100 nên không vượt được hai phương án đầu.",
-    advantages: [
-      "Giá thấp nhất trong 5 phương án",
-      "Chuẩn bị nhanh nhất, có thể mang đi",
-      "Linh hoạt khi cần ăn vội",
-    ],
-    disadvantages: [
-      "Mức phù hợp khẩu vị thấp nhất trong 5 phương án",
-      "Khó no lâu nếu ăn một mình",
-    ],
+    name: "Bún chả Hà Nội",
+    price: 50000,
+    prep_time: 20,
+    meal_types: ["lunch", "dinner"],
+    ingredients: ["bún", "thịt heo", "chả nướng", "nước mắm", "rau sống", "đu đủ"],
+    tags: ["đậm đà", "truyền thống", "thịt", "nổi tiếng"],
+    image: "../assets/images/foods/buncha.jpg",
   },
   {
     id: 4,
-    name: "Cơm tấm sườn",
-    image: "../assets/images/foods/hihi.png",
-    score: 80.6,
-    ranking: 4,
-    criteria: { price: 72, preference: 88, prep_time: 84 },
-    explanation:
-      "Khẩu vị tốt (88/100) và chuẩn bị khá nhanh (84/100), nhưng điểm giá chỉ 72/100 nên điểm tổng dừng ở 80,6.",
-    advantages: [
-      "No lâu, đủ năng lượng cho buổi chiều",
-      "Mức phù hợp khẩu vị cao",
-      "Thời gian chuẩn bị ngắn",
-    ],
-    disadvantages: [
-      "Giá cao hơn nhiều phương án khác",
-      "Dễ vượt ngân sách nếu gọi thêm món",
-    ],
+    name: "Cơm tấm sườn bì chả",
+    price: 55000,
+    prep_time: 15,
+    meal_types: ["breakfast", "lunch", "dinner"],
+    ingredients: ["cơm tấm", "sườn heo", "bì", "chả trứng", "mỡ hành", "nước mắm"],
+    tags: ["no lâu", "đậm đà", "cơm", "năng lượng"],
+    image: "../assets/images/foods/comtam.jpg",
   },
   {
     id: 5,
+    name: "Cơm chiên đậu hũ nấm",
+    price: 35000,
+    prep_time: 12,
+    meal_types: ["lunch", "dinner"],
+    ingredients: ["cơm", "đậu hũ", "nấm", "cà rốt", "đậu hà lan"],
+    tags: ["chay", "thanh đạm", "cơm", "healthy"],
+    image: "../assets/images/foods/comtam.jpg",
+  },
+  {
+    id: 6,
+    name: "Mì Quảng tôm thịt",
+    price: 48000,
+    prep_time: 18,
+    meal_types: ["lunch", "dinner"],
+    ingredients: ["mì quảng", "tôm", "thịt heo", "bánh tráng mè", "đậu phộng", "rau sống"],
+    tags: ["đậm đà", "miền trung", "hải sản"],
+    image: "../assets/images/foods/buncha.jpg",
+  },
+  {
+    id: 7,
+    name: "Bún thái hải sản cay",
+    price: 65000,
+    prep_time: 25,
+    meal_types: ["dinner"],
+    ingredients: ["bún", "tôm", "mực", "nghêu", "sả", "ớt", "cà chua"],
+    tags: ["cay", "chua cay", "hải sản", "nước", "ấm nóng"],
+    image: "../assets/images/foods/laumini.jpg",
+  },
+  {
+    id: 8,
+    name: "Gỏi cuốn tôm thịt",
+    price: 30000,
+    prep_time: 10,
+    meal_types: ["snack", "lunch"],
+    ingredients: ["bánh tráng", "tôm", "thịt heo", "bún", "hẹ", "rau thơm"],
+    tags: ["thanh mát", "nhẹ bụng", "healthy", "ít béo"],
+    image: "../assets/images/foods/banhmi.jpg",
+  },
+  {
+    id: 9,
     name: "Lẩu mini một người",
     image: "../assets/images/foods/hihi.png",
     score: 60.5,

@@ -171,15 +171,17 @@
     </div>`;
   }
 
-  function renderEmptyState() {
+  function renderEmptyState(message) {
     const el = getElements();
     if (el.total) el.total.textContent = "0";
+    if (el.topName) el.topName.textContent = "–";
+    if (el.topScore) el.topScore.textContent = "";
     if (el.rankingList) {
       el.rankingList.innerHTML = `
     <li class="dh-empty-state">
       <div class="dh-empty-icon">📋</div>
       <div class="dh-empty-title">Chưa có phương án phù hợp</div>
-      <p class="dh-empty-desc">Hãy thử nới lỏng điều kiện để nhận thêm kết quả.</p>
+      <p class="dh-empty-desc">${message || "Hãy thử nới lỏng điều kiện để nhận thêm kết quả."}</p>
     </li>`;
     }
     if (el.explanationBody) {
