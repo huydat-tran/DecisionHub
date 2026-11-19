@@ -107,4 +107,10 @@ const FOOD_RESULTS = [
   },
 ];
 
-DHResults.initResultsPage({ results: FOOD_RESULTS, criteria: FOOD_CRITERIA });
+window.FOOD_CRITERIA = FOOD_CRITERIA;
+window.FOOD_MOCK_RESULTS = FOOD_RESULTS;
+
+// Chỉ tự nạp dữ liệu mẫu tĩnh nếu trang không có form đề xuất tương tác (food-recommend.js)
+if (!document.getElementById("food-recommend-form")) {
+  DHResults.initResultsPage({ results: FOOD_RESULTS, criteria: FOOD_CRITERIA });
+}
