@@ -126,11 +126,6 @@ function getRedirectUrl() {
   return api.appUrl(target);
 }
 
-// Mở thẳng form đăng ký khi được yêu cầu (nút "Đăng ký" ở navbar).
-if (getQueryParam("mode") === "register") {
-  switchToRegister();
-}
-
 // ---------------------------------------------------------------------------
 // Quy tắc validate - đồng bộ với backend/app/modules/auth/schemas.py
 // ---------------------------------------------------------------------------
@@ -277,22 +272,23 @@ const FIELD_BY_LOC = {
     password: "signupPass",
 };
 
-// Lỗi 422 của FastAPI/Pydantic: detail là mảng [{ loc: ["body", "email"], msg: "..." }]
-function applyDetailList(detail, context) {
-    detail.forEach(function (item) {
-        const loc = item.loc || [];
-        const field = loc[loc.length - 1];
+// Lỗi 422 của FastAPI/Pydantic (format chuẩn DecisionHub):
+// errors là mảng [{ field: "body.email", message: "..." }]
+function applyErrorList(errors, context) {
+    errors.forEach(function (item) {
+        const parts = String(item.field || "").split(".");
+        const field = parts[parts.length - 1];
         const inputId = FIELD_BY_LOC[field];
         if (inputId) {
-            setFieldError(inputId, [item.msg]);
+            setFieldError(inputId, [item.message]);
         } else {
-            setFormAlert(context.alertId, item.msg);
+            setFormAlert(context.alertId, item.message);
         }
     });
 }
 
-// Lỗi 409 của backend (DecisionHubException): detail là chuỗi thông báo.
-function applyDetailMessage(message, context) {
+// Lỗi 409 của backend (DecisionHubException): message là chuỗi thông báo.
+function applyErrorMessage(message, context) {
     const text = String(message || "").toLowerCase();
 
     const hasEmail = text.includes("email");
@@ -321,14 +317,14 @@ function applyDetailMessage(message, context) {
 // Hiển thị lỗi API theo đúng trường, hoặc thông báo chung nếu không xác định được.
 function showApiError(error, context) {
     const status = error && error.status;
-    const detail = error && error.data ? error.data.detail : null;
+    const data = error && error.data ? error.data : {};
 
-    if (Array.isArray(detail)) {
-        applyDetailList(detail, context);
+    if (Array.isArray(data.errors) && data.errors.length) {
+        applyErrorList(data.errors, context);
         return;
     }
-    if (typeof detail === "string" && detail) {
-        applyDetailMessage(detail, context);
+    if (typeof data.message === "string" && data.message) {
+        applyErrorMessage(data.message, context);
         return;
     }
 
@@ -502,3 +498,10 @@ document.querySelectorAll('.social-link').forEach(link => {
         });
     });
 });
+
+// Mở thẳng form đăng ký khi được yêu cầu (nút "Đăng ký" ở navbar).
+// Đặt cuối file: switchToRegister() dùng FORM_FIELDS (const) nên phải chạy
+// sau khi mọi khai báo đã hoàn tất, nếu không sẽ lỗi TDZ.
+if (getQueryParam("mode") === "register") {
+    switchToRegister();
+}

@@ -184,13 +184,16 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
-// Lấy câu thông báo lỗi dễ đọc từ response của FastAPI
+// Lấy câu thông báo lỗi dễ đọc từ response chuẩn của DecisionHub
+// { success, message, data, error_code, errors, path }
 function getErrorMessage(data, status) {
-  if (data && typeof data.detail === "string") return data.detail;
-  // Lỗi 422 (dữ liệu không hợp lệ): detail là mảng [{ loc: [...], msg: "..." }]
-  if (data && Array.isArray(data.detail)) {
-    return data.detail.map((e) => `${e.loc[e.loc.length - 1]}: ${e.msg}`).join("; ");
+  if (data && typeof data.message === "string" && data.message) return data.message;
+  // Lỗi 422 (dữ liệu không hợp lệ): errors là mảng [{ field, message }]
+  if (data && Array.isArray(data.errors) && data.errors.length) {
+    return data.errors.map((e) => `${e.field}: ${e.message}`).join("; ");
   }
+  // Fallback cho response cũ chưa chuẩn hóa.
+  if (data && typeof data.detail === "string") return data.detail;
   return `Lỗi ${status}`;
 }
 
