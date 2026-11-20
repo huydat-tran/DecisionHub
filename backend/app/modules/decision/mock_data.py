@@ -132,7 +132,7 @@ def build_mock_response(payload: DecisionRecommendRequest) -> DecisionResponse:
         items=items,
         excluded_items=excluded_items,
         total=len(items),
-        total_excluded=len(excluded_items),
+        total_excluded=eval_result["total_excluded"],
         limit=payload.limit,
         applied_filters=AppliedFilters(
             budget_max=payload.budget_max,

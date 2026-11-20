@@ -46,13 +46,27 @@ def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
     return getattr(candidate, field_name, default)
 
 
-def _extract_candidate_id(candidate: Any) -> Any:
-    """Trích xuất ID của ứng viên từ dict hoặc object."""
+def _extract_candidate_id(candidate: Any) -> Any | None:
+    """Trích xuất ID của ứng viên từ dict hoặc object.
+
+    Trả None khi ứng viên không có ID hợp lệ — không tạo ID giả (0) để tránh
+    client hiểu nhầm là ứng viên thực sự có ID bằng 0.
+    """
     for field in ("id", "food_id", "destination_id", "item_id"):
         val = _get_field(candidate, field)
-        if val is not None:
-            return val
-    return 0
+        if val is None:
+            continue
+        if isinstance(val, str) and not val.strip():
+            continue
+        return val
+    return None
+
+
+def _display_value(value: Any) -> str:
+    """Hiển thị giá trị trong message: Enum dùng `.value`, còn lại dùng str()."""
+    if isinstance(value, Enum):
+        return str(value.value)
+    return str(value)
 
 
 def _extract_candidate_name(candidate: Any) -> str:
@@ -247,11 +261,13 @@ def _explain_constraint(
     field_name: str,
     operator: str,
     expected: Any,
-    domain: str,
 ) -> str:
-    """Sinh chuỗi giải thích lý do cụ thể khi ứng viên vi phạm điều kiện."""
+    """Sinh chuỗi giải thích lý do cụ thể khi ứng viên vi phạm điều kiện.
+
+    Chỉ xử lý các field của domain Food (price, prep_time, meal_type, ingredients).
+    Field ngoài danh sách này trả về thông báo chung ở cuối hàm.
+    """
     raw_val = _get_field(candidate, field_name)
-    kind = get_field_kind(domain, field_name)
 
     if field_name == "price":
         number = _to_number(raw_val)
@@ -279,10 +295,14 @@ def _explain_constraint(
         text = _normalize_text(raw_val)
         if text is None:
             return "Thiếu thông tin loại bữa ăn."
+        actual_str = _display_value(raw_val)
         if operator == "=":
-            return f"Loại bữa ăn '{raw_val}' không phù hợp với bữa ăn yêu cầu '{expected}'."
+            return (
+                f"Loại bữa ăn '{actual_str}' không phù hợp với bữa ăn yêu cầu "
+                f"'{_display_value(expected)}'."
+            )
         if operator == "in":
-            return f"Loại bữa ăn '{raw_val}' không nằm trong danh sách bữa ăn yêu cầu."
+            return f"Loại bữa ăn '{actual_str}' không nằm trong danh sách bữa ăn yêu cầu."
 
     elif field_name == "ingredients":
         names = _extract_ingredient_names(raw_val)
@@ -302,18 +322,6 @@ def _explain_constraint(
         if operator == "in":
             return "Chứa nguyên liệu ngoài danh sách cho phép."
 
-    elif kind == "number":
-        number = _to_number(raw_val)
-        if number is None or number < 0:
-            return f"Dữ liệu trường '{field_name}' không hợp lệ hoặc bị thiếu."
-        return f"Giá trị {field_name} ({number}) không thỏa mãn điều kiện {operator} {expected}."
-
-    elif kind == "text":
-        text = _normalize_text(raw_val)
-        if text is None:
-            return f"Dữ liệu trường '{field_name}' bị thiếu."
-        return f"Giá trị '{raw_val}' của '{field_name}' không thỏa mãn điều kiện {operator} {expected}."
-
     return f"Không thỏa mãn điều kiện bắt buộc: {field_name} {operator} {expected}."
 
 
@@ -326,9 +334,7 @@ def inspect_candidate(
     reasons: list[str] = []
     for field_name, (operator, expected) in active.items():
         if not _matches_constraint(candidate, field_name, operator, expected, domain):
-            reason = _explain_constraint(
-                candidate, field_name, operator, expected, domain
-            )
+            reason = _explain_constraint(candidate, field_name, operator, expected)
             reasons.append(reason)
     return len(reasons) == 0, reasons
 

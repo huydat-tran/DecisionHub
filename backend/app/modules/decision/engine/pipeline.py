@@ -15,6 +15,11 @@ from app.modules.decision.engine.ranking import rank_candidates
 from app.modules.decision.engine.scoring import score_candidates
 from app.modules.decision.models import DECISION_DOMAINS
 
+# Số phương án bị loai tối đa được trả về chi tiết trong response.
+# total_excluded luôn là tổng số bị loại (không bị cắt), còn danh sách chi tiết
+# chỉ giữ tối đa số lượng này để response không phình to vô hạn.
+MAX_EXCLUDED_DETAIL: int = 20
+
 
 def select_criteria(criteria: list, domain: str) -> list:
     """Giữ lại tiêu chí thuộc đúng domain được yêu cầu."""
@@ -68,10 +73,12 @@ def evaluate_decision(
         - has_valid_candidates: bool (True nếu còn ít nhất 1 phương án hợp lệ)
         - message: str (thông báo kết quả đánh giá)
         - valid_candidates: list[dict] (các phương án hợp lệ có đủ total_score, rank, criteria_details)
-        - excluded_candidates: list[dict] (các phương án bị loại có id, name, status, exclusion_reason)
+        - excluded_candidates: list[dict] (các phương án bị loại có id, name, status, exclusion_reason;
+            tối đa MAX_EXCLUDED_DETAIL mục)
         - total_valid: int (tổng số phương án hợp lệ TRƯỚC khi áp dụng limit)
         - returned_count: int (số phương án thực tế được trả về sau khi áp dụng limit)
-        - total_excluded: int
+        - total_excluded: int (TỔNG số phương án bị loại, không bị cắt)
+        - excluded_returned_count: int (số mục chi tiết bị loại thực sự được trả về)
     """
     selected = select_criteria(criteria, domain)
 
@@ -86,12 +93,19 @@ def evaluate_decision(
             "total_valid": 0,
             "returned_count": 0,
             "total_excluded": 0,
+            "excluded_returned_count": 0,
         }
 
     # 2. Phân tách ứng viên hợp lệ và ứng viên bị loại theo Hard Constraints
     valid_candidates, excluded_candidates = filter_and_explain_candidates(
         candidates, constraints, domain=domain, **legacy
     )
+
+    # total_excluded = tổng số phương án bị loại (KHÔNG bị cắt).
+    # excluded_candidates chỉ trả về tối đa MAX_EXCLUDED_DETAIL mục chi tiết
+    # để response không phình to theo số lượng ứng viên bị loại.
+    total_excluded = len(excluded_candidates)
+    excluded_detail = excluded_candidates[:MAX_EXCLUDED_DETAIL]
 
     # 3. YÊU CẦU QUAN TRỌNG: Không chạy Scoring khi không còn ứng viên hợp lệ
     if not valid_candidates:
@@ -103,10 +117,11 @@ def evaluate_decision(
                 "đều đã bị loại bởi điều kiện bắt buộc."
             ),
             "valid_candidates": [],
-            "excluded_candidates": excluded_candidates,
+            "excluded_candidates": excluded_detail,
             "total_valid": 0,
             "returned_count": 0,
-            "total_excluded": len(excluded_candidates),
+            "total_excluded": total_excluded,
+            "excluded_returned_count": len(excluded_detail),
         }
 
     # 4. Chỉ thực hiện Scoring và WSM trên các ứng viên hợp lệ
@@ -133,10 +148,11 @@ def evaluate_decision(
         "has_valid_candidates": True,
         "message": message,
         "valid_candidates": ranked,
-        "excluded_candidates": excluded_candidates,
+        "excluded_candidates": excluded_detail,
         "total_valid": total_valid,
         "returned_count": returned_count,
-        "total_excluded": len(excluded_candidates),
+        "total_excluded": total_excluded,
+        "excluded_returned_count": len(excluded_detail),
     }
 
 

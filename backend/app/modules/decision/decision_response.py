@@ -65,7 +65,8 @@ class ScoringResponse(BaseModel):
 class ExcludedOptionResponse(BaseModel):
     """Thống kê phương án bị loại qua các điều kiện bắt buộc."""
 
-    id: int | str
+    # None khi ứng viên không có ID hợp lệ — không tạo ID giả.
+    id: int | str | None = None
     name: str
     status: Literal["excluded"] = "excluded"
     is_excluded: bool = True
