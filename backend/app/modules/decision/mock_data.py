@@ -5,6 +5,8 @@ from app.modules.decision.decision_response import (
     CriteriaScores,
     DecisionResponse,
     RecommendedFoodResponse,
+    ScoringResponse,
+    ScoringWeights,
 )
 
 # Đã xếp hạng sẵn: A (63.50) -> C (49.83) -> B (42.17)
@@ -59,6 +61,17 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
 def build_mock_response(payload: DecisionRecommendRequest) -> DecisionResponse:
     # Chỉ lọc theo giá để Frontend test được empty state (budget_max < 20000)
     items = [i for i in MOCK_ITEMS if i.price <= payload.budget_max][:payload.limit]
+    if payload.weights is not None:
+        scoring = ScoringResponse(
+            weights=ScoringWeights(
+                price=payload.weights.price,
+                preference=payload.weights.preference,
+                prep_time=payload.weights.prep_time,
+            )
+        )
+    else:
+        scoring = ScoringResponse()
+
     return DecisionResponse(
         items=items,
         total=len(items),
@@ -69,5 +82,6 @@ def build_mock_response(payload: DecisionRecommendRequest) -> DecisionResponse:
             max_prep_time=payload.max_prep_time,
             excluded_ingredients=payload.excluded_ingredients,
             preferred_tags=payload.preferred_tags,
-        )
+        ),
+        scoring=scoring,
     )
