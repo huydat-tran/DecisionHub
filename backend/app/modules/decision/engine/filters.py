@@ -22,6 +22,7 @@ cơ chế so sánh và dispatch operator là dùng chung cho mọi domain.
 
 from collections.abc import Iterable
 from enum import Enum
+import math
 from typing import Any, TypeVar
 
 from app.modules.decision.hard_constraint_fields import (
@@ -36,6 +37,20 @@ CandidateT = TypeVar("CandidateT")
 
 # Kiểu cấu hình điều kiện: field_name -> (operator, giá trị)
 Constraints = dict[str, tuple[str, Any]]
+
+
+def _to_finite_float(raw: Any) -> float | None:
+    """Chuyển giá trị số sang float hữu hạn; trả về None nếu thiếu hoặc không hợp lệ."""
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, (int, float, Decimal)):
+        val = float(raw)
+        return val if math.isfinite(val) else None
+    try:
+        val = float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    return val if math.isfinite(val) else None
 
 
 def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
