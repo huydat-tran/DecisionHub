@@ -12,7 +12,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.modules.decision.engine.calculator import calculate_wsm
-from app.modules.decision.engine.pipeline import evaluate
+from app.modules.decision.engine.pipeline import evaluate, evaluate_decision
 from app.modules.decision.engine.ranking import rank_candidates
 from app.modules.decision.engine.scoring import score_candidates
 
@@ -86,6 +86,95 @@ class TestDecisionEnginePipeline(unittest.TestCase):
         # Món Y rẻ hơn (30k) → tie-break cost → Món Y đứng đầu
         self.assertEqual(results[0]["name"], "Món Y")
         self.assertEqual(results[1]["name"], "Món X")
+
+
+class TestEvaluateDecisionStatistics(unittest.TestCase):
+    """Thống kê total_valid / returned_count phải phản ánh đúng số phương án."""
+
+    def setUp(self) -> None:
+        self.food_criteria = [
+            {"domain": "food", "name": "Giá", "direction": "min", "weight": Decimal("0.5000")},
+            {
+                "domain": "food",
+                "name": "Mức phù hợp nhu cầu/khẩu vị",
+                "direction": "max",
+                "weight": Decimal("0.5000"),
+            },
+        ]
+        self.candidates = [
+            {"id": i, "name": f"Món {i}", "price": 10_000 * i, "preference": 50, "prep_time": 10}
+            for i in range(1, 6)
+        ]
+
+    def test_total_valid_counts_all_valid_candidates_before_limit(self) -> None:
+        """total_valid phản ánh tổng số ứng viên hợp lệ, không phải số sau limit."""
+        result = evaluate_decision(
+            candidates=self.candidates,
+            criteria=self.food_criteria,
+            domain="food",
+            limit=2,
+        )
+
+        self.assertTrue(result["has_valid_candidates"])
+        self.assertEqual(result["total_valid"], 5)
+        self.assertEqual(result["returned_count"], 2)
+        self.assertEqual(len(result["valid_candidates"]), 2)
+
+    def test_message_mentions_both_valid_total_and_returned_count(self) -> None:
+        """Message không được nhầm số ứng viên hợp lệ với số ứng viên trả về."""
+        result = evaluate_decision(
+            candidates=self.candidates,
+            criteria=self.food_criteria,
+            domain="food",
+            limit=2,
+        )
+
+        self.assertIn("5", result["message"])
+        self.assertIn("2", result["message"])
+
+    def test_without_limit_valid_and_returned_counts_match(self) -> None:
+        """Không có limit thì total_valid == returned_count == len(valid_candidates)."""
+        result = evaluate_decision(
+            candidates=self.candidates,
+            criteria=self.food_criteria,
+            domain="food",
+        )
+
+        self.assertEqual(result["total_valid"], 5)
+        self.assertEqual(result["returned_count"], 5)
+        self.assertEqual(result["total_valid"], len(result["valid_candidates"]))
+
+    def test_limit_larger_than_candidate_count(self) -> None:
+        """Limit lớn hơn số ứng viên → không bị cắt, hai số bằng nhau."""
+        result = evaluate_decision(
+            candidates=self.candidates,
+            criteria=self.food_criteria,
+            domain="food",
+            limit=20,
+        )
+
+        self.assertEqual(result["total_valid"], 5)
+        self.assertEqual(result["returned_count"], 5)
+
+    def test_statistics_present_in_empty_and_excluded_branches(self) -> None:
+        """Các nhánh early-return cũng phải có returned_count."""
+        empty = evaluate_decision(
+            candidates=[],
+            criteria=self.food_criteria,
+            domain="food",
+        )
+        self.assertEqual(empty["total_valid"], 0)
+        self.assertEqual(empty["returned_count"], 0)
+
+        all_excluded = evaluate_decision(
+            candidates=[{"id": 1, "name": "Món A", "price": 999_000, "preference": 50}],
+            criteria=self.food_criteria,
+            domain="food",
+            budget_max=1_000,
+        )
+        self.assertEqual(all_excluded["total_valid"], 0)
+        self.assertEqual(all_excluded["returned_count"], 0)
+        self.assertFalse(all_excluded["has_valid_candidates"])
 
 
 if __name__ == "__main__":

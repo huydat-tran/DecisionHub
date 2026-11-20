@@ -1,3 +1,13 @@
+"""Unit tests cho Bước 2 - Lọc điều kiện bắt buộc (Hard Constraints)."""
+
+from decimal import Decimal
+from enum import Enum
+from pathlib import Path
+from types import SimpleNamespace
+import sys
+import unittest
+
+# Đảm bảo import được `app.*` khi chạy từ root repo hoặc từ `backend/`
 """Unit tests cho Hard Constraint Filtering và tích hợp vào Decision Engine Pipeline.
 
 Kiểm tra: filters.py (lọc ứng viên) → pipeline.py (thứ tự lọc trước chấm điểm).
@@ -13,6 +23,109 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.modules.decision.engine.filters import filter_candidates, passes_hard_constraints
+
+
+class MealTypeEnum(Enum):
+    SANG = "sang"
+    TRUA = "trua"
+    TOI = "toi"
+
+
+class TestHardConstraintBudget(unittest.TestCase):
+    def test_budget_max_filters_exceeding_and_keeps_boundary(self) -> None:
+        candidates = [
+            {"id": 1, "name": "Bánh mì", "price": 25_000},
+            {"id": 2, "name": "Phở bò", "price": Decimal("50000")},
+            {"id": 3, "name": "Lẩu", "price": 120_000},
+        ]
+        result = filter_candidates(candidates, budget_max=50_000)
+        self.assertEqual([item["id"] for item in result], [1, 2])
+
+    def test_budget_max_excludes_missing_negative_and_invalid_prices(self) -> None:
+        candidates = [
+            {"id": 1, "name": "Thiếu giá", "price": None},
+            {"id": 2, "name": "Giá âm", "price": -10_000},
+            {"id": 3, "name": "Bool", "price": True},
+            {"id": 4, "name": "NaN", "price": float("nan")},
+            {"id": 5, "name": "Inf", "price": float("inf")},
+            {"id": 6, "name": "Chuỗi rỗng", "price": ""},
+            {"id": 7, "name": "Không phải số", "price": "abc"},
+            {"id": 8, "name": "Hợp lệ", "price": "35000"},
+        ]
+        result = filter_candidates(candidates, budget_max=40_000)
+        self.assertEqual([item["id"] for item in result], [8])
+
+    def test_invalid_budget_max_raises_value_error(self) -> None:
+        for invalid in (-1, -0.01, float("nan"), float("inf"), True, "abc"):
+            with self.subTest(budget_max=invalid):
+                with self.assertRaises(ValueError):
+                    filter_candidates([{"id": 1, "price": 10_000}], budget_max=invalid)
+                with self.assertRaises(ValueError):
+                    passes_hard_constraints({"id": 1, "price": 10_000}, budget_max=invalid)
+
+
+class TestHardConstraintMealType(unittest.TestCase):
+    def test_meal_type_matches_case_insensitive_and_enum(self) -> None:
+        candidates = [
+            {"id": 1, "meal_type": "  Sang  "},
+            {"id": 2, "meal_type": MealTypeEnum.TRUA},
+            {"id": 3, "meal_type": "toi"},
+            {"id": 4, "meal_type": None},
+            {"id": 5, "meal_type": ""},
+        ]
+        self.assertEqual(
+            [c["id"] for c in filter_candidates(candidates, meal_type="SANG")],
+            [1],
+        )
+        self.assertEqual(
+            [c["id"] for c in filter_candidates(candidates, meal_type=MealTypeEnum.TRUA)],
+            [2],
+        )
+
+
+class TestHardConstraintExcludedIngredients(unittest.TestCase):
+    def test_excluded_ingredients_supports_str_dict_and_object(self) -> None:
+        candidates = [
+            {"id": 1, "ingredients": ["Thịt bò", "Hành lá"]},
+            {"id": 2, "ingredients": [{"name": "Mắm tôm"}, {"name": "Bún"}]},
+            SimpleNamespace(id=3, ingredients=[SimpleNamespace(name="Đậu phộng")]),
+            {"id": 4, "ingredients": ["Gà", "Gừng"]},
+            {"id": 5, "ingredients": "Tôm sú"},
+            {"id": 6, "ingredients": []},
+        ]
+        result = filter_candidates(
+            candidates,
+            excluded_ingredients=["  tôm ", "ĐẬU PHỘNG", ""],
+        )
+        result_ids = [item["id"] if isinstance(item, dict) else item.id for item in result]
+        self.assertEqual(result_ids, [1, 4, 6])
+
+
+class TestHardConstraintsCombined(unittest.TestCase):
+    def test_no_compensation_when_any_constraint_fails(self) -> None:
+        candidates = [
+            {"id": 1, "price": 30_000, "meal_type": "trua", "ingredients": ["Thịt heo"]},
+            {"id": 2, "price": 20_000, "meal_type": "sang", "ingredients": ["Thịt heo"]},
+            {"id": 3, "price": 20_000, "meal_type": "trua", "ingredients": ["Hành"]},
+            {"id": 4, "price": 60_000, "meal_type": "trua", "ingredients": ["Thịt heo"]},
+        ]
+        result = filter_candidates(
+            candidates,
+            budget_max=40_000,
+            meal_type="trua",
+            excluded_ingredients=["hành"],
+        )
+        self.assertEqual([item["id"] for item in result], [1])
+
+    def test_all_candidates_filtered_returns_empty_list(self) -> None:
+        candidates = [
+            {"id": 1, "price": 80_000, "meal_type": "trua", "ingredients": []},
+        ]
+        self.assertEqual(filter_candidates(candidates, budget_max=50_000), [])
+
+    def test_no_constraints_keeps_all_candidates(self) -> None:
+        candidates = [{"id": 1}, {"id": 2, "price": None}]
+        self.assertEqual(filter_candidates(candidates), candidates)
 from app.modules.decision.engine.pipeline import evaluate
 
 CRITERIA = [
@@ -104,6 +217,57 @@ class TestFilterCandidates(unittest.TestCase):
     def test_passes_hard_constraints_handles_missing_price(self) -> None:
         candidate = {"id": 1, "name": "Món A"}
         self.assertFalse(passes_hard_constraints(candidate, budget_max=50_000))
+
+
+class TestFilterCandidatesShortCircuit(unittest.TestCase):
+    """filter_candidates() phải dừng ngay khi điều kiện đầu không đạt.
+
+    Nếu không short-circuit, một điều kiện phía sau có `expected` sai kiểu sẽ
+    ném ValueError thay vì chỉ loại ứng viên.
+    """
+
+    def test_stops_at_first_failing_constraint(self) -> None:
+        """Điều kiện đầu fail + điều kiện sau có expected sai kiểu → không raise."""
+        candidates = [_food(1, "Món A", 5_000)]
+        constraints = {"price": ("<=", 1_000), "prep_time": ("<=", "abc")}
+        # Ứng viên đã vi phạm điều kiện price → bị loại, không cần đánh giá prep_time.
+        self.assertEqual(filter_candidates(candidates, constraints), [])
+
+    def test_short_circuit_result_matches_explain_variant(self) -> None:
+        """Kết quả lọc của filter_candidates() và filter_and_explain_candidates() nhất quán."""
+        from app.modules.decision.engine.filters import filter_and_explain_candidates
+
+        candidates = [
+            _food(1, "Món A", 5_000),
+            _food(2, "Món B", 30_000),
+        ]
+        constraints = {"price": ("<=", 10_000)}
+
+        kept = filter_candidates(candidates, constraints)
+        valid, excluded = filter_and_explain_candidates(candidates, constraints)
+
+        # Cùng tập ứng viên được giữ lại và cùng tập bị loại.
+        self.assertEqual([c["id"] for c in kept], [c["id"] for c in valid])
+        self.assertEqual([c["id"] for c in kept], [1])
+        self.assertEqual(len(excluded), 1)
+
+    def test_explain_variant_evaluates_all_constraints(self) -> None:
+        """Bản 'explain' đánh giá MỌI điều kiện để thu thập đủ lý do → lỗi dữ liệu
+        ở điều kiện sau vẫn bị nêu ra (khác bản short-circuit)."""
+        from app.modules.decision.engine.filters import filter_and_explain_candidates
+
+        candidates = [_food(1, "Món A", 30_000)]
+        constraints = {"price": ("<=", 50_000), "prep_time": ("<=", "abc")}
+
+        with self.assertRaises(ValueError):
+            filter_and_explain_candidates(candidates, constraints)
+
+    def test_raising_constraint_still_raises_for_passing_candidates(self) -> None:
+        """Ứng viên thoả điều kiện đầu vẫn phải đánh giá điều kiện sau → raise nếu sai kiểu."""
+        candidates = [_food(1, "Món A", 30_000)]
+        constraints = {"price": ("<=", 50_000), "prep_time": ("<=", "abc")}
+        with self.assertRaises(ValueError):
+            filter_candidates(candidates, constraints)
 
 
 class TestPipelineIntegratesFiltering(unittest.TestCase):
