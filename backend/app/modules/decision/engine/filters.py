@@ -441,10 +441,14 @@ def filter_candidates(
     Raises:
         ValueError: Khi cấu hình điều kiện không hợp lệ.
     """
-    valid_candidates, _ = filter_and_explain_candidates(
-        candidates, constraints, domain=domain, **legacy
-    )
-    return valid_candidates
+    active = _merge_constraints(constraints, legacy, domain)
+    # Dùng _passes_all() (short-circuit) để dừng ngay tại điều kiện đầu tiên
+    # không đạt — ứng viên đã bị loại thì không cần đánh giá các điều kiện sau.
+    return [
+        candidate
+        for candidate in candidates
+        if _passes_all(candidate, active, domain)
+    ]
 
 
 def _merge_constraints(

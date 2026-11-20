@@ -291,7 +291,10 @@ def calculate_wsm(
         total_score = SUM(contribution)
 
     - Tiêu chí có normalized_score là None không đóng góp vào tổng (contribution = 0.0).
-    - Kết quả được làm tròn 2 chữ số thập phân và giới hạn trong [0.0, 100.0].
+    - Quy ước làm tròn: contribution giữ 6 chữ số thập phân, `total_score` làm tròn
+      2 chữ số và giới hạn trong [0.0, 100.0]. Tổng được cộng từ đúng các giá trị
+      contribution đã trả về, nên `SUM(criteria_details[*].contribution)` luôn khớp
+      với `total_score`.
     - Không mutate dict ứng viên đầu vào.
 
     Args:
@@ -319,7 +322,6 @@ def calculate_wsm(
         out = dict(cand)
         criteria_scores: dict[str, Any] = out.get("criteria_scores", {})
 
-        total = 0.0
         criteria_details: dict[str, dict[str, Any]] = {}
         criteria_contributions: dict[str, float] = {}
 
@@ -327,16 +329,18 @@ def calculate_wsm(
             s = criteria_scores.get(field_name)
             if s is not None:
                 s_val = float(s)
-                # contribution = weight * normalized_score
-                contribution = round(w * s_val, 4)
-                total += contribution
-                contrib_rounded = round(w * s_val, 2)
+                # contribution = weight * normalized_score.
+                # shortcut: contribution giữ 6 chữ số thập phân — với weight tối đa
+                # 4 chữ số (Numeric(5,4) trong DB) và điểm đã chuẩn hóa 2 chữ số
+                # thì weight * score có tối đa 6 chữ số, nên làm tròn 6 chữ số là
+                # không mất thông tin.
+                contribution = round(w * s_val, 6)
                 criteria_details[field_name] = {
                     "normalized_score": round(s_val, 2),
                     "weight": round(w, 4),
-                    "contribution": contrib_rounded,
+                    "contribution": contribution,
                 }
-                criteria_contributions[field_name] = contrib_rounded
+                criteria_contributions[field_name] = contribution
             else:
                 criteria_details[field_name] = {
                     "normalized_score": None,
@@ -345,7 +349,11 @@ def calculate_wsm(
                 }
                 criteria_contributions[field_name] = 0.0
 
-        # Giới hạn [0.0, 100.0] và làm tròn 2 chữ số
+        # Giới hạn [0.0, 100.0] và làm tròn 2 chữ số.
+        # Quy ước làm tròn: total_score = round(SUM(criteria_contributions), 2).
+        # Tổng được cộng từ đúng các contribution đã trả về, nên phía client tự
+        # tính lại SUM(criteria_details[*].contribution) sẽ khớp total_score.
+        total = sum(criteria_contributions.values())
         total_score = round(max(0.0, min(100.0, total)), 2)
         out["score"] = total_score
         out["total_score"] = total_score

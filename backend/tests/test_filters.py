@@ -106,6 +106,57 @@ class TestFilterCandidates(unittest.TestCase):
         self.assertFalse(passes_hard_constraints(candidate, budget_max=50_000))
 
 
+class TestFilterCandidatesShortCircuit(unittest.TestCase):
+    """filter_candidates() phải dừng ngay khi điều kiện đầu không đạt.
+
+    Nếu không short-circuit, một điều kiện phía sau có `expected` sai kiểu sẽ
+    ném ValueError thay vì chỉ loại ứng viên.
+    """
+
+    def test_stops_at_first_failing_constraint(self) -> None:
+        """Điều kiện đầu fail + điều kiện sau có expected sai kiểu → không raise."""
+        candidates = [_food(1, "Món A", 5_000)]
+        constraints = {"price": ("<=", 1_000), "prep_time": ("<=", "abc")}
+        # Ứng viên đã vi phạm điều kiện price → bị loại, không cần đánh giá prep_time.
+        self.assertEqual(filter_candidates(candidates, constraints), [])
+
+    def test_short_circuit_result_matches_explain_variant(self) -> None:
+        """Kết quả lọc của filter_candidates() và filter_and_explain_candidates() nhất quán."""
+        from app.modules.decision.engine.filters import filter_and_explain_candidates
+
+        candidates = [
+            _food(1, "Món A", 5_000),
+            _food(2, "Món B", 30_000),
+        ]
+        constraints = {"price": ("<=", 10_000)}
+
+        kept = filter_candidates(candidates, constraints)
+        valid, excluded = filter_and_explain_candidates(candidates, constraints)
+
+        # Cùng tập ứng viên được giữ lại và cùng tập bị loại.
+        self.assertEqual([c["id"] for c in kept], [c["id"] for c in valid])
+        self.assertEqual([c["id"] for c in kept], [1])
+        self.assertEqual(len(excluded), 1)
+
+    def test_explain_variant_evaluates_all_constraints(self) -> None:
+        """Bản 'explain' đánh giá MỌI điều kiện để thu thập đủ lý do → lỗi dữ liệu
+        ở điều kiện sau vẫn bị nêu ra (khác bản short-circuit)."""
+        from app.modules.decision.engine.filters import filter_and_explain_candidates
+
+        candidates = [_food(1, "Món A", 30_000)]
+        constraints = {"price": ("<=", 50_000), "prep_time": ("<=", "abc")}
+
+        with self.assertRaises(ValueError):
+            filter_and_explain_candidates(candidates, constraints)
+
+    def test_raising_constraint_still_raises_for_passing_candidates(self) -> None:
+        """Ứng viên thoả điều kiện đầu vẫn phải đánh giá điều kiện sau → raise nếu sai kiểu."""
+        candidates = [_food(1, "Món A", 30_000)]
+        constraints = {"price": ("<=", 50_000), "prep_time": ("<=", "abc")}
+        with self.assertRaises(ValueError):
+            filter_candidates(candidates, constraints)
+
+
 class TestPipelineIntegratesFiltering(unittest.TestCase):
     def test_filtering_runs_before_scoring(self) -> None:
         """Ứng viên vi phạm ràng buộc không được đưa vào Scoring (điểm không tính lại)."""

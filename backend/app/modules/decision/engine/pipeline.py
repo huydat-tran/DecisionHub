@@ -69,7 +69,8 @@ def evaluate_decision(
         - message: str (thông báo kết quả đánh giá)
         - valid_candidates: list[dict] (các phương án hợp lệ có đủ total_score, rank, criteria_details)
         - excluded_candidates: list[dict] (các phương án bị loại có id, name, status, exclusion_reason)
-        - total_valid: int
+        - total_valid: int (tổng số phương án hợp lệ TRƯỚC khi áp dụng limit)
+        - returned_count: int (số phương án thực tế được trả về sau khi áp dụng limit)
         - total_excluded: int
     """
     selected = select_criteria(criteria, domain)
@@ -83,6 +84,7 @@ def evaluate_decision(
             "valid_candidates": [],
             "excluded_candidates": [],
             "total_valid": 0,
+            "returned_count": 0,
             "total_excluded": 0,
         }
 
@@ -103,6 +105,7 @@ def evaluate_decision(
             "valid_candidates": [],
             "excluded_candidates": excluded_candidates,
             "total_valid": 0,
+            "returned_count": 0,
             "total_excluded": len(excluded_candidates),
         }
 
@@ -113,13 +116,26 @@ def evaluate_decision(
     calculated = calculate_wsm(scored, selected)
     ranked = rank_candidates(calculated, limit=limit)
 
+    # total_valid = tổng số ứng viên hợp lệ TRƯỚC khi áp dụng limit.
+    # returned_count = số ứng viên thực tế được trả về sau limit.
+    total_valid = len(valid_candidates)
+    returned_count = len(ranked)
+    if limit is not None and limit > 0 and returned_count < total_valid:
+        message = (
+            f"Đánh giá thành công {total_valid} phương án hợp lệ, "
+            f"trả về {returned_count} phương án theo giới hạn."
+        )
+    else:
+        message = f"Đánh giá thành công {total_valid} phương án hợp lệ."
+
     return {
         "success": True,
         "has_valid_candidates": True,
-        "message": f"Đánh giá thành công {len(ranked)} phương án hợp lệ.",
+        "message": message,
         "valid_candidates": ranked,
         "excluded_candidates": excluded_candidates,
-        "total_valid": len(ranked),
+        "total_valid": total_valid,
+        "returned_count": returned_count,
         "total_excluded": len(excluded_candidates),
     }
 
