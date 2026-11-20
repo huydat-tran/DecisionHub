@@ -3,7 +3,9 @@
 // - Khi bấm nút "detal", truyền thẳng item.id vào hàm xử lý để gọi GET /api/v1/food/{id}
 //   và hiển thị khối chi tiết món ăn (#detall_food) ở giữa màn hình.
 
+// shortcut: phân trang phía client trên dữ liệu GET /api/v1/food; chuyển sang limit/offset ở backend khi bảng foods vượt vài trăm món.
 const DEFAULT_FOOD_IMAGE = "../assets/images/foods/hihi.png";
+const FOODS_PER_PAGE = 10;
 
 const MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -13,25 +15,46 @@ const MEAL_LABELS = {
 };
 
 const gridEl = document.getElementById("food-results-grid");
+const loadingEl = document.getElementById("food-loading");
 const emptyEl = document.getElementById("food-empty");
+const errorEl = document.getElementById("food-error");
+const errorTextEl = document.getElementById("food-error-text");
+const btnEmptyResetEl = document.getElementById("btn-food-empty-reset");
+const btnRetryEl = document.getElementById("btn-food-retry");
 const countEl = document.getElementById("food-results-count");
+const paginationEl = document.getElementById("food-pagination");
 const detailOverlayEl = document.getElementById("detall_food");
 const btnCloseDetailEl = document.getElementById("btnCloseDetail");
 
-function renderFoods(foods) {
+let allFoods = [];
+let currentPage = 1;
+
+function setListState(state, message = "") {
+  if (loadingEl) loadingEl.classList.toggle("d-none", state !== "loading");
+  if (emptyEl) emptyEl.classList.toggle("d-none", state !== "empty");
+  if (errorEl) errorEl.classList.toggle("d-none", state !== "error");
+  if (gridEl) gridEl.classList.toggle("d-none", state !== "ready");
+  if (paginationEl) paginationEl.classList.toggle("d-none", state !== "ready");
+
+  if (state === "loading") {
+    if (countEl) countEl.textContent = "Đang tải danh sách món ăn...";
+  } else if (state === "empty") {
+    if (gridEl) gridEl.innerHTML = "";
+    if (paginationEl) paginationEl.innerHTML = "";
+    if (countEl) countEl.textContent = "Hiển thị 0 món ăn";
+  } else if (state === "error") {
+    if (gridEl) gridEl.innerHTML = "";
+    if (paginationEl) paginationEl.innerHTML = "";
+    if (errorTextEl) {
+      errorTextEl.textContent =
+        message || "Không tải được danh sách món ăn. Vui lòng thử lại.";
+    }
+    if (countEl) countEl.textContent = "Không tải được danh sách món ăn.";
+  }
+}
+
+function renderFoodCards(foods) {
   if (!gridEl) return;
-
-  if (countEl) {
-    countEl.textContent = `Hiển thị ${foods.length} phương án phù hợp`;
-  }
-
-  if (!foods.length) {
-    gridEl.innerHTML = "";
-    if (emptyEl) emptyEl.classList.remove("d-none");
-    return;
-  }
-
-  if (emptyEl) emptyEl.classList.add("d-none");
 
   gridEl.innerHTML = foods
     .map((item) => {
@@ -40,7 +63,7 @@ function renderFoods(foods) {
       const imageSrc = escapeHtml(item.image_url || DEFAULT_FOOD_IMAGE);
 
       return `
-        <div class="card" style="width: 12rem" data-food-id="${item.id}">
+        <div class="card" data-food-id="${item.id}">
           <img
             src="${imageSrc}"
             class="card-img-top"
@@ -62,6 +85,46 @@ function renderFoods(foods) {
         </div>`;
     })
     .join("");
+}
+
+function renderPagination(totalPages) {
+  if (!paginationEl) return;
+
+  const pageButtons = Array.from({ length: totalPages }, (_, index) => {
+    const p = index + 1;
+    const isActive = p === currentPage;
+    return `<button type="button" class="dh-btn dh-btn-sm food-page-btn ${isActive ? "dh-btn-primary" : "dh-btn-outline"}" data-page="${p}" ${isActive ? 'aria-current="page"' : ""}>${p}</button>`;
+  }).join("");
+
+  paginationEl.innerHTML = `
+    <button type="button" class="dh-btn dh-btn-sm dh-btn-outline" data-page="${currentPage - 1}" ${currentPage <= 1 ? "disabled" : ""}>← Trước</button>
+    ${pageButtons}
+    <button type="button" class="dh-btn dh-btn-sm dh-btn-outline" data-page="${currentPage + 1}" ${currentPage >= totalPages ? "disabled" : ""}>Sau →</button>
+  `;
+  paginationEl.classList.remove("d-none");
+}
+
+function renderPage(page) {
+  if (!gridEl) return;
+
+  if (!allFoods.length) {
+    setListState("empty");
+    return;
+  }
+
+  const totalPages = Math.ceil(allFoods.length / FOODS_PER_PAGE);
+  currentPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (currentPage - 1) * FOODS_PER_PAGE;
+  const endIndex = Math.min(startIndex + FOODS_PER_PAGE, allFoods.length);
+
+  renderFoodCards(allFoods.slice(startIndex, endIndex));
+
+  if (countEl) {
+    countEl.textContent = `Hiển thị ${startIndex + 1}–${endIndex} / ${allFoods.length} món ăn (Trang ${currentPage}/${totalPages})`;
+  }
+
+  renderPagination(totalPages);
+  setListState("ready");
 }
 
 function renderFoodDetail(food) {
@@ -170,24 +233,61 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+if (paginationEl) {
+  paginationEl.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-page]");
+    if (!btn || btn.disabled) return;
+    const targetPage = Number(btn.dataset.page);
+    if (Number.isInteger(targetPage) && targetPage !== currentPage) {
+      renderPage(targetPage);
+      gridEl.closest(".dh-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+}
+
 async function loadAllFoods() {
   if (!gridEl) return;
 
+  setListState("loading");
   try {
     const response = await api.get("/api/v1/food");
-    const foods = Array.isArray(response.data) ? response.data : [];
-    renderFoods(foods);
+    allFoods = Array.isArray(response.data) ? response.data : [];
+    renderPage(1);
   } catch (error) {
-    if (countEl) {
-      countEl.textContent = error.message || "Không tải được danh sách món ăn.";
-    }
+    const errorMessage =
+      error && error.message
+        ? error.message
+        : "Không tải được danh sách món ăn. Vui lòng thử lại.";
+    setListState("error", errorMessage);
     if (typeof showToast === "function") {
-      showToast(
-        error.message || "Không tải được chi tiết danh sách món ăn.",
-        "error",
-      );
+      showToast(errorMessage, "error");
     }
   }
+}
+
+if (btnRetryEl) {
+  btnRetryEl.addEventListener("click", loadAllFoods);
+}
+
+if (btnEmptyResetEl) {
+  btnEmptyResetEl.addEventListener("click", loadAllFoods);
+}
+
+// ---------- Menu mobile ----------
+const sidebarEl = document.querySelector(".dh-sidebar");
+const sidebarToggleEl = document.querySelector("[data-sidebar-toggle]");
+
+if (sidebarToggleEl && sidebarEl) {
+  sidebarToggleEl.addEventListener("click", () => {
+    const isOpen = sidebarEl.classList.toggle("is-open");
+    sidebarToggleEl.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest(".dh-sidebar, [data-sidebar-toggle]")) return;
+    sidebarEl.classList.remove("is-open");
+    sidebarToggleEl.setAttribute("aria-expanded", "false");
+  });
 }
 
 loadAllFoods();

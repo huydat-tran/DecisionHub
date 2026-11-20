@@ -5,7 +5,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import DecisionHubException
+from app.common.exceptions import UnauthorizedException
 from app.core.database import get_db
 from app.core.security import TOKEN_TYPE, decode_access_token
 from app.modules.users.models import User
@@ -25,27 +25,27 @@ def get_current_user(
     """Xác thực Bearer token và trả về user tương ứng.
 
     Raises:
-        DecisionHubException: 401 nếu thiếu token, token không hợp lệ/hết hạn
+        UnauthorizedException: 401 nếu thiếu token, token không hợp lệ/hết hạn
             hoặc user trong token không còn tồn tại.
     """
     if credentials is None or credentials.scheme.lower() != "bearer":
-        raise DecisionHubException(message=UNAUTHORIZED_MESSAGE, status_code=401)
+        raise UnauthorizedException(UNAUTHORIZED_MESSAGE)
 
     try:
         payload = decode_access_token(credentials.credentials)
     except jwt.PyJWTError:
-        raise DecisionHubException(message=INVALID_TOKEN_MESSAGE, status_code=401) from None
+        raise UnauthorizedException(INVALID_TOKEN_MESSAGE) from None
 
     if payload.get("type") != TOKEN_TYPE or not payload.get("sub"):
-        raise DecisionHubException(message=INVALID_TOKEN_MESSAGE, status_code=401)
+        raise UnauthorizedException(INVALID_TOKEN_MESSAGE)
 
     try:
         user_id = int(payload["sub"])
     except (TypeError, ValueError):
-        raise DecisionHubException(message=INVALID_TOKEN_MESSAGE, status_code=401) from None
+        raise UnauthorizedException(INVALID_TOKEN_MESSAGE) from None
 
     user = get_user_by_id(db, user_id)
     if user is None:
-        raise DecisionHubException(message=INVALID_TOKEN_MESSAGE, status_code=401)
+        raise UnauthorizedException(INVALID_TOKEN_MESSAGE)
 
     return user

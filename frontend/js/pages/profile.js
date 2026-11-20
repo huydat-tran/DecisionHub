@@ -63,9 +63,11 @@ function renderProfile(profile) {
 
   els.monogram.textContent = toMonogram(profile.username);
   els.heroName.textContent = profile.username;
-  els.heroEmail.textContent = profile.email;
-  els.heroRole.textContent = `Vai trò: ${profile.role}`;
-  els.heroCreated.textContent = `Thành viên từ ${formatCreatedAt(profile.created_at)}`;
+  if (els.heroEmail) els.heroEmail.textContent = profile.email;
+  if (els.heroRole) els.heroRole.textContent = profile.role;
+  if (els.heroCreated) {
+    els.heroCreated.textContent = `Thành viên từ ${formatCreatedAt(profile.created_at)}`;
+  }
 
   els.usernameText.textContent = profile.username;
   els.emailText.textContent = profile.email;
@@ -120,12 +122,14 @@ function showUsernameError(message) {
   els.usernameInput.classList.toggle("is-invalid", Boolean(message));
 }
 
-// Đọc message lỗi từ backend: 409 trả về detail dạng chuỗi, 422 trả về mảng loc/msg.
+// Đọc message lỗi từ backend theo format chuẩn: 409 trả về message dạng chuỗi,
+// 422 trả về errors (mảng { field, message }).
 function readUsernameError(error) {
-  const detail = error && error.data ? error.data.detail : null;
-  if (typeof detail === "string" && detail) return detail;
-  if (Array.isArray(detail) && detail.length) {
-    return detail.map((item) => item.msg).join("; ");
+  const data = error && error.data ? error.data : {};
+  const message = typeof data.message === "string" ? data.message : null;
+  if (message) return message;
+  if (Array.isArray(data.errors) && data.errors.length) {
+    return data.errors.map((item) => item.message).join("; ");
   }
   if (error && error.message) return error.message;
   return "Không lưu được thay đổi. Vui lòng thử lại.";
@@ -203,8 +207,25 @@ async function saveProfile() {
 els.btnEdit.addEventListener("click", () => setEditing(true));
 els.btnCancel.addEventListener("click", () => setEditing(false));
 els.btnSave.addEventListener("click", saveProfile);
-els.btnRefresh.addEventListener("click", loadProfile);
+if (els.btnRefresh) els.btnRefresh.addEventListener("click", loadProfile);
 els.btnRetry.addEventListener("click", loadProfile);
+
+const btnCopyEmailEl = document.getElementById("btn-copy-email");
+if (btnCopyEmailEl) {
+  btnCopyEmailEl.addEventListener("click", async () => {
+    if (!currentProfile || !currentProfile.email || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(currentProfile.email);
+      if (typeof showToast === "function") {
+        showToast("Đã sao chép email đăng nhập.", "success");
+      }
+    } catch {
+      if (typeof showToast === "function") {
+        showToast("Không thể sao chép email.", "error");
+      }
+    }
+  });
+}
 
 els.usernameInput.addEventListener("input", () => {
   const message = validateUsername(els.usernameInput.value.trim());

@@ -2,13 +2,59 @@
    CSS riêng cho phân hệ Food (WhatShouldIEat)
    ========================================================== */
 
-#food-results-grid {
-  display: flex;
-  justify-content: center;
-  gap: 3%;
+.food-page .food-loading,
+.food-page #food-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 20px;
+  margin: 0;
 }
 
-#food-results-grid .card {
+.food-page .food-skeleton-card {
+  background-color: var(--dh-surface);
+  border: 1px solid var(--dh-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.food-page .food-skeleton-img {
+  width: 100%;
+  height: 150px;
+  border-radius: 0;
+}
+
+.food-page .food-skeleton-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.food-page .food-skeleton-title {
+  height: 20px;
+  width: 72%;
+}
+
+.food-page .food-skeleton-line {
+  height: 14px;
+  width: 100%;
+}
+
+.food-page .food-skeleton-line.short {
+  width: 60%;
+}
+
+.food-page .food-skeleton-btn {
+  height: 32px;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 20px;
+}
+
+.food-page #food-results-grid > .card {
+  width: 100%;
+  max-width: none;
+  padding: 0;
   border-radius: 14px;
   overflow: hidden;
   transition:
@@ -16,41 +62,39 @@
     box-shadow 0.25s ease;
 }
 
-#food-results-grid .card:hover {
-  transform: scale(1.05);
+.main-page {
+  background-image: url();
+}
+
+.food-page #food-results-grid > .card:hover {
+  transform: scale(1.03);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
 }
 
-.card {
-  display: flex;
-  width: 500px;
-}
-
-.card-title {
+.food-page #food-results-grid .card-title {
   font-size: 150%;
-  margin-bottom: 0;
+  margin-bottom: 6px;
 }
 
-.card-text {
+.food-page #food-results-grid .card-text {
   width: 100%;
   margin-left: 0;
   margin-right: 0;
   flex-grow: 1;
 }
 
-.card-body {
+.food-page #food-results-grid .card-body {
   width: 100%;
-  padding-left: 0;
-  padding-right: 0;
+  padding: 12px;
   display: flex;
   flex-direction: column;
 }
 
-.card-detail-book {
+.food-page #food-results-grid .card-detail-book {
   margin-top: auto;
 }
 
-.btn-food-detail {
+.food-page .btn-food-detail {
   display: inline-block;
   width: 100%;
   text-align: center;
@@ -67,22 +111,22 @@
     color 0.2s ease;
 }
 
-.btn-food-detail:hover {
+.food-page .btn-food-detail:hover {
   background-color: #0d6efd;
   color: #ffffff;
 }
 
-.card-img-top {
+.food-page #food-results-grid .card-img-top {
   width: 100%;
   height: 150px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 10px 10px 0 0;
 }
 
 /* ==========================================================
-   Khối chi tiết món ăn (Modal Overlay căn giữa màn hình, nền đen 50%)
+   Khối chi tiết món ăn (Modal Overlay căn giữa màn hình)
    ========================================================== */
-#detall_food {
+.food-page #detall_food {
   display: none;
   position: fixed;
   inset: 0;
@@ -93,28 +137,32 @@
   padding: 16px;
 }
 
-#detall_food.active {
+.food-page #detall_food.active {
   display: flex;
 }
 
-.food-card {
+.food-page .food-card {
   width: 100%;
   max-width: 410px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background-color: #ffffff;
   border-radius: 24px;
   box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.25);
-  overflow: hidden;
 }
 
-.food-card-image-wrapper {
+.food-page .food-card-image-wrapper {
   width: 100%;
   height: 240px;
+  flex-shrink: 0;
   position: relative;
   overflow: hidden;
   background-color: #cbd5e1;
 }
 
-.food-card-img {
+.food-page .food-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -123,11 +171,11 @@
   transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.food-card:hover .food-card-img {
+.food-page .food-card:hover .food-card-img {
   transform: scale(1.08);
 }
 
-.image-gradient-overlay {
+.food-page .image-gradient-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -139,7 +187,7 @@
   pointer-events: none;
 }
 
-.category-badge {
+.food-page .category-badge {
   position: absolute;
   top: 16px;
   left: 16px;
@@ -152,7 +200,7 @@
   z-index: 2;
 }
 
-.detail-close-btn {
+.food-page .detail-close-btn {
   position: absolute;
   top: 14px;
   right: 16px;
@@ -171,11 +219,11 @@
   z-index: 2;
 }
 
-.detail-close-btn:hover {
+.food-page .detail-close-btn:hover {
   background: #ffffff;
 }
 
-.food-title {
+.food-page .food-title {
   font-size: 1.35rem;
   font-weight: 700;
   color: #172b23;
@@ -183,33 +231,73 @@
   margin-bottom: 6px;
 }
 
-.food-desc {
+.food-page .food-desc {
   font-size: 0.85rem;
   color: #66776f;
   line-height: 1.55;
   margin-bottom: 14px;
 }
 
-.ingredients-list {
+.food-page .ingredients-list {
   max-height: 185px;
   overflow-y: auto;
   padding-right: 4px;
   margin-bottom: 0;
 }
 
-.ingredient-item {
+.food-page .ingredient-item {
   background-color: #f5f8f6;
   border-radius: 10px;
   padding: 8px 12px;
   margin-bottom: 7px;
 }
 
-.ingredient-item:last-child {
+.food-page .ingredient-item:last-child {
   margin-bottom: 0;
 }
 
-.ingredient-name {
+.food-page .ingredient-name {
   font-size: 0.82rem;
   font-weight: 500;
   color: #172b23;
+}
+
+.food-page .food-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.food-page .food-page-btn {
+  min-width: 38px;
+}
+
+@media (max-width: 767.98px) {
+  .food-page .food-loading,
+  .food-page #food-results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  .food-page #food-results-grid .card-title {
+    font-size: 1.1rem;
+  }
+
+  .food-page .food-card-image-wrapper {
+    height: 190px;
+  }
+
+  .food-page #food-results-grid > .card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .food-page .food-loading,
+  .food-page #food-results-grid {
+    grid-template-columns: 1fr;
+  }
 }

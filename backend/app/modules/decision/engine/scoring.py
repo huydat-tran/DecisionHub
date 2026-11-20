@@ -4,12 +4,21 @@ Module chạy thuần Python trên danh sách ứng viên đã qua bước lọc
 không truy vấn database. Hỗ trợ chuẩn hóa Min-Max về thang [0.0, 100.0] cho cả
 chiều benefit (max) và cost (min), xử lý trường hợp biên min == max và giữ nguyên
 trạng thái thiếu cho dữ liệu bị thiếu (không tự suy diễn điểm).
+
+Ứng viên được chuẩn hóa về dict phẳng trước khi chấm điểm, để Ranking đọc được
+`id`/`name`/`price`... ở cấp ngoài cùng (xem `_to_candidate_dict`).
+
+Tiêu chí `preference` được chấm riêng theo cơ chế khớp tag (không dùng Min-Max):
+`score_preference()` trả điểm trong [0.0, 1.0], được quy đổi ×100 để đồng bộ
+thang điểm của các tiêu chí khác trước khi đưa vào WSM.
 """
 
 from collections.abc import Iterable, Sequence
 from decimal import Decimal
 import math
 from typing import Any
+
+from app.modules.decision.criterion_fields import resolve_criterion_field
 
 # Khi tất cả ứng viên hợp lệ có cùng giá trị (min == max), không có sự phân biệt
 # trên tiêu chí đó -> gán điểm tối đa 100.0 để tránh chia cho 0 và không làm giảm
@@ -19,18 +28,15 @@ EQUAL_RANGE_SCORE: float = 100.0
 BENEFIT_DIRECTIONS = frozenset({"max", "benefit"})
 COST_DIRECTIONS = frozenset({"min", "cost"})
 
-# Ánh xạ tên tiêu chí trong bảng decision_criteria sang tên trường của ứng viên.
-CRITERION_FIELD_MAP: dict[str, str] = {
-    "giá": "price",
-    "price": "price",
-    "mức phù hợp nhu cầu/khẩu vị": "preference",
-    "preference": "preference",
-    "thời gian chuẩn bị": "prep_time",
-    "prep_time": "prep_time",
-    "cost": "estimated_cost",
-    "duration": "estimated_duration",
-    "activities": "activities",
-}
+# `field_name` chuẩn của tiêu chí sở thích trong criteria_scores.
+PREFERENCE_FIELD: str = "preference"
+
+# Field của ứng viên chứa danh sách tag (vd. cột JSON `foods.tags`).
+CANDIDATE_TAGS_FIELD: str = "tags"
+
+# Điểm trung tính khi người dùng không nêu sở thích: không ưu tiên ứng viên nào
+# nhưng vẫn giữ tiêu chí `preference` tham gia WSM với trọng số hiện có.
+NEUTRAL_PREFERENCE_SCORE: float = 0.5
 
 
 def _clamp_score(value: float) -> float:
@@ -59,6 +65,46 @@ def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
     return getattr(candidate, field_name, default)
 
 
+def _to_candidate_dict(candidate: Any) -> dict[str, Any]:
+    """Chuẩn hóa ứng viên về dict phẳng để Ranking đọc được ở cấp ngoài cùng.
+
+    Hỗ trợ 3 kiểu dữ liệu thực tế của dự án:
+    - dict: sao chép nông, giữ nguyên cấu trúc.
+    - Pydantic v2 model: lấy các field đã khai báo.
+    - SQLAlchemy ORM object: chỉ lấy cột đã load (không đụng relationship/lazy load).
+
+    Ứng viên gốc luôn được giữ ở trường `item` để tầng trên vẫn truy cập được
+    object gốc (ví dụ để đọc relationship `ingredients` khi sinh lý do gợi ý).
+    """
+    if isinstance(candidate, dict):
+        # Dict đã phẳng sẵn → sao chép nông, không cần trường `item`.
+        return dict(candidate)
+
+    # Pydantic v2: lấy đúng các field đã khai báo trong model.
+    model_fields = getattr(type(candidate), "model_fields", None)
+    # SQLAlchemy ORM: chỉ lấy cột đã load trong __dict__ (bỏ relationship
+    # để không kích hoạt truy vấn ngoài ý muốn).
+    mapper = getattr(type(candidate), "__mapper__", None)
+    if model_fields is not None:
+        out: dict[str, Any] = {name: getattr(candidate, name) for name in model_fields}
+    elif mapper is not None:
+        loaded = getattr(candidate, "__dict__", None) or {}
+        out = {
+            key: loaded[key]
+            for key in mapper.column_attrs.keys()
+            if key in loaded
+        }
+    else:
+        # Object thuần: chỉ lấy thuộc tính công khai (bỏ thuộc tính nội bộ).
+        state = getattr(candidate, "__dict__", None) or {}
+        out = {k: v for k, v in state.items() if not k.startswith("_")}
+
+    # Giữ ứng viên gốc để tầng trên vẫn đọc được object gốc
+    # (ví dụ để lấy relationship `ingredients` khi sinh lý do gợi ý).
+    out["item"] = candidate
+    return out
+
+
 def _normalize_direction(direction: str) -> str:
     """Chuẩn hóa hướng đánh giá về 'benefit' hoặc 'cost'."""
     cleaned = direction.strip().lower()
@@ -72,11 +118,8 @@ def _normalize_direction(direction: str) -> str:
 def _resolve_criterion_field(criterion: Any) -> tuple[str, str, float]:
     """Trích xuất (tên_trường, direction, weight) từ object hoặc dict tiêu chí."""
     name = str(_get_field(criterion, "name", "") or "").strip()
-    explicit_field = _get_field(criterion, "field_name")
-    if explicit_field:
-        field_name = str(explicit_field).strip()
-    else:
-        field_name = CRITERION_FIELD_MAP.get(name.lower(), name)
+    # field_name chuẩn dùng chung với Calculator (nguồn định nghĩa duy nhất).
+    field_name = resolve_criterion_field(criterion)
 
     direction = str(_get_field(criterion, "direction", "") or "").strip()
     raw_weight = _get_field(criterion, "weight", 0.0)
@@ -145,15 +188,83 @@ def score_criterion(values: Sequence[Any], direction: str) -> list[float | None]
     return [None if v is None else normalizer(v, min_val, max_val) for v in parsed]
 
 
+def _normalize_tags(raw: Any) -> set[str]:
+    """Chuẩn hóa danh sách tag thành set chữ thường, đã bỏ khoảng trắng và rỗng.
+
+    Hỗ trợ list/tuple/set các chuỗi và chuỗi phân tách bằng dấu phẩy (dạng cột
+    JSON lưu "spicy,vegan"). Kiểu dữ liệu khác được coi là không có tag.
+    """
+    if raw is None:
+        return set()
+    if isinstance(raw, str):
+        items: list[Any] = raw.split(",")
+    elif isinstance(raw, (list, tuple, set, frozenset)):
+        items = list(raw)
+    else:
+        return set()
+
+    tags: set[str] = set()
+    for item in items:
+        if item is None:
+            continue
+        cleaned = str(item).strip().lower()
+        if cleaned:
+            tags.add(cleaned)
+    return tags
+
+
+def score_preference(candidate_tags: Any, user_preferences: Any) -> float:
+    """Tính điểm phù hợp sở thích của một ứng viên trong khoảng [0, 1].
+
+    Công thức: `số sở thích khớp / tổng số sở thích người dùng cung cấp`.
+
+    - So sánh tag không phân biệt hoa/thường và bỏ khoảng trắng thừa.
+    - Tag trùng lặp chỉ được tính một lần; khớp theo đúng phần tử (không so
+      khớp substring để tránh nhầm các tag khác nhau).
+    - Ứng viên không có tag → 0.0 (vẫn còn sở thích để đối chiếu).
+    - Người dùng không nêu sở thích → điểm trung tính NEUTRAL_PREFERENCE_SCORE,
+      không ưu tiên ứng viên nào và không làm sai lệch thứ hạng.
+    """
+    user_tags = _normalize_tags(user_preferences)
+    if not user_tags:
+        return NEUTRAL_PREFERENCE_SCORE
+
+    food_tags = _normalize_tags(candidate_tags)
+    if not food_tags:
+        return 0.0
+
+    matched = len(user_tags & food_tags)
+    return matched / len(user_tags)
+
+
 def score_candidates(
     candidates: Iterable[Any],
     criteria: Sequence[Any],
+    user_preferences: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Chấm điểm từng tiêu chí (0-100) và tổng điểm WSM cho danh sách ứng viên.
+    """Chuẩn hóa điểm từng tiêu chí (0-100) cho danh sách ứng viên.
 
-    Quy tắc xử lý dữ liệu thiếu (DecisionHub.md mục 7.5):
+    Trả về danh sách dict với trường `criteria_scores` chứa điểm đã chuẩn hóa.
+    Không tính tổng WSM — việc đó thuộc về calculator.py.
+
+    Ứng viên dict/Pydantic/ORM đều được chuẩn hóa về dict phẳng, các trường cần
+    cho Ranking (id/name/price...) nằm ở cấp ngoài cùng; ứng viên gốc được giữ
+    ở trường `item`.
+
+    Args:
+        candidates: Danh sách ứng viên.
+        criteria: Danh sách tiêu chí (có `name`/`field_name`, `direction`, `weight`).
+        user_preferences: Sở thích (tag) của người dùng.
+            - `None` (mặc định): không có thông tin sở thích → tiêu chí
+              `preference` dùng Min-Max trên field `preference` sẵn có của ứng viên
+              (hành vi cũ, giữ nguyên cho caller cũ).
+            - Danh sách (kể cả rỗng): tiêu chí `preference` được chấm bằng cơ chế
+              khớp tag (`score_preference`), quy đổi ×100 để đồng bộ thang điểm
+              0-100 của các tiêu chí khác. Danh sách rỗng → mọi ứng viên cùng
+              nhận điểm trung tính 50.0.
+
+    Quy tắc xử lý dữ liệu thiếu:
     - Không tự suy diễn điểm cho trường bị thiếu: `criteria_scores[field]` là None.
-    - Tiêu chí thiếu không đóng góp điểm giả vào tổng điểm WSM.
     """
     candidate_list = list(candidates)
     if not candidate_list:
@@ -164,23 +275,31 @@ def score_candidates(
     # Chuẩn hóa từng tiêu chí trên toàn bộ tập ứng viên
     per_criterion_scores: dict[str, list[float | None]] = {}
     for field_name, direction, _weight in resolved_criteria:
+        if field_name == PREFERENCE_FIELD and user_preferences is not None:
+            # Tiêu chí sở thích dùng cơ chế khớp tag thay cho Min-Max.
+            per_criterion_scores[field_name] = [
+                100.0
+                * score_preference(
+                    _get_field(cand, CANDIDATE_TAGS_FIELD),
+                    user_preferences,
+                )
+                for cand in candidate_list
+            ]
+            continue
+
         raw_values = [_get_field(cand, field_name) for cand in candidate_list]
         per_criterion_scores[field_name] = score_criterion(raw_values, direction)
 
     results: list[dict[str, Any]] = []
     for idx, cand in enumerate(candidate_list):
-        base = dict(cand) if isinstance(cand, dict) else {"item": cand}
+        base = _to_candidate_dict(cand)
         criteria_scores: dict[str, float | None] = {}
-        total_score = 0.0
 
-        for field_name, _direction, weight in resolved_criteria:
+        for field_name, _direction, _weight in resolved_criteria:
             c_score = per_criterion_scores[field_name][idx]
             criteria_scores[field_name] = round(c_score, 2) if c_score is not None else None
-            if c_score is not None:
-                total_score += weight * c_score
 
         base["criteria_scores"] = criteria_scores
-        base["score"] = round(_clamp_score(total_score), 2)
         results.append(base)
 
     return results
