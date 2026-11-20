@@ -169,5 +169,108 @@ class TestCalculateWSM(unittest.TestCase):
         self.assertNotIn("score", original)
 
 
+class TestCalculateWSMRoundingConsistency(unittest.TestCase):
+    """Hồi quy: tổng WSM phải đúng công thức và khớp với contribution trả về."""
+
+    def setUp(self) -> None:
+        self.criteria = [
+            {"name": "Giá", "weight": 0.40},
+            {"name": "Mức phù hợp nhu cầu/khẩu vị", "weight": 0.35},
+            {"name": "Thời gian chuẩn bị", "weight": 0.25},
+        ]
+
+    def test_decimal_scores_use_exact_wsm_formula(self) -> None:
+        """Điểm nhiều chữ số thập phân: total_score = round(Σ(w×s), 2), không lệch 0.01."""
+        candidates = [
+            {
+                "id": 1,
+                "name": "Món A",
+                "criteria_scores": {
+                    "price": 33.33,
+                    "preference": 66.67,
+                    "prep_time": 12.34,
+                },
+            }
+        ]
+        result = calculate_wsm(candidates, self.criteria)[0]
+
+        # 0.40*33.33 + 0.35*66.67 + 0.25*12.34
+        # = 13.332 + 23.3345 + 3.085 = 39.7515 -> 39.75
+        expected = 0.40 * 33.33 + 0.35 * 66.67 + 0.25 * 12.34
+        self.assertAlmostEqual(expected, 39.7515, places=6)
+        self.assertEqual(result["total_score"], round(expected, 2))
+        self.assertEqual(result["score"], result["total_score"])
+
+    def test_total_score_equals_sum_of_returned_contributions(self) -> None:
+        """SUM(criteria_details[*].contribution) phải khớp total_score."""
+        candidates = [
+            {
+                "id": 1,
+                "name": "Món A",
+                "criteria_scores": {
+                    "price": 33.33,
+                    "preference": 66.67,
+                    "prep_time": 12.34,
+                },
+            },
+            {
+                "id": 2,
+                "name": "Món B",
+                "criteria_scores": {
+                    "price": 7.24,
+                    "preference": 53.59,
+                    "prep_time": 36.57,
+                },
+            },
+        ]
+        for result in calculate_wsm(candidates, self.criteria):
+            details = result["criteria_details"]
+            sum_details = sum(v["contribution"] for v in details.values())
+            sum_contrib = sum(result["criteria_contributions"].values())
+
+            self.assertEqual(round(sum_details, 2), result["total_score"])
+            self.assertEqual(round(sum_contrib, 2), result["total_score"])
+            self.assertEqual(sum_details, sum_contrib)
+
+    def test_contribution_equals_weight_times_score(self) -> None:
+        """contribution = weight * normalized_score (đúng công thức)."""
+        candidates = [
+            {
+                "id": 1,
+                "name": "Món A",
+                "criteria_scores": {
+                    "price": 33.33,
+                    "preference": 66.67,
+                    "prep_time": 12.34,
+                },
+            }
+        ]
+        details = calculate_wsm(candidates, self.criteria)[0]["criteria_details"]
+        for field, info in details.items():
+            expected = info["weight"] * info["normalized_score"]
+            self.assertAlmostEqual(info["contribution"], expected, places=6)
+
+    def test_missing_criterion_contributes_zero(self) -> None:
+        """Tiêu chí None vẫn xuất hiện trong criteria_details với contribution = 0."""
+        candidates = [
+            {
+                "id": 1,
+                "name": "Món A",
+                "criteria_scores": {"price": 40.0, "preference": 100.0, "prep_time": None},
+            }
+        ]
+        result = calculate_wsm(candidates, self.criteria)[0]
+        details = result["criteria_details"]
+
+        self.assertIsNone(details["prep_time"]["normalized_score"])
+        self.assertEqual(details["prep_time"]["contribution"], 0.0)
+        # 0.40*40 + 0.35*100 = 16.0 + 35.0 = 51.00
+        self.assertEqual(result["total_score"], 51.00)
+        self.assertEqual(
+            round(sum(v["contribution"] for v in details.values()), 2),
+            result["total_score"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

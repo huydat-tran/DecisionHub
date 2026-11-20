@@ -1,10 +1,17 @@
 """Router API cho module Decision."""
 
-from fastapi import APIRouter
+import logging
 
-from app.modules.decision.schema import DecisionRecommendRequest
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
 from app.modules.decision.decision_response import DecisionResponse
 from app.modules.decision.mock_data import build_mock_response
+from app.modules.decision.schema import DecisionRecommendRequest
+from app.modules.decision.service import recommend_food_decisions
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/decisions", tags=["Decisions"])
 
@@ -12,8 +19,18 @@ router = APIRouter(prefix="/api/v1/decisions", tags=["Decisions"])
 @router.post(
     "/recommend",
     response_model=DecisionResponse,
-    summary="Gợi ý theo tiêu chí WSM (dữ liệu giả)",
+    summary="Gợi ý theo tiêu chí WSM và thống kê phương án bị loại",
 )
-def recommend_decisions(payload: DecisionRecommendRequest) -> DecisionResponse:
-    """TODO: thay build_mock_response bằng Decision Engine thật."""
-    return build_mock_response(payload)
+def recommend_decisions(
+    payload: DecisionRecommendRequest,
+    db: Session = Depends(get_db),  # noqa: B008
+) -> DecisionResponse:
+    """Đánh giá và gợi ý theo WSM kết hợp thống kê phương án bị loại."""
+    try:
+        return recommend_food_decisions(db=db, payload=payload)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Không thể truy vấn DB (%s), chạy Decision Engine với dữ liệu mẫu.",
+            exc,
+        )
+        return build_mock_response(payload)

@@ -15,7 +15,9 @@ from app.modules.decision.engine.calculator import (
 )
 from app.modules.decision.engine.filters import (
     Constraints,
+    filter_and_explain_candidates,
     filter_candidates,
+    inspect_candidate,
     passes_hard_constraints,
 )
 from app.modules.decision.engine.ranking import rank_candidates
@@ -43,7 +45,10 @@ __all__ = [
     "calculate_wsm",
     "calculate_wsm_score",
     "evaluate",
+    "evaluate_decision",
+    "filter_and_explain_candidates",
     "filter_candidates",
+    "inspect_candidate",
     "normalize_benefit",
     "normalize_cost",
     "normalize_value",
@@ -57,8 +62,8 @@ __all__ = [
 
 
 def __getattr__(name: str) -> Any:
-    if name == "evaluate":
-        from app.modules.decision.engine.pipeline import evaluate
+    if name in ("evaluate", "evaluate_decision"):
+        from app.modules.decision.engine import pipeline
 
-        return evaluate
+        return getattr(pipeline, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
