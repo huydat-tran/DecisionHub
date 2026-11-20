@@ -1,4 +1,5 @@
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -27,6 +28,8 @@ class RecommendedFoodResponse(BaseModel):
     score: float = Field(ge=0, le=100)
     criteria_scores: CriteriaScores
     reasons: list[str] = Field(default_factory=list)
+    id: int | None = None
+    rank: int | None = None
 
 
 class ScoringWeights(BaseModel):

@@ -362,7 +362,7 @@ def recommend_foods(
 
     return decision_data, message
 
-#     excluded_lower = [item.lower() for item in payload.excluded_ingredients]
+# Legacy scoring implementation removed – using engine.calculate_food_wsm
 #     pref_lower = [item.lower() for item in payload.preferred_tags]
 
 #     scored: list[tuple[float, int, int, str, int, RecommendedFoodResponse]] = []
