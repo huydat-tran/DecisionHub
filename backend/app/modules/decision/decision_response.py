@@ -39,13 +39,20 @@ class RecommendedFoodResponse(BaseModel):
     criteria_scores: CriteriaScores
     criteria_details: dict[str, CriterionDetail] = Field(default_factory=dict)
     reasons: list[str] = Field(default_factory=list)
+    id: int | None = None
 
     @model_validator(mode="before")
     @classmethod
     def set_defaults(cls, data: Any) -> Any:
         if isinstance(data, dict):
+            if "id" not in data and "food_id" in data:
+                data["id"] = data["food_id"]
+            if "food_id" not in data and "id" in data:
+                data["food_id"] = data["id"]
             if "total_score" not in data and "score" in data:
                 data["total_score"] = data["score"]
+            if "score" not in data and "total_score" in data:
+                data["score"] = data["total_score"]
             if "rank" not in data:
                 data["rank"] = 1
         return data

@@ -23,9 +23,9 @@ cơ chế so sánh và dispatch operator là dùng chung cho mọi domain.
 import math
 from collections.abc import Iterable
 from enum import Enum
-import math
 from typing import Any, TypeVar
 
+from app.modules.decision.engine._utils import _get_field
 from app.modules.decision.hard_constraint_fields import (
     DEFAULT_DOMAIN,
     get_default_operators,
@@ -38,27 +38,6 @@ CandidateT = TypeVar("CandidateT")
 
 # Kiểu cấu hình điều kiện: field_name -> (operator, giá trị)
 Constraints = dict[str, tuple[str, Any]]
-
-
-def _to_finite_float(raw: Any) -> float | None:
-    """Chuyển giá trị số sang float hữu hạn; trả về None nếu thiếu hoặc không hợp lệ."""
-    if raw is None or isinstance(raw, bool):
-        return None
-    if isinstance(raw, (int, float, Decimal)):
-        val = float(raw)
-        return val if math.isfinite(val) else None
-    try:
-        val = float(str(raw).strip())
-    except (TypeError, ValueError):
-        return None
-    return val if math.isfinite(val) else None
-
-
-def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
-    """Lấy giá trị trường từ dict hoặc object ứng viên."""
-    if isinstance(candidate, dict):
-        return candidate.get(field_name, default)
-    return getattr(candidate, field_name, default)
 
 
 def _extract_candidate_id(candidate: Any) -> Any | None:

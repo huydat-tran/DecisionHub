@@ -8,8 +8,10 @@ Không chứa logic truy vấn DB và không chứa logic tính điểm trực t
 import logging
 from typing import Any
 
-from sqlalchemy.orm import Session, selectinload
+from fastapi import status
+from sqlalchemy.orm import Session
 
+from app.common.exceptions import DecisionHubException
 from app.modules.decision.criterion_fields import resolve_field_name
 from app.modules.decision.decision_response import (
     AppliedFilters,
@@ -18,19 +20,28 @@ from app.modules.decision.decision_response import (
     DecisionResponse,
     ExcludedOptionResponse,
     RecommendedFoodResponse,
+    ScoringResponse,
+    ScoringWeights,
 )
 from app.modules.decision.engine.pipeline import evaluate_decision
 from app.modules.decision.hard_constraint_fields import (
+    get_default_operators,
     get_request_field_mapping,
     validate_constraint,
 )
-from app.modules.decision.models import DecisionCriterion
 from app.modules.decision.repository import (
+    get_food_candidates,
+    get_food_criteria,
+    get_food_hard_constraints,
     get_hard_constraints_by_domain,
-    get_weights_by_domain,
+)
+from app.modules.decision.repository import (
+    get_food_weights as repo_get_food_weights,
+)
+from app.modules.decision.repository import (
+    get_travel_weights as repo_get_travel_weights,
 )
 from app.modules.decision.schema import DecisionRecommendRequest
-from app.modules.food.models_food import Food
 
 logger = logging.getLogger(__name__)
 
@@ -55,25 +66,24 @@ def _to_engine_weights(raw_weights: dict[str, float]) -> dict[str, float]:
 
 
 def get_food_weights(db: Session) -> dict[str, float]:
-    """Lấy trọng số WSM cho domain food từ DB.
+    """Lấy trọng số WSM cho domain food sau khi đã chuẩn hóa sang field_name chuẩn.
 
-    Service biết khi nào cần gọi repository và với tham số nào.
-    Router không cần biết domain là gì, chỉ gọi service.
+    Ủy quyền việc đọc DB cho repository.get_food_weights(db).
 
     Args:
-        db: SQLAlchemy Session (inject từ Depends(get_db) ở router).
+        db: SQLAlchemy Session.
 
     Returns:
         dict[str, float]: Trọng số theo `field_name`:
         {"price": ..., "preference": ..., "prep_time": ...}.
     """
-    return _to_engine_weights(get_weights_by_domain(db, domain="food"))
+    return _to_engine_weights(repo_get_food_weights(db))
 
 
 def get_travel_weights(db: Session) -> dict[str, float]:
-    """Lấy trọng số WSM cho domain travel từ DB.
+    """Lấy trọng số WSM cho domain travel sau khi đã chuẩn hóa sang field_name chuẩn.
 
-    Bổ sung khi triển khai Travel (P1).
+    Ủy quyền việc đọc DB cho repository.get_travel_weights(db).
 
     Args:
         db: SQLAlchemy Session.
@@ -82,24 +92,23 @@ def get_travel_weights(db: Session) -> dict[str, float]:
         dict[str, float]: Trọng số travel theo `field_name`
         (vd. "estimated_cost", "estimated_duration", "activities").
     """
-    return _to_engine_weights(get_weights_by_domain(db, domain="travel"))
+    return _to_engine_weights(repo_get_travel_weights(db))
 
 
 def build_constraints(
-    db: Session,
+    configs_or_db: list[dict[str, str]] | Session,
     domain: str,
     request_values: dict[str, object],
 ) -> dict[str, tuple[str, object]]:
-    """Kết hợp cấu hình HardConstraint từ DB với giá trị từ request.
+    """Kết hợp cấu hình HardConstraint với giá trị từ request.
 
-    Cấu hình DB quy định điều kiện nào được áp dụng và dùng toán tử nào;
-    request chỉ cung cấp giá trị thực tế. Kết quả là dict cấu hình mà
-    Decision Engine nhận trực tiếp:
-    {"price": ("<=", 100000), "meal_type": ("=", "lunch"), ...}
+    Hỗ trợ 2 cách dùng:
+    - Nhận list `configs` đã lấy từ repository (khuyến nghị, không truy vấn DB trong hàm).
+    - Nhận `db` Session (tương thích ngược, ủy quyền đọc DB cho repository).
 
     Args:
-        db: SQLAlchemy Session.
-        domain: Domain cần lấy cấu hình ("food").
+        configs_or_db: Danh sách dict cấu hình hoặc SQLAlchemy Session.
+        domain: Domain cần áp dụng cấu hình ("food").
         request_values: Mapping tên field trong request → giá trị
             (vd. {"budget_max": 100000, "meal_type": "lunch"}).
 
@@ -107,9 +116,12 @@ def build_constraints(
         dict[str, tuple[str, object]]: Mapping field_name → (operator, giá trị).
 
     Raises:
-        ValueError: Khi cấu hình trong DB có field_name/operator không hợp lệ.
+        ValueError: Khi cấu hình có field_name/operator không hợp lệ.
     """
-    configs = get_hard_constraints_by_domain(db, domain=domain)
+    if isinstance(configs_or_db, list):
+        configs = configs_or_db
+    else:
+        configs = get_hard_constraints_by_domain(configs_or_db, domain=domain)
 
     # Kiểm tra toàn bộ cấu hình active trước: cấu hình sai phải báo lỗi rõ ràng,
     # không được âm thầm bỏ qua (sẽ lọt ứng viên vi phạm điều kiện bắt buộc).
@@ -152,7 +164,7 @@ def build_constraints(
 
 
 def build_food_constraints(
-    db: Session,
+    configs_or_db: list[dict[str, str]] | Session,
     *,
     budget_max: int | None = None,
     meal_type: str | None = None,
@@ -162,7 +174,7 @@ def build_food_constraints(
     """Dựng cấu hình lọc ứng viên cho domain food.
 
     Args:
-        db: SQLAlchemy Session.
+        configs_or_db: Danh sách cấu hình từ repository hoặc SQLAlchemy Session.
         budget_max: Ngân sách tối đa → field `price`.
         meal_type: Loại bữa ăn → field `meal_type`.
         max_prep_time: Thời gian chuẩn bị tối đa → field `prep_time`.
@@ -172,7 +184,7 @@ def build_food_constraints(
         dict[str, tuple[str, object]]: Cấu hình cho Decision Engine.
     """
     return build_constraints(
-        db,
+        configs_or_db,
         domain="food",
         request_values={
             "budget_max": budget_max,
@@ -183,34 +195,137 @@ def build_food_constraints(
     )
 
 
+def _format_vnd(amount: int) -> str:
+    """Format số tiền VND sang định dạng hiển thị (vd: 35000 -> '35.000đ')."""
+    return f"{amount:,}".replace(",", ".") + "đ"
+
+
+def _normalize_food_tags(raw: Any) -> list[str]:
+    """Chuẩn hóa tag món ăn từ DB (JSON array hoặc chuỗi phân tách dấu phẩy)."""
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [str(t).strip() for t in raw if t is not None and str(t).strip()]
+    if isinstance(raw, str):
+        return [t.strip() for t in raw.split(",") if t.strip()]
+    if isinstance(raw, (tuple, set, frozenset)):
+        return [str(t).strip() for t in raw if t is not None and str(t).strip()]
+    return []
+
+
+def _build_food_reasons(
+    price_int: int,
+    budget_max: int,
+    prep_time: int,
+    max_prep_time: int | None,
+    meal_type: str | None,
+    matched_tags: list[str],
+) -> list[str]:
+    """Sinh 1-3 lý do gợi ý dựa trên dữ liệu thực tế và điều kiện đầu vào của người dùng.
+
+    Tuân thủ quy định: chỉ dựa trên dữ liệu thực tế, không suy diễn hoặc bịa đặt.
+    """
+    reasons: list[str] = []
+    if price_int == 0:
+        reasons.append("Chi phí 0đ, tối ưu ngân sách")
+    else:
+        reasons.append(
+            f"Giá {_format_vnd(price_int)} nằm trong ngân sách tối đa {_format_vnd(budget_max)}"
+        )
+
+    if matched_tags:
+        reasons.append(f"Phù hợp khẩu vị ưu tiên: {', '.join(matched_tags)}")
+    elif meal_type:
+        reasons.append(f"Phù hợp cho bữa {meal_type}")
+
+    if max_prep_time is not None:
+        reasons.append(
+            f"Thời gian chuẩn bị {prep_time} phút (đạt giới hạn ≤ {max_prep_time} phút)"
+        )
+    else:
+        reasons.append(f"Thời gian chuẩn bị khoảng {prep_time} phút")
+
+    return reasons[:3]
+
+
 def recommend_food_decisions(
     db: Session,
     payload: DecisionRecommendRequest,
 ) -> DecisionResponse:
-    """Xử lý đề xuất món ăn theo phương pháp WSM và thống kê phương án bị loại.
+    """Điều phối toàn bộ quy trình gợi ý món ăn (domain 'food') bằng Decision Engine WSM.
 
-    Luồng:
-    1. Lấy danh sách món ăn từ database (hoặc dữ liệu mẫu khi DB rỗng).
-    2. Lấy tiêu chí và trọng số từ bảng `decision_criteria`.
-    3. Dựng cấu hình Hard Constraints từ bảng `hard_constraints` kết hợp giá trị request.
-    4. Gọi Decision Engine (evaluate_decision) để lọc, chấm điểm và xếp hạng.
-    5. Đóng gói DecisionResponse trả về cho Client.
+    Quy trình chuẩn:
+      Bước 1: Lấy dữ liệu từ Repository (danh sách món ăn, tiêu chí và cấu hình Hard Constraints).
+      Bước 2: Xây dựng điều kiện lọc bằng build_food_constraints().
+      Bước 3: Gọi Decision Engine pipeline.evaluate_decision() (lọc tiêu chí theo domain,
+              phân tách ứng viên hợp lệ/bị loại, chuẩn hóa điểm, tính tổng điểm WSM, xếp hạng).
+      Bước 4: Xử lý kết quả, định dạng danh sách món ăn đã xếp hạng và phương án bị loại thành DecisionResponse.
+
+    Args:
+        db: SQLAlchemy Session.
+        payload: Dữ liệu request từ client (budget_max, meal_type, max_prep_time,
+                 excluded_ingredients, preferred_tags, limit).
+
+    Returns:
+        DecisionResponse: Chứa danh sách items đã xếp hạng, excluded_items, total, limit, applied_filters, scoring.
+
+    Raises:
+        DecisionHubException: Khi cấu hình tiêu chí/ràng buộc sai hoặc gặp lỗi truy vấn.
     """
-    # 1. Lấy tiêu chí
-    criteria_rows = (
-        db.query(DecisionCriterion).filter(DecisionCriterion.domain == "food").all()
+    meal_type_val = (
+        payload.meal_type.value
+        if hasattr(payload.meal_type, "value")
+        else payload.meal_type
     )
-    if criteria_rows:
-        criteria: list[dict[str, Any]] = [
-            {
-                "domain": row.domain,
-                "name": row.name,
-                "direction": row.direction,
-                "weight": float(row.weight),
-            }
-            for row in criteria_rows
-        ]
-    else:
+
+    applied_filters = AppliedFilters(
+        budget_max=payload.budget_max,
+        meal_type=meal_type_val,
+        max_prep_time=payload.max_prep_time,
+        excluded_ingredients=list(payload.excluded_ingredients or []),
+        preferred_tags=list(payload.preferred_tags or []),
+    )
+
+    # --------------------------------------------------------------------------
+    # BƯỚC 1: Lấy toàn bộ dữ liệu từ Repository (DB queries hoàn toàn nằm ở repo)
+    # --------------------------------------------------------------------------
+    try:
+        candidates_raw = get_food_candidates(db)
+        criteria_objs = get_food_criteria(db)
+        hard_constraint_configs = get_food_hard_constraints(db)
+        raw_weights = repo_get_food_weights(db)
+    except Exception as exc:
+        logger.exception("Lỗi khi truy vấn repository trong recommend_food_decisions")
+        raise DecisionHubException(
+            message=f"Lỗi truy vấn cơ sở dữ liệu: {exc}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ) from exc
+
+    # Chuẩn hóa cấu hình scoring response
+    food_weights = _to_engine_weights(raw_weights) if raw_weights else {}
+    scoring_weights = ScoringWeights(
+        price=food_weights.get("price", 0.40),
+        preference=food_weights.get("preference", 0.35),
+        prep_time=food_weights.get("prep_time", 0.25),
+    )
+    scoring_response = ScoringResponse(method="WSM", weights=scoring_weights)
+
+    # Chuẩn hóa criteria cho Engine
+    criteria: list[dict[str, Any]] = []
+    for c in criteria_objs:
+        if isinstance(c, dict):
+            criteria.append(c)
+        else:
+            criteria.append(
+                {
+                    "domain": getattr(c, "domain", "food"),
+                    "name": getattr(c, "name", ""),
+                    "direction": getattr(c, "direction", "min"),
+                    "weight": float(getattr(c, "weight", 0.0)),
+                }
+            )
+
+    if not criteria:
         criteria = [
             {"domain": "food", "name": "Giá", "direction": "min", "weight": 0.40},
             {
@@ -227,55 +342,71 @@ def recommend_food_decisions(
             },
         ]
 
-    # 2. Lấy danh sách ứng viên
-    foods = (
-        db.query(Food)
-        .options(selectinload(Food.ingredients))
-        .filter(Food.is_active.is_(True))
-        .all()
-    )
-    if foods:
-        candidates: list[dict[str, Any]] = [
-            {
-                "id": f.id,
-                "food_id": f.id,
-                "name": f.name,
-                "price": float(f.price) if f.price is not None else 0.0,
-                "prep_time": f.prep_time,
-                "meal_type": f.meal_type,
-                "image_url": f.image_url,
-                "tags": f.tags or [],
-                "ingredients": [ing.name for ing in f.ingredients]
-                if f.ingredients
-                else [],
-            }
-            for f in foods
-        ]
-    else:
+    # Chuẩn hóa candidates cho Engine.
+    # candidates_raw: list[Food] từ SQLite thực, [] rỗng, hoặc MagicMock (unit test).
+    candidates: list[dict[str, Any]] = []
+    for f in (candidates_raw or []):
+        if isinstance(f, dict):
+            candidates.append(f)
+        else:
+            cand_id = getattr(f, "id", 0)
+            raw_price = getattr(f, "price", 0.0)
+            price_val = float(raw_price) if raw_price is not None else 0.0
+            ingredients_list: list[str] = []
+            f_ingredients = getattr(f, "ingredients", None)
+            if f_ingredients:
+                for ing in f_ingredients:
+                    if isinstance(ing, str):
+                        ingredients_list.append(ing)
+                    elif hasattr(ing, "name"):
+                        ingredients_list.append(str(ing.name))
+            candidates.append(
+                {
+                    "id": cand_id,
+                    "food_id": cand_id,
+                    "name": getattr(f, "name", ""),
+                    "price": price_val,
+                    "prep_time": getattr(f, "prep_time", 0),
+                    "meal_type": getattr(f, "meal_type", ""),
+                    "image_url": getattr(f, "image_url", None),
+                    "tags": _normalize_food_tags(getattr(f, "tags", None)),
+                    "ingredients": ingredients_list,
+                }
+            )
+
+    # Khi DB không trả về món ăn nào (table rỗng hoặc mock DB) → fallback sang dữ liệu mẫu.
+    # Giúp test với mock DB và demo không có DB đều hoạt động bình thường.
+    if not candidates:
         from app.modules.decision.mock_data import RAW_MOCK_CANDIDATES
 
-        candidates = RAW_MOCK_CANDIDATES
+        logger.info("Không có món ăn trong database, dùng dữ liệu mẫu để demo/test.")
+        candidates = list(RAW_MOCK_CANDIDATES)
 
-    # 3. Dựng điều kiện bắt buộc
-    constraints = build_food_constraints(
-        db,
-        budget_max=payload.budget_max,
-        meal_type=payload.meal_type,
-        max_prep_time=payload.max_prep_time,
-        excluded_ingredients=payload.excluded_ingredients,
-    )
+    # --------------------------------------------------------------------------
+    # BƯỚC 2: Xây dựng điều kiện lọc (Hard Constraints)
+    # --------------------------------------------------------------------------
+    try:
+        constraints = build_food_constraints(
+            hard_constraint_configs,
+            budget_max=payload.budget_max,
+            meal_type=meal_type_val,
+            max_prep_time=payload.max_prep_time,
+            excluded_ingredients=payload.excluded_ingredients,
+        )
+    except ValueError as val_err:
+        logger.error("Cấu hình Hard Constraints không hợp lệ: %s", val_err)
+        raise DecisionHubException(
+            message=f"Cấu hình điều kiện lọc không hợp lệ: {val_err}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ) from val_err
+
     if not constraints:
         # Fallback sang default operators khi DB chưa có cấu hình hard_constraints
-        from app.modules.decision.hard_constraint_fields import (
-            get_default_operators,
-            get_request_field_mapping,
-        )
-
         default_ops = get_default_operators("food")
         req_mapping = get_request_field_mapping("food")
         req_vals = {
             "budget_max": payload.budget_max,
-            "meal_type": payload.meal_type,
+            "meal_type": meal_type_val,
             "max_prep_time": payload.max_prep_time,
             "excluded_ingredients": payload.excluded_ingredients,
         }
@@ -287,81 +418,131 @@ def recommend_food_decisions(
                 if fn and fn in default_ops:
                     constraints[fn] = (default_ops[fn], val)
 
-    # 4. Chạy Decision Engine
-    eval_result = evaluate_decision(
-        candidates=candidates,
-        criteria=criteria,
-        domain="food",
-        constraints=constraints,
-        user_preferences=payload.preferred_tags,
-        limit=payload.limit,
-    )
+    # --------------------------------------------------------------------------
+    # BƯỚC 3: Gọi Decision Engine (pipeline.evaluate_decision)
+    # --------------------------------------------------------------------------
+    try:
+        eval_result = evaluate_decision(
+            candidates=candidates,
+            criteria=criteria,
+            domain="food",
+            constraints=constraints,
+            user_preferences=payload.preferred_tags,
+            limit=payload.limit,
+        )
+    except ValueError as val_err:
+        logger.error(
+            "Lỗi tham số/trọng số khi thực thi Decision Engine evaluate_decision: %s",
+            val_err,
+        )
+        raise DecisionHubException(
+            message=f"Lỗi tính toán Decision Engine: {val_err}",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        ) from val_err
+    except Exception as exc:
+        logger.exception("Lỗi không mong muốn trong Decision Engine evaluate_decision")
+        raise DecisionHubException(
+            message=f"Lỗi khi đánh giá và xếp hạng ứng viên: {exc}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ) from exc
 
-    # 5. Đóng gói kết quả
+    # --------------------------------------------------------------------------
+    # BƯỚC 4: Xử lý kết quả và chuẩn hóa response
+    # --------------------------------------------------------------------------
     excluded_items = [
         ExcludedOptionResponse(
-            id=exc["id"],
-            name=exc["name"],
+            id=exc.get("id")
+            if exc.get("id") is not None
+            else exc.get("food_id"),
+            name=str(exc.get("name") or ""),
             status="excluded",
             is_excluded=True,
-            exclusion_reason=exc["exclusion_reason"],
-            exclusion_reasons=exc.get("exclusion_reasons", [exc["exclusion_reason"]]),
+            exclusion_reason=str(exc.get("exclusion_reason") or ""),
+            exclusion_reasons=exc.get("exclusion_reasons")
+            or (
+                [str(exc.get("exclusion_reason"))]
+                if exc.get("exclusion_reason")
+                else []
+            ),
         )
-        for exc in eval_result["excluded_candidates"]
+        for exc in eval_result.get("excluded_candidates", [])
     ]
 
     items: list[RecommendedFoodResponse] = []
-    for cand in eval_result["valid_candidates"]:
-        scores = cand.get("criteria_scores", {})
-        details = cand.get("criteria_details", {})
+    pref_lower = [str(t).strip().lower() for t in (payload.preferred_tags or [])]
+
+    for cand in eval_result.get("valid_candidates", []):
+        cand_id = int(cand.get("id") or cand.get("food_id") or 0)
+        raw_price = cand.get("price")
+        price_int = round(float(raw_price or 0))
+        prep_time_int = int(cand.get("prep_time") or 0)
+        food_tags = _normalize_food_tags(cand.get("tags"))
+        matched_tags = [t for t in food_tags if t.lower() in pref_lower]
+
+        raw_scores = cand.get("criteria_scores") or {}
+        criteria_scores = CriteriaScores(
+            price=float(raw_scores.get("price") or 0.0),
+            preference=float(raw_scores.get("preference") or 0.0),
+            prep_time=float(raw_scores.get("prep_time") or 0.0),
+        )
+
+        details = cand.get("criteria_details") or {}
         crit_details = {
             k: CriterionDetail(
                 normalized_score=v.get("normalized_score"),
-                weight=v.get("weight", 0.0),
-                contribution=v.get("contribution", 0.0),
+                weight=float(v.get("weight") or 0.0),
+                contribution=float(v.get("contribution") or 0.0),
             )
             for k, v in details.items()
+            if isinstance(v, dict)
         }
-        reasons = [
-            f"Giá {int(cand.get('price', 0)):,}đ nằm trong ngân sách {payload.budget_max:,}đ",
-            f"Thời gian chuẩn bị {cand.get('prep_time', 0)} phút",
-        ]
-        items.append(
-            RecommendedFoodResponse(
-                food_id=cand.get("id", 0),
-                name=cand.get("name", ""),
-                price=int(cand.get("price", 0)),
-                meal_type=cand.get("meal_type", ""),
-                prep_time=int(cand.get("prep_time", 0)),
-                image_url=cand.get("image_url"),
-                tags=cand.get("tags", []),
-                score=cand.get("score", 0.0),
-                total_score=cand.get("total_score", cand.get("score", 0.0)),
-                rank=cand.get("rank", 1),
-                criteria_scores=CriteriaScores(
-                    price=scores.get("price", 0.0) or 0.0,
-                    preference=scores.get("preference", 0.0) or 0.0,
-                    prep_time=scores.get("prep_time", 0.0) or 0.0,
-                ),
-                criteria_details=crit_details,
-                reasons=reasons,
-            )
+
+        reasons = _build_food_reasons(
+            price_int=price_int,
+            budget_max=payload.budget_max,
+            prep_time=prep_time_int,
+            max_prep_time=payload.max_prep_time,
+            meal_type=cand.get("meal_type"),
+            matched_tags=matched_tags,
         )
 
+        score_val = float(cand.get("score") or cand.get("total_score") or 0.0)
+        total_score_val = float(cand.get("total_score") or score_val)
+
+        item = RecommendedFoodResponse(
+            food_id=cand_id,
+            id=cand_id,
+            name=str(cand.get("name") or ""),
+            price=price_int,
+            meal_type=str(cand.get("meal_type") or ""),
+            prep_time=prep_time_int,
+            image_url=cand.get("image_url"),
+            tags=food_tags,
+            score=score_val,
+            total_score=total_score_val,
+            rank=int(cand.get("rank") or 1),
+            criteria_scores=criteria_scores,
+            criteria_details=crit_details,
+            reasons=reasons,
+        )
+        items.append(item)
+
     return DecisionResponse(
-        success=eval_result["success"],
-        message=eval_result["message"],
-        has_valid_candidates=eval_result["has_valid_candidates"],
+        success=bool(eval_result.get("success", True)),
+        message=str(eval_result.get("message") or ""),
+        has_valid_candidates=bool(
+            eval_result.get("has_valid_candidates", len(items) > 0)
+        ),
         items=items,
         excluded_items=excluded_items,
         total=len(items),
-        total_excluded=eval_result["total_excluded"],
+        total_excluded=int(eval_result.get("total_excluded", len(excluded_items))),
         limit=payload.limit,
-        applied_filters=AppliedFilters(
-            budget_max=payload.budget_max,
-            meal_type=payload.meal_type,
-            max_prep_time=payload.max_prep_time,
-            excluded_ingredients=payload.excluded_ingredients,
-            preferred_tags=payload.preferred_tags,
-        ),
+        applied_filters=applied_filters,
+        scoring=scoring_response,
     )
+
+
+# Alias tương thích
+recommend_food = recommend_food_decisions
+recommend_foods = recommend_food_decisions

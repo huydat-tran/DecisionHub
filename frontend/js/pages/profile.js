@@ -122,14 +122,12 @@ function showUsernameError(message) {
   els.usernameInput.classList.toggle("is-invalid", Boolean(message));
 }
 
-// Đọc message lỗi từ backend theo format chuẩn: 409 trả về message dạng chuỗi,
-// 422 trả về errors (mảng { field, message }).
+// Đọc message lỗi từ backend: 409 trả về detail dạng chuỗi, 422 trả về mảng loc/msg.
 function readUsernameError(error) {
-  const data = error && error.data ? error.data : {};
-  const message = typeof data.message === "string" ? data.message : null;
-  if (message) return message;
-  if (Array.isArray(data.errors) && data.errors.length) {
-    return data.errors.map((item) => item.message).join("; ");
+  const detail = error && error.data ? error.data.detail : null;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map((item) => item.msg).join("; ");
   }
   if (error && error.message) return error.message;
   return "Không lưu được thay đổi. Vui lòng thử lại.";
