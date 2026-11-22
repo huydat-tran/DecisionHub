@@ -20,11 +20,12 @@ Cấu hình field/operator được tra theo domain từ `hard_constraint_fields
 cơ chế so sánh và dispatch operator là dùng chung cho mọi domain.
 """
 
+import math
 from collections.abc import Iterable
 from enum import Enum
-import math
 from typing import Any, TypeVar
 
+from app.modules.decision.engine._utils import _get_field
 from app.modules.decision.hard_constraint_fields import (
     DEFAULT_DOMAIN,
     get_default_operators,
@@ -39,25 +40,36 @@ CandidateT = TypeVar("CandidateT")
 Constraints = dict[str, tuple[str, Any]]
 
 
-def _to_finite_float(raw: Any) -> float | None:
-    """Chuyển giá trị số sang float hữu hạn; trả về None nếu thiếu hoặc không hợp lệ."""
-    if raw is None or isinstance(raw, bool):
-        return None
-    if isinstance(raw, (int, float, Decimal)):
-        val = float(raw)
-        return val if math.isfinite(val) else None
-    try:
-        val = float(str(raw).strip())
-    except (TypeError, ValueError):
-        return None
-    return val if math.isfinite(val) else None
+def _extract_candidate_id(candidate: Any) -> Any | None:
+    """Trích xuất ID của ứng viên từ dict hoặc object.
+
+    Trả None khi ứng viên không có ID hợp lệ — không tạo ID giả (0) để tránh
+    client hiểu nhầm là ứng viên thực sự có ID bằng 0.
+    """
+    for field in ("id", "food_id", "destination_id", "item_id"):
+        val = _get_field(candidate, field)
+        if val is None:
+            continue
+        if isinstance(val, str) and not val.strip():
+            continue
+        return val
+    return None
 
 
-def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
-    """Lấy giá trị trường từ dict hoặc object ứng viên."""
-    if isinstance(candidate, dict):
-        return candidate.get(field_name, default)
-    return getattr(candidate, field_name, default)
+def _display_value(value: Any) -> str:
+    """Hiển thị giá trị trong message: Enum dùng `.value`, còn lại dùng str()."""
+    if isinstance(value, Enum):
+        return str(value.value)
+    return str(value)
+
+
+def _extract_candidate_name(candidate: Any) -> str:
+    """Trích xuất tên của ứng viên từ dict hoặc object."""
+    for field in ("name", "title", "food_name"):
+        val = _get_field(candidate, field)
+        if val is not None:
+            return str(val)
+    return "Không tên"
 
 
 def _normalize_text(value: Any) -> str | None:
@@ -77,7 +89,7 @@ def _to_number(value: Any) -> float | None:
         number = float(value)
     except (TypeError, ValueError, ArithmeticError):
         return None
-    if number != number or number in (float("inf"), float("-inf")):
+    if math.isnan(number) or number in (float("inf"), float("-inf")):
         return None
     return number
 
@@ -201,7 +213,9 @@ def _compare_ingredients(actual: list[str], operator: str, expected: Any) -> boo
             any(_ingredient_matches(ingredient, text) for text in texts)
             for ingredient in actual
         )
-    raise ValueError(f"Operator {operator!r} không áp dụng được cho field 'ingredients'.")
+    raise ValueError(
+        f"Operator {operator!r} không áp dụng được cho field 'ingredients'."
+    )
 
 
 def _matches_constraint(
@@ -236,6 +250,89 @@ def _matches_constraint(
     return _compare_ingredients(names, operator, expected)
 
 
+def _explain_constraint(
+    candidate: Any,
+    field_name: str,
+    operator: str,
+    expected: Any,
+) -> str:
+    """Sinh chuỗi giải thích lý do cụ thể khi ứng viên vi phạm điều kiện.
+
+    Chỉ xử lý các field của domain Food (price, prep_time, meal_type, ingredients).
+    Field ngoài danh sách này trả về thông báo chung ở cuối hàm.
+    """
+    raw_val = _get_field(candidate, field_name)
+
+    if field_name == "price":
+        number = _to_number(raw_val)
+        if number is None or number < 0:
+            return "Giá không hợp lệ hoặc thiếu thông tin giá."
+        if operator == "<=":
+            exp_num = _to_number(expected)
+            exp_str = f"{int(exp_num):,}đ" if exp_num is not None else str(expected)
+            return f"Giá ({int(number):,}đ) vượt quá ngân sách tối đa ({exp_str})."
+        if operator == ">=":
+            exp_num = _to_number(expected)
+            exp_str = f"{int(exp_num):,}đ" if exp_num is not None else str(expected)
+            return f"Giá ({int(number):,}đ) thấp hơn mức tối thiểu ({exp_str})."
+
+    elif field_name == "prep_time":
+        number = _to_number(raw_val)
+        if number is None or number < 0:
+            return "Thời gian chuẩn bị không hợp lệ hoặc thiếu dữ liệu."
+        if operator == "<=":
+            exp_num = _to_number(expected)
+            exp_str = f"{int(exp_num)}" if exp_num is not None else str(expected)
+            return f"Thời gian chuẩn bị ({int(number)} phút) vượt quá giới hạn tối đa ({exp_str} phút)."
+
+    elif field_name == "meal_type":
+        text = _normalize_text(raw_val)
+        if text is None:
+            return "Thiếu thông tin loại bữa ăn."
+        actual_str = _display_value(raw_val)
+        if operator == "=":
+            return (
+                f"Loại bữa ăn '{actual_str}' không phù hợp với bữa ăn yêu cầu "
+                f"'{_display_value(expected)}'."
+            )
+        if operator == "in":
+            return f"Loại bữa ăn '{actual_str}' không nằm trong danh sách bữa ăn yêu cầu."
+
+    elif field_name == "ingredients":
+        names = _extract_ingredient_names(raw_val)
+        if names is None:
+            return "Dữ liệu nguyên liệu không hợp lệ hoặc bị thiếu."
+        if operator == "not_in":
+            values = _as_list(expected) or []
+            avoided = [t for t in (_normalize_text(item) for item in values) if t]
+            matched = [
+                ingredient
+                for ingredient in names
+                if any(_ingredient_matches(ingredient, t) for t in avoided)
+            ]
+            if matched:
+                return f"Chứa nguyên liệu cần tránh: {', '.join(sorted(set(matched)))}."
+            return "Chứa nguyên liệu trong danh sách cần tránh."
+        if operator == "in":
+            return "Chứa nguyên liệu ngoài danh sách cho phép."
+
+    return f"Không thỏa mãn điều kiện bắt buộc: {field_name} {operator} {expected}."
+
+
+def inspect_candidate(
+    candidate: Any,
+    active: Constraints,
+    domain: str,
+) -> tuple[bool, list[str]]:
+    """Kiểm tra ứng viên và trả về (is_valid, danh_sách_lý_do_vi_phạm)."""
+    reasons: list[str] = []
+    for field_name, (operator, expected) in active.items():
+        if not _matches_constraint(candidate, field_name, operator, expected, domain):
+            reason = _explain_constraint(candidate, field_name, operator, expected)
+            reasons.append(reason)
+    return len(reasons) == 0, reasons
+
+
 def _passes_all(candidate: Any, active: Constraints, domain: str) -> bool:
     """Kiểm tra ứng viên có thoả toàn bộ điều kiện trong `active` hay không."""
     return all(
@@ -265,7 +362,65 @@ def passes_hard_constraints(
     Raises:
         ValueError: Khi cấu hình điều kiện không hợp lệ.
     """
-    return _passes_all(candidate, _merge_constraints(constraints, legacy, domain), domain)
+    return _passes_all(
+        candidate, _merge_constraints(constraints, legacy, domain), domain
+    )
+
+
+def filter_and_explain_candidates(
+    candidates: Iterable[CandidateT],
+    constraints: Constraints | None = None,
+    *,
+    domain: str = DEFAULT_DOMAIN,
+    **legacy: Any,
+) -> tuple[list[CandidateT], list[dict[str, Any]]]:
+    """Lọc danh sách ứng viên và thống kê chi tiết các phương án bị loại.
+
+    Args:
+        candidates: Danh sách ứng viên.
+        constraints: Cấu hình điều kiện {field_name: (operator, giá trị)}.
+        domain: Domain của cấu hình điều kiện ("food").
+        **legacy: Tham số cũ (budget_max, meal_type, max_prep_time, excluded_ingredients).
+
+    Returns:
+        tuple (valid_candidates, excluded_candidates):
+        - valid_candidates: Danh sách ứng viên thỏa mãn tất cả điều kiện.
+        - excluded_candidates: Danh sách thông tin phương án bị loại kèm:
+          - id: ID của phương án.
+          - name: Tên của phương án.
+          - status: "excluded".
+          - is_excluded: True.
+          - exclusion_reason: Chuỗi lý do cụ thể.
+          - exclusion_reasons: Danh sách tất cả lý do vi phạm nếu có nhiều lỗi.
+          - candidate: Đối tượng ứng viên gốc.
+    """
+    active = _merge_constraints(constraints, legacy, domain)
+    valid_candidates: list[CandidateT] = []
+    excluded_candidates: list[dict[str, Any]] = []
+
+    for candidate in candidates:
+        is_valid, reasons = inspect_candidate(candidate, active, domain)
+        if is_valid:
+            valid_candidates.append(candidate)
+        else:
+            c_id = _extract_candidate_id(candidate)
+            c_name = _extract_candidate_name(candidate)
+            reason_str = (
+                "; ".join(reasons) if reasons else "Vi phạm điều kiện bắt buộc."
+            )
+            excluded_candidates.append(
+                {
+                    "id": c_id,
+                    "name": c_name,
+                    "status": "excluded",
+                    "is_excluded": True,
+                    "exclusion_reason": reason_str,
+                    "exclusion_reasons": reasons,
+                    "candidate": candidate,
+                }
+            )
+
+    return valid_candidates, excluded_candidates
 
 
 def filter_candidates(
@@ -287,7 +442,13 @@ def filter_candidates(
         ValueError: Khi cấu hình điều kiện không hợp lệ.
     """
     active = _merge_constraints(constraints, legacy, domain)
-    return [candidate for candidate in candidates if _passes_all(candidate, active, domain)]
+    # Dùng _passes_all() (short-circuit) để dừng ngay tại điều kiện đầu tiên
+    # không đạt — ứng viên đã bị loại thì không cần đánh giá các điều kiện sau.
+    return [
+        candidate
+        for candidate in candidates
+        if _passes_all(candidate, active, domain)
+    ]
 
 
 def _merge_constraints(
@@ -314,7 +475,9 @@ def _merge_constraints(
                 if field_name == "price":
                     raise ValueError("Ngân sách tối đa (budget_max) không được âm.")
                 if field_name == "prep_time":
-                    raise ValueError("Thời gian chuẩn bị tối đa (max_prep_time) không được âm.")
+                    raise ValueError(
+                        "Thời gian chuẩn bị tối đa (max_prep_time) không được âm."
+                    )
             active.setdefault(field_name, (operator, value))
 
     for field_name, (operator, _expected) in active.items():

@@ -58,11 +58,7 @@ def _to_numeric(raw: Any) -> float | None:
     return val if math.isfinite(val) else None
 
 
-def _get_field(candidate: Any, field_name: str, default: Any = None) -> Any:
-    """Lấy giá trị trường từ dict hoặc object ứng viên."""
-    if isinstance(candidate, dict):
-        return candidate.get(field_name, default)
-    return getattr(candidate, field_name, default)
+from ._utils import _get_field
 
 
 def _to_candidate_dict(candidate: Any) -> dict[str, Any]:

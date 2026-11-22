@@ -12,8 +12,7 @@ async function checkHealth() {
   } catch (error) {
     box.className = "status status-error";
     // 503 = backend chạy nhưng không nối được MySQL; 0 = không gọi được backend
-    const detail = error && error.data ? (error.data.message || error.data.detail) : "";
-    box.textContent = `❌ ${error.status === 503 ? "Backend chạy nhưng MySQL lỗi: " + detail : error.message}`;
+    box.textContent = `❌ ${error.status === 503 ? "Backend chạy nhưng MySQL lỗi: " + error.data.detail : error.message}`;
   }
 }
 

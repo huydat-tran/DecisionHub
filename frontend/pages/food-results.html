@@ -90,7 +90,7 @@
             <h2 id="food-recommend-title" class="dh-section-title mb-0" style="font-size: 16px">
               Gợi ý món ăn theo tiêu chí
             </h2>
-            <small class="dh-muted">Nhập ngân sách tối đa, loại bữa ăn và nguyên liệu cần tránh</small>
+            <small class="dh-muted">Nhập ngân sách tối đa và các điều kiện tùy chọn (bữa ăn, thời gian chuẩn bị, nguyên liệu tránh, khẩu vị ưu tiên)</small>
           </div>
         </div>
         <div class="dh-card-body">
@@ -103,7 +103,7 @@
                   </label>
                   <input
                     id="food-max-budget"
-                    name="max_budget"
+                    name="budget_max"
                     class="dh-input"
                     type="number"
                     min="1000"
@@ -123,33 +123,61 @@
               <div class="col-12 col-md-4">
                 <div class="dh-field mb-0">
                   <label class="dh-label" for="food-meal-type">
-                    Loại bữa ăn <span class="text-danger">*</span>
+                    Loại bữa ăn
                   </label>
                   <select
                     id="food-meal-type"
                     name="meal_type"
                     class="dh-select"
-                    aria-describedby="food-meal-type-error"
-                    required
+                    aria-describedby="food-meal-type-help food-meal-type-error"
                   >
-                    <option value="">-- Chọn loại bữa ăn --</option>
+                    <option value="">-- Tất cả loại bữa ăn --</option>
                     <option value="breakfast">Bữa sáng</option>
                     <option value="lunch">Bữa trưa</option>
                     <option value="dinner">Bữa tối</option>
                     <option value="snack">Bữa phụ / Ăn vặt</option>
                   </select>
+                  <span id="food-meal-type-help" class="dh-help">
+                    Tùy chọn, để trống nếu không lọc theo bữa.
+                  </span>
                   <span id="food-meal-type-error" class="dh-error" role="alert"></span>
                 </div>
               </div>
 
               <div class="col-12 col-md-4">
                 <div class="dh-field mb-0">
+                  <label class="dh-label" for="food-max-prep-time">
+                    Thời gian chuẩn bị tối đa (phút)
+                  </label>
+                  <input
+                    id="food-max-prep-time"
+                    name="max_prep_time"
+                    class="dh-input"
+                    type="number"
+                    min="1"
+                    max="1440"
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="VD: 30"
+                    aria-describedby="food-max-prep-time-help food-max-prep-time-error"
+                  />
+                  <span id="food-max-prep-time-help" class="dh-help">
+                    Tùy chọn, số nguyên dương (phút). Để trống nếu không giới hạn.
+                  </span>
+                  <span id="food-max-prep-time-error" class="dh-error" role="alert"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-md-5">
+                <div class="dh-field mb-0">
                   <label class="dh-label" for="food-avoid-ingredients">
                     Nguyên liệu cần tránh
                   </label>
                   <input
                     id="food-avoid-ingredients"
-                    name="avoid_ingredients"
+                    name="excluded_ingredients"
                     class="dh-input"
                     type="text"
                     maxlength="200"
@@ -160,6 +188,66 @@
                     Tùy chọn, phân tách nhiều nguyên liệu bằng dấu phẩy.
                   </span>
                   <span id="food-avoid-ingredients-error" class="dh-error" role="alert"></span>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-5">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="food-preferred-tags">
+                    Khẩu vị / nhãn ưu tiên
+                  </label>
+                  <input
+                    id="food-preferred-tags"
+                    name="preferred_tags"
+                    class="dh-input"
+                    type="text"
+                    maxlength="200"
+                    placeholder="VD: chay, cay, nhanh"
+                    aria-describedby="food-preferred-tags-help food-preferred-tags-error"
+                  />
+                  <div
+                    id="food-preferred-tag-chips"
+                    class="dh-chip-group mt-2 mb-0"
+                    role="group"
+                    aria-label="Gợi ý khẩu vị ưu tiên"
+                  >
+                    <button type="button" class="dh-chip" data-tag="chay" aria-pressed="false">Chay</button>
+                    <button type="button" class="dh-chip" data-tag="cay" aria-pressed="false">Cay</button>
+                    <button type="button" class="dh-chip" data-tag="nhanh" aria-pressed="false">Nhanh</button>
+                    <button type="button" class="dh-chip" data-tag="nước" aria-pressed="false">Món nước</button>
+                    <button type="button" class="dh-chip" data-tag="đậm đà" aria-pressed="false">Đậm đà</button>
+                    <button type="button" class="dh-chip" data-tag="thanh đạm" aria-pressed="false">Thanh đạm</button>
+                    <button type="button" class="dh-chip" data-tag="truyền thống" aria-pressed="false">Truyền thống</button>
+                    <button type="button" class="dh-chip" data-tag="hải sản" aria-pressed="false">Hải sản</button>
+                  </div>
+                  <span id="food-preferred-tags-help" class="dh-help">
+                    Tùy chọn, chọn nhanh hoặc nhập nhiều nhãn phân tách bằng dấu phẩy.
+                  </span>
+                  <span id="food-preferred-tags-error" class="dh-error" role="alert"></span>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-2">
+                <div class="dh-field mb-0">
+                  <label class="dh-label" for="food-limit">
+                    Số món gợi ý
+                  </label>
+                  <input
+                    id="food-limit"
+                    name="limit"
+                    class="dh-input"
+                    type="number"
+                    min="1"
+                    max="20"
+                    step="1"
+                    value="5"
+                    inputmode="numeric"
+                    aria-describedby="food-limit-help food-limit-error"
+                  />
+                  <span id="food-limit-help" class="dh-help">
+                    Từ 1 đến 20 (mặc định 5).
+                  </span>
+                  <span id="food-limit-error" class="dh-error" role="alert"></span>
                 </div>
               </div>
             </div>
