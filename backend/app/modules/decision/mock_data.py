@@ -7,6 +7,8 @@ from app.modules.decision.decision_response import (
     DecisionResponse,
     ExcludedOptionResponse,
     RecommendedFoodResponse,
+    ScoringResponse,
+    ScoringWeights,
 )
 from app.modules.decision.engine.pipeline import evaluate_decision
 from app.modules.decision.schema import DecisionRecommendRequest
