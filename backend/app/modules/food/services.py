@@ -1,27 +1,10 @@
 """Nghiệp vụ tìm kiếm, xem chi tiết và gợi ý món ăn (module Food)."""
 
-from sqlalchemy import Select, func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.common.exceptions import ResourceNotFoundException
-from app.modules.decision.decision_response import (
-    AppliedFilters,
-    CriteriaScores,
-    DecisionResponse,
-    RecommendedFoodResponse,
-    ScoringResponse,
-    ScoringWeights,
-)
-from app.modules.food.models_food import Food
-from app.modules.food.schemas_food import (
-    FoodOut,
-    FoodQuickSearchData,
-    FoodQuickSearchFilters,
-    FoodRecommendRequest,
-    FoodSortBy,
-    MealType,
-    normalize_tags,
-)
+from app.modules.food.repository_food import get_active_food_by_id, get_active_foods
+from app.modules.food.schemas_food import FoodOut, MealType
 
 # Trọng số mặc định theo rubric Food trong DecisionHub.md (tổng = 1.0)
 # WEIGHT_PRICE = 0.40
@@ -178,23 +161,13 @@ def _format_vnd(amount: int) -> str:
 
 def get_all_foods(db: Session) -> list[FoodOut]:
     """Lấy danh sách tất cả món ăn đang hoạt động."""
-    stmt = (
-        select(Food)
-        .options(selectinload(Food.ingredients))
-        .where(Food.is_active.is_(True))
-        .order_by(Food.id.asc())
-    )
-    return [FoodOut.model_validate(food) for food in db.scalars(stmt).all()]
+    foods = get_active_foods(db)
+    return [FoodOut.model_validate(food) for food in foods]
 
 
 def get_food_detail(db: Session, food_id: int) -> FoodOut:
     """Lấy thông tin chi tiết của một món ăn đang hoạt động theo ID."""
-    stmt = (
-        select(Food)
-        .options(selectinload(Food.ingredients))
-        .where(Food.id == food_id, Food.is_active.is_(True))
-    )
-    food = db.scalar(stmt)
+    food = get_active_food_by_id(db, food_id)
     if food is None:
         raise ResourceNotFoundException("Món ăn", food_id)
     return FoodOut.model_validate(food)
