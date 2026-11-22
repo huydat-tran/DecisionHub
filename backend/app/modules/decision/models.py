@@ -94,6 +94,56 @@ class HardConstraint(Base):
     )
 
 
+class Decision(Base):
+    """Lưu lịch sử phiên quyết định (input_snapshot và result_snapshot) của người dùng."""
+
+    __tablename__ = "decisions"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
+        comment="Khóa chính tự tăng định danh phiên quyết định",
+    )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+        comment="ID người dùng thực hiện quyết định (FK -> users.id)",
+    )
+    domain: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        comment="Phân loại miền quyết định: food (ăn uống) hoặc travel (du lịch)",
+    )
+    input_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Snapshot JSON toàn bộ dữ liệu đầu vào tại thời điểm đề xuất",
+    )
+    result_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Snapshot JSON kết quả đề xuất (danh sách phương án xếp hạng, điểm số, lý do giải thích)",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.current_timestamp(),
+        comment="Thời điểm tạo quyết định",
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "domain IN ('food', 'travel')",
+            name="ck_decisions_domain",
+        ),
+        Index("idx_decisions_user_id", "user_id"),
+        Index("idx_decisions_user_created_at", "user_id", "created_at"),
+        Index("idx_decisions_user_domain_created_at", "user_id", "domain", "created_at"),
+    )
+
+
 class DecisionResult(Base):
     """Kết quả gợi ý và chấm điểm của từng phương án (Food hoặc Travel) trong một phiên quyết định.
 
