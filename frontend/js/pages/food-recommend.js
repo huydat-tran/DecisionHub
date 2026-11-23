@@ -224,6 +224,8 @@
   // Quản lý trạng thái loading
   function setLoading(isLoading) {
     if (!submitBtn) return;
+    const excludedBodyEl = document.getElementById("results-excluded-body");
+
     if (isLoading) {
       submitBtn.disabled = true;
       submitBtn.innerHTML = `
@@ -242,6 +244,14 @@
         explanationBodyEl.innerHTML = `
           <div class="p-4 text-center dh-muted dh-small">
             Đang tải dữ liệu chi tiết phương án...
+          </div>
+        `;
+      }
+      if (excludedBodyEl) {
+        excludedBodyEl.innerHTML = `
+          <div class="p-4 text-center dh-muted dh-small">
+            <div class="spinner-border spinner-border-sm text-secondary me-1" role="status"></div>
+            Đang phân tích điều kiện loại trừ...
           </div>
         `;
       }
@@ -317,10 +327,42 @@
   }
 
   // Định dạng dữ liệu từ API Backend sang cấu trúc UI
-  function formatApiResults(items) {
+  function formatApiResults(items, criteriaList, weightsMap) {
+    const criteria = criteriaList || [
+      { key: "price", label: "Giá / Ngân sách", weight: 0.4 },
+      { key: "preference", label: "Mức phù hợp nhu cầu/khẩu vị", weight: 0.35 },
+      { key: "prep_time", label: "Thời gian chuẩn bị", weight: 0.25 },
+    ];
+
     return items.map((item, index) => {
-      const rank = index + 1;
+      const rank = item.rank || index + 1;
       const isTop = rank === 1;
+      const totalScore = Number(item.total_score ?? item.score ?? 0);
+
+      const criteriaScores = item.criteria_scores || {};
+      const rawDetails = item.criteria_details || {};
+      const details = {};
+
+      criteria.forEach((crit) => {
+        const key = crit.key;
+        const detailObj = rawDetails[key] || {};
+        const scoreVal = detailObj.normalized_score !== undefined
+          ? detailObj.normalized_score
+          : (criteriaScores[key] !== undefined ? criteriaScores[key] : null);
+        const weightVal = detailObj.weight !== undefined
+          ? detailObj.weight
+          : (weightsMap && weightsMap[key] !== undefined ? weightsMap[key] : crit.weight);
+        const contribVal = detailObj.contribution !== undefined
+          ? detailObj.contribution
+          : (scoreVal !== null ? Math.round(weightVal * scoreVal * 100) / 100 : 0);
+
+        details[key] = {
+          label: crit.label,
+          normalized_score: scoreVal !== null ? Number(scoreVal) : null,
+          weight: Number(weightVal),
+          contribution: Number(contribVal),
+        };
+      });
 
       const reasons = Array.isArray(item.reasons) ? [...item.reasons] : [];
       if (reasons.length === 0) {
@@ -330,7 +372,7 @@
 
       const pros = [...reasons];
       const cons = [];
-      const pScore = item.criteria_scores?.price ?? 70;
+      const pScore = criteriaScores.price ?? 70;
       if (pScore < 60 && item.price) {
         cons.push(`Mức giá ${moneyStr(item.price)} tiệm cận mức ngân sách tối đa`);
       }
@@ -346,17 +388,27 @@
         name: item.name,
         price: item.price,
         prep_time: item.prep_time,
+        meal_type: item.meal_type || "",
+        tags: item.tags || [],
         image: resolveFoodImage(item.name, item.image_url),
-        score: Number(item.score || 0),
+        score: totalScore,
+        total_score: totalScore,
         ranking: rank,
-        criteria: {
-          price: Math.round(item.criteria_scores?.price ?? 0),
-          preference: Math.round(item.criteria_scores?.preference ?? 0),
-          prep_time: Math.round(item.criteria_scores?.prep_time ?? 0),
+        criteria_scores: {
+          price: Math.round(criteriaScores.price ?? 0),
+          preference: Math.round(criteriaScores.preference ?? 0),
+          prep_time: Math.round(criteriaScores.prep_time ?? 0),
         },
+        criteria: {
+          price: Math.round(criteriaScores.price ?? 0),
+          preference: Math.round(criteriaScores.preference ?? 0),
+          prep_time: Math.round(criteriaScores.prep_time ?? 0),
+        },
+        criteria_details: details,
+        reasons,
         explanation: isTop
-          ? `Đứng đầu với ${Number(item.score).toFixed(1)}/100 điểm WSM. Món ăn cân bằng tối ưu giữa ngân sách, loại bữa ăn và thời gian chuẩn bị.`
-          : `Xếp hạng ${rank} với ${Number(item.score).toFixed(1)}/100 điểm WSM. ${reasons[0] || ""}`,
+          ? `Đứng đầu với ${totalScore.toFixed(1)}/100 điểm WSM. Món ăn cân bằng tối ưu giữa ngân sách, loại bữa ăn và thời gian chuẩn bị.`
+          : `Xếp hạng ${rank} với ${totalScore.toFixed(1)}/100 điểm WSM. ${reasons[0] || ""}`,
         advantages: pros.slice(0, 3),
         disadvantages: cons.slice(0, 2),
       };
@@ -375,7 +427,9 @@
     ];
 
     let finalResults = [];
+    let excludedItems = [];
     let isFromBackend = false;
+    let backendMessage = "";
 
     // 1. Thử gọi API Backend trước nếu có server chạy
     if (typeof api !== "undefined" && typeof api.post === "function") {
@@ -384,12 +438,18 @@
         try {
           res = await api.post("/api/v1/decisions/recommend", payload);
         } catch {
-          res = await api.post("/api/v1/food/recommend", payload);
+          res = await api.post("/api/v1/decisions/food/recommend", payload);
         }
 
         const data = res && res.data ? res.data : res;
-        if (data && Array.isArray(data.items)) {
-          finalResults = formatApiResults(data.items);
+        if (data) {
+          if (Array.isArray(data.items)) {
+            finalResults = formatApiResults(data.items, criteriaList, data.scoring?.weights);
+          }
+          if (Array.isArray(data.excluded_items)) {
+            excludedItems = data.excluded_items;
+          }
+          backendMessage = data.message || "";
           isFromBackend = true;
         }
       } catch (apiErr) {
@@ -400,7 +460,10 @@
     // 2. Nếu Backend offline hoặc chưa có kết quả: dùng Engine lọc động thông minh của Frontend
     if (!isFromBackend) {
       if (typeof window.filterAndScoreFoods === "function") {
-        finalResults = window.filterAndScoreFoods(payload);
+        const fallback = window.filterAndScoreFoods(payload);
+        finalResults = fallback.items || [];
+        excludedItems = fallback.excluded_items || [];
+        backendMessage = fallback.message || "";
       }
     }
 
@@ -416,20 +479,32 @@
     };
 
     if (!finalResults || finalResults.length === 0) {
-      // Trạng thái Empty State (Không có món thỏa mãn)
-      if (typeof DHResults !== "undefined" && typeof DHResults.renderEmptyState === "function") {
-        DHResults.renderEmptyState(
-          `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${mealText}. Hãy thử tăng ngân sách hoặc nới bớt điều kiện lọc!`,
-        );
+      // Trạng thái Không có món thỏa mãn
+      if (typeof DHResults !== "undefined") {
+        if (excludedItems.length > 0 && typeof DHResults.renderAllExcludedState === "function") {
+          DHResults.renderAllExcludedState(
+            excludedItems,
+            `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${mealText}. Tất cả ${excludedItems.length} phương án đều đã bị loại bởi điều kiện bắt buộc.`,
+          );
+        } else if (typeof DHResults.renderEmptyState === "function") {
+          DHResults.renderEmptyState(
+            `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${mealText}. Hãy thử tăng ngân sách hoặc nới bớt điều kiện lọc!`,
+          );
+          if (typeof DHResults.renderExcludedCandidates === "function") {
+            DHResults.renderExcludedCandidates([]);
+          }
+        }
       }
+
       if (resultsTotalEl) resultsTotalEl.textContent = "0";
       if (resultsTopNameEl) resultsTopNameEl.textContent = "Không có phương án";
       if (resultsTopScoreEl) resultsTopScoreEl.textContent = "";
 
-      showStatus(
-        `<strong>Không có món ăn phù hợp:</strong> Với ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong> cho <strong>${escapeHtml(mealText)}</strong>, không có món nào thỏa mãn. Bạn hãy thử nới lỏng điều kiện nhé!`,
-        "error",
-      );
+      const msgHtml = excludedItems.length > 0
+        ? `<strong>Không có món ăn phù hợp:</strong> Tất cả <strong>${excludedItems.length}</strong> món ăn đều đã bị loại bởi điều kiện bắt buộc (ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong>, <strong>${escapeHtml(mealText)}</strong>). Vui lòng xem lý do chi tiết ở bảng phía dưới để nới lỏng điều kiện!`
+        : `<strong>Không có món ăn phù hợp:</strong> Với ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong> cho <strong>${escapeHtml(mealText)}</strong>, không có món nào thỏa mãn. Bạn hãy thử nới lỏng điều kiện nhé!`;
+
+      showStatus(msgHtml, "warning");
 
       saveToDecisionHistory({
         ...historyBase,
@@ -439,14 +514,16 @@
       });
 
       if (typeof showToast === "function") {
-        showToast("Không tìm thấy món ăn phù hợp với tiêu chí.", "error");
+        showToast("Không tìm thấy món ăn phù hợp với tiêu chí.", "warning");
       }
     } else {
-      // Có kết quả -> Render bảng xếp hạng và giải thích chi tiết
+      // Có kết quả -> Render bảng xếp hạng, giải thích chi tiết và danh sách bị loại
       if (typeof DHResults !== "undefined" && typeof DHResults.initResultsPage === "function") {
         DHResults.initResultsPage({
           results: finalResults,
           criteria: criteriaList,
+          excluded: excludedItems,
+          message: backendMessage,
         });
       }
 
@@ -457,8 +534,12 @@
         resultsTopScoreEl.textContent = `${Number(topOption.score).toFixed(1)}/100 điểm (WSM)`;
       }
 
+      const excludedNotice = excludedItems.length > 0
+        ? ` (và <strong>${excludedItems.length}</strong> phương án bị loại bởi điều kiện bắt buộc)`
+        : "";
+
       showStatus(
-        `✓ Đã tìm thấy <strong>${finalResults.length}</strong> món ăn tối ưu nhất cho bạn. Lựa chọn số 1: <strong>${escapeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)} điểm WSM).`,
+        `✓ Đã tìm thấy <strong>${finalResults.length}</strong> món ăn tối ưu nhất${excludedNotice}. Lựa chọn số 1: <strong>${escapeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)} điểm WSM).`,
         "success",
       );
 
