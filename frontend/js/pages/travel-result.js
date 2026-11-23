@@ -105,6 +105,44 @@ const TRAVEL_RESULTS = [
       "Các hoạt động vui chơi giải trí về đêm còn hạn chế",
     ],
   },
+  {
+    id: 106,
+    name: "Sa Pa & Đỉnh Fansipan (Lào Cai)",
+    image: "../assets/images/travel/halong.jpg",
+    score: 78.8,
+    ranking: 6,
+    criteria: { cost: 74, experience: 88, duration: 75 },
+    explanation:
+      "Điểm đến hấp dẫn vùng núi Tây Bắc với nóc nhà Đông Dương Fansipan và văn hóa bản địa, tuy nhiên thời gian di chuyển từ miền Trung/Nam khá dài.",
+    advantages: [
+      "Hệ thống cáp treo Fansipan hiện đại, ngắm mây trời và thung lũng Mường Hoa",
+      "Bản sắc văn hóa dân tộc H'Mông, Dao đỏ độc đáo cùng ẩm thực vùng cao",
+      "Khí hậu mát mẻ quanh năm, mùa đông có cơ hội ngắm băng tuyết",
+    ],
+    disadvantages: [
+      "Dễ bị say xe do cung đường đèo dốc uốn lượn liên tục",
+      "Thời tiết thay đổi nhanh, mùa sương mù có thể hạn chế tầm nhìn trên đỉnh",
+    ],
+  },
+  {
+    id: 107,
+    name: "Măng Đen - Đại ngàn (Kon Tum)",
+    image: "../assets/images/travel/dalat.jpg",
+    score: 77.2,
+    ranking: 7,
+    criteria: { cost: 82, experience: 80, duration: 70 },
+    explanation:
+      "Không gian sinh thái đại ngàn thanh bình, chi phí lưu trú và ăn uống tiết kiệm, rất phù hợp cho kỳ nghỉ chữa lành và thư giãn yên tĩnh.",
+    advantages: [
+      "Rừng thông nguyên sinh bạt ngàn, không khí trong lành không khói bụi",
+      "Chi phí du lịch rất hợp lý, người dân bản địa thân thiện, mến khách",
+      "Cảnh quan hoang sơ với thác Pa Sỹ, hồ Đăk Ke và đồi thông săn mây",
+    ],
+    disadvantages: [
+      "Hạ tầng giao thông và dịch vụ du lịch vui chơi giải trí còn đơn giản",
+      "Chưa có đường bay thẳng, cần di chuyển đường bộ từ Pleiku",
+    ],
+  },
 ];
 
 DHResults.initResultsPage({ results: TRAVEL_RESULTS, criteria: TRAVEL_CRITERIA });
