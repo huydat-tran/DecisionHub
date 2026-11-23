@@ -7,11 +7,12 @@ Service gọi repository để lấy dữ liệu thô rồi chuyển đổi sang
 
 import logging
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.modules.decision.models import DecisionCriterion, HardConstraint
+from app.modules.decision.models import Decision, DecisionCriterion, HardConstraint
 from app.modules.food.models_food import Food
 
 logger = logging.getLogger(__name__)
@@ -190,5 +191,72 @@ def get_food_weights(db: Session) -> dict[str, float]:
 def get_travel_weights(db: Session) -> dict[str, float]:
     """Truy vấn trọng số các tiêu chí cho domain travel từ DB."""
     return get_weights_by_domain(db, domain="travel")
+
+
+def create_decision(
+    db: Session,
+    *,
+    user_id: int,
+    domain: str,
+    input_snapshot: dict[str, Any],
+    result_snapshot: dict[str, Any],
+) -> Decision:
+    """Lưu một bản ghi lịch sử quyết định mới vào bảng `decisions`.
+
+    Đảm bảo tính toàn vẹn giao dịch: nếu có lỗi khi ghi DB sẽ rollback ngay.
+    """
+    decision = Decision(
+        user_id=user_id,
+        domain=domain,
+        input_snapshot=input_snapshot,
+        result_snapshot=result_snapshot,
+    )
+    try:
+        db.add(decision)
+        db.commit()
+        db.refresh(decision)
+        return decision
+    except Exception:
+        db.rollback()
+        raise
+
+
+def get_decisions_by_user(
+    db: Session,
+    *,
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[Decision]:
+    """Lấy danh sách lịch sử quyết định của người dùng, sắp xếp mới nhất trước."""
+    stmt = (
+        select(Decision)
+        .where(Decision.user_id == user_id)
+        .order_by(Decision.created_at.desc(), Decision.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    return list(db.scalars(stmt).all())
+
+
+def count_decisions_by_user(db: Session, *, user_id: int) -> int:
+    """Đếm tổng số bản ghi lịch sử quyết định của người dùng."""
+    stmt = select(func.count(Decision.id)).where(Decision.user_id == user_id)
+    return int(db.scalar(stmt) or 0)
+
+
+def get_decision_by_id_and_user(
+    db: Session,
+    *,
+    decision_id: int,
+    user_id: int,
+) -> Decision | None:
+    """Truy vấn chi tiết một quyết định theo `decision_id` và `user_id`."""
+    stmt = select(Decision).where(
+        Decision.id == decision_id,
+        Decision.user_id == user_id,
+    )
+    return db.scalar(stmt)
+
 
 

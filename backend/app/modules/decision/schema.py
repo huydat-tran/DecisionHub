@@ -1,4 +1,5 @@
 import math
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -122,3 +123,42 @@ class DecisionRecommendRequest(BaseModel):
     @classmethod
     def default_limit(cls, value: Any) -> Any:
         return 5 if value is None else value
+
+
+class DecisionHistoryItem(BaseModel):
+    """Thông tin một bản ghi lịch sử quyết định của người dùng."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    domain: str
+    input_snapshot: dict[str, Any]
+    result_snapshot: dict[str, Any]
+    created_at: datetime
+
+
+class DecisionHistoryListResponse(BaseModel):
+    """Response danh sách lịch sử quyết định của người dùng đang đăng nhập."""
+
+    success: bool = True
+    message: str = "Lấy danh sách lịch sử quyết định thành công."
+    data: list[DecisionHistoryItem] = Field(default_factory=list)
+    items: list[DecisionHistoryItem] = Field(default_factory=list)
+    total: int = 0
+    limit: int = 20
+    offset: int = 0
+
+
+class DecisionHistoryDetailResponse(BaseModel):
+    """Response chi tiết một bản ghi lịch sử quyết định của người dùng."""
+
+    success: bool = True
+    message: str = "Lấy chi tiết lịch sử quyết định thành công."
+    data: DecisionHistoryItem
+    id: int
+    user_id: int
+    domain: str
+    input_snapshot: dict[str, Any]
+    result_snapshot: dict[str, Any]
+    created_at: datetime

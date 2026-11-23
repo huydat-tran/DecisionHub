@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import DecisionHubException
+from app.common.exceptions import DecisionHubException, ResourceNotFoundException
 from app.modules.decision.criterion_fields import resolve_field_name
 from app.modules.decision.decision_response import (
     AppliedFilters,
@@ -30,6 +30,10 @@ from app.modules.decision.hard_constraint_fields import (
     validate_constraint,
 )
 from app.modules.decision.repository import (
+    count_decisions_by_user,
+    create_decision,
+    get_decision_by_id_and_user,
+    get_decisions_by_user,
     get_food_candidates,
     get_food_criteria,
     get_food_hard_constraints,
@@ -41,7 +45,12 @@ from app.modules.decision.repository import (
 from app.modules.decision.repository import (
     get_travel_weights as repo_get_travel_weights,
 )
-from app.modules.decision.schema import DecisionRecommendRequest
+from app.modules.decision.schema import (
+    DecisionHistoryDetailResponse,
+    DecisionHistoryItem,
+    DecisionHistoryListResponse,
+    DecisionRecommendRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +260,7 @@ def _build_food_reasons(
 def recommend_food_decisions(
     db: Session,
     payload: DecisionRecommendRequest,
+    user_id: int | None = None,
 ) -> DecisionResponse:
     """Điều phối toàn bộ quy trình gợi ý món ăn (domain 'food') bằng Decision Engine WSM.
 
@@ -302,7 +312,15 @@ def recommend_food_decisions(
         ) from exc
 
     # Chuẩn hóa cấu hình scoring response
-    food_weights = _to_engine_weights(raw_weights) if raw_weights else {}
+    if payload.weights is not None:
+        food_weights = {
+            "price": payload.weights.price,
+            "preference": payload.weights.preference,
+            "prep_time": payload.weights.prep_time,
+        }
+    else:
+        food_weights = _to_engine_weights(raw_weights) if raw_weights else {}
+
     scoring_weights = ScoringWeights(
         price=food_weights.get("price", 0.40),
         preference=food_weights.get("preference", 0.35),
@@ -314,31 +332,42 @@ def recommend_food_decisions(
     criteria: list[dict[str, Any]] = []
     for c in criteria_objs:
         if isinstance(c, dict):
-            criteria.append(c)
+            crit_dict = dict(c)
         else:
-            criteria.append(
-                {
-                    "domain": getattr(c, "domain", "food"),
-                    "name": getattr(c, "name", ""),
-                    "direction": getattr(c, "direction", "min"),
-                    "weight": float(getattr(c, "weight", 0.0)),
-                }
-            )
+            crit_dict = {
+                "domain": getattr(c, "domain", "food"),
+                "name": getattr(c, "name", ""),
+                "direction": getattr(c, "direction", "min"),
+                "weight": float(getattr(c, "weight", 0.0)),
+            }
+        if payload.weights is not None:
+            try:
+                fn = resolve_field_name(str(crit_dict.get("name", "")))
+                if fn in food_weights:
+                    crit_dict["weight"] = food_weights[fn]
+            except ValueError:
+                pass
+        criteria.append(crit_dict)
 
     if not criteria:
         criteria = [
-            {"domain": "food", "name": "Giá", "direction": "min", "weight": 0.40},
+            {
+                "domain": "food",
+                "name": "Giá",
+                "direction": "min",
+                "weight": scoring_weights.price,
+            },
             {
                 "domain": "food",
                 "name": "Mức phù hợp nhu cầu/khẩu vị",
                 "direction": "max",
-                "weight": 0.35,
+                "weight": scoring_weights.preference,
             },
             {
                 "domain": "food",
                 "name": "Thời gian chuẩn bị",
                 "direction": "min",
-                "weight": 0.25,
+                "weight": scoring_weights.prep_time,
             },
         ]
 
@@ -527,7 +556,7 @@ def recommend_food_decisions(
         )
         items.append(item)
 
-    return DecisionResponse(
+    response = DecisionResponse(
         success=bool(eval_result.get("success", True)),
         message=str(eval_result.get("message") or ""),
         has_valid_candidates=bool(
@@ -540,6 +569,106 @@ def recommend_food_decisions(
         limit=payload.limit,
         applied_filters=applied_filters,
         scoring=scoring_response,
+    )
+
+    # --------------------------------------------------------------------------
+    # BƯỚC 5: Lưu lịch sử quyết định khi người dùng đã xác thực
+    # --------------------------------------------------------------------------
+    if user_id is not None:
+        save_decision_history(
+            db=db,
+            user_id=user_id,
+            domain="food",
+            input_snapshot=payload.model_dump(mode="json"),
+            result_snapshot=response.model_dump(mode="json"),
+        )
+
+    return response
+
+
+def save_decision_history(
+    db: Session,
+    *,
+    user_id: int,
+    domain: str,
+    input_snapshot: dict[str, Any],
+    result_snapshot: dict[str, Any],
+) -> DecisionHistoryItem:
+    """Lưu bản ghi lịch sử quyết định của người dùng vào bảng `decisions`."""
+    try:
+        record = create_decision(
+            db=db,
+            user_id=user_id,
+            domain=domain,
+            input_snapshot=input_snapshot,
+            result_snapshot=result_snapshot,
+        )
+        return DecisionHistoryItem.model_validate(record)
+    except Exception as exc:
+        logger.exception("Lỗi khi lưu lịch sử quyết định cho user_id=%s", user_id)
+        raise DecisionHubException(
+            message="Không thể lưu lịch sử quyết định.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ) from exc
+
+
+def list_user_decision_history(
+    db: Session,
+    *,
+    user_id: int,
+    limit: int = 20,
+    offset: int = 0,
+) -> DecisionHistoryListResponse:
+    """Lấy danh sách lịch sử quyết định của người dùng đang đăng nhập."""
+    records = get_decisions_by_user(
+        db=db,
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+    )
+    total = count_decisions_by_user(db=db, user_id=user_id)
+    items = [DecisionHistoryItem.model_validate(record) for record in records]
+    return DecisionHistoryListResponse(
+        message="Lấy danh sách lịch sử quyết định thành công.",
+        data=items,
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def get_user_decision_detail(
+    db: Session,
+    *,
+    decision_id: int,
+    user_id: int,
+) -> DecisionHistoryDetailResponse:
+    """Lấy chi tiết một quyết định đã lưu của chính người dùng đang đăng nhập.
+
+    Trả về 404 nếu quyết định không tồn tại hoặc thuộc về người dùng khác.
+    """
+    if decision_id <= 0:
+        raise ResourceNotFoundException("Lịch sử quyết định", decision_id)
+
+    record = get_decision_by_id_and_user(
+        db=db,
+        decision_id=decision_id,
+        user_id=user_id,
+    )
+    if record is None:
+        raise ResourceNotFoundException("Lịch sử quyết định", decision_id)
+
+    item = DecisionHistoryItem.model_validate(record)
+    return DecisionHistoryDetailResponse(
+        message="Lấy chi tiết lịch sử quyết định thành công.",
+        data=item,
+        id=item.id,
+        user_id=item.user_id,
+        domain=item.domain,
+        input_snapshot=item.input_snapshot,
+        result_snapshot=item.result_snapshot,
+        created_at=item.created_at,
     )
 
 
