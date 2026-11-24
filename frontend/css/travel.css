@@ -58,6 +58,32 @@
   letter-spacing: 0.02em;
 }
 
+.travel-page .travel-rank-pill {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--dh-primary);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--dh-radius-sm);
+  box-shadow: var(--dh-shadow-sm);
+  z-index: 2;
+}
+
+.travel-page .travel-rank-pill.rank-1 {
+  background: #B7791F;
+}
+
+.travel-page .travel-rank-pill.rank-2 {
+  background: #4B6358;
+}
+
+.travel-page .travel-rank-pill.rank-3 {
+  background: #7D6B58;
+}
+
 .travel-page .travel-region-pill {
   position: absolute;
   bottom: 10px;
@@ -69,6 +95,25 @@
   padding: 3px 9px;
   border-radius: var(--dh-radius-sm);
   backdrop-filter: blur(4px);
+}
+
+/* Điểm chi tiết 3 tiêu chí WSM */
+.travel-page .travel-criteria-scores {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--dh-text-muted);
+  background: var(--dh-surface-subtle);
+  border-radius: var(--dh-radius-sm);
+  padding: 5px 8px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--dh-border);
+}
+
+.travel-page .travel-criteria-item strong {
+  color: var(--dh-primary);
+  font-weight: 700;
 }
 
 /* Nội dung chi tiết trong card */
