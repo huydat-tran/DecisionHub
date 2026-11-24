@@ -1,25 +1,43 @@
 // Hiển thị kết quả dùng chung cho các trang Đề xuất (Food / Travel).
 //
-// Trang sử dụng truyền vào danh sách phương án + tiêu chí của phân hệ đó qua
-// initResultsPage({ results, criteria }); các hàm bên dưới không biết trước
-// dữ liệu riêng của Food hay Travel.
+// Trang sử dụng truyền vào danh sách phương án + tiêu chí + danh sách bị loại:
+// initResultsPage({ results, criteria, excluded, message });
 //
-// Mô hình WSM: Frontend KHÔNG tự tính điểm, chỉ hiển thị và giải thích
-// kết quả nhận được từ Backend.
+// Mô hình WSM: Frontend KHÔNG tự tính điểm khi Backend đã trả về kết quả,
+// chỉ hiển thị và giải thích kết quả chuẩn hóa (normalized_score, weight, contribution)
+// nhận được từ Decision Engine Backend.
 
 (function (global) {
-  const state = { results: [], criteria: [], els: null };
+  const state = { results: [], criteria: [], excluded: [], els: null, message: "" };
 
-  // Lấy các phần tử DOM dùng chung (có mặt trên cả hai trang).
+  // Helper escape HTML chống XSS
+  function safeHtml(str) {
+    if (typeof escapeHtml === "function") return escapeHtml(str);
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // Lấy các phần tử DOM dùng chung
   function getElements() {
     if (!state.els) {
       state.els = {
         total: document.getElementById("results-total"),
+        validHint: document.getElementById("results-valid-hint"),
         topName: document.getElementById("results-top-name"),
         topScore: document.getElementById("results-top-score"),
         rankingList: document.getElementById("results-ranking-list"),
         explanationCard: document.getElementById("results-explanation"),
         explanationBody: document.getElementById("results-explanation-body"),
+        excludedSection: document.getElementById("results-excluded-section"),
+        excludedBody: document.getElementById("results-excluded-body"),
+        excludedBadge: document.getElementById("results-excluded-badge"),
+        excludedCount: document.getElementById("results-excluded-count"),
+        excludedHint: document.getElementById("results-excluded-hint"),
       };
     }
     return state.els;
@@ -29,33 +47,58 @@
 
   // 87.3 -> "87,3"
   function formatScore(value) {
+    if (value === null || value === undefined || isNaN(value)) return "–";
     return Number(value).toLocaleString("vi-VN", {
       minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+      maximumFractionDigits: 2,
     });
   }
 
-  // 0.4 -> "40%"
   function formatWeight(weight) {
-    return Math.round(weight * 100) + "%";
+    return Math.round(Number(weight || 0) * 100) + "%";
   }
 
   // Điểm giảm dần; bằng điểm thì theo thứ hạng backend trả về
   function sortResults(results) {
     return [...results].sort(
-      (a, b) => b.score - a.score || a.ranking - b.ranking,
+      (a, b) => (b.total_score ?? b.score ?? 0) - (a.total_score ?? a.score ?? 0) || (a.ranking ?? a.rank ?? 0) - (b.ranking ?? b.rank ?? 0),
     );
+  }
+
+  // Ánh xạ nhãn tiêu chí thân thiện
+  function getCriterionLabel(key, fallbackLabel) {
+    if (fallbackLabel) return fallbackLabel;
+    const labels = {
+      price: "Giá / Ngân sách",
+      preference: "Mức phù hợp nhu cầu/khẩu vị",
+      prep_time: "Thời gian chuẩn bị",
+      cost: "Chi phí tham khảo",
+      estimated_cost: "Chi phí ước tính",
+      experience: "Mức phù hợp trải nghiệm",
+      duration: "Thời lượng & Tiếp cận",
+      estimated_duration: "Thời gian di chuyển",
+      activities: "Hoạt động trải nghiệm",
+    };
+    return labels[key] || key;
   }
 
   // ---------- Hàm hiển thị ----------
 
-  function renderSummary(sortedResults) {
+  function renderSummary(sortedResults, excludedList = []) {
     const el = getElements();
     const top = sortedResults[0];
     if (el.total) el.total.textContent = sortedResults.length;
+    if (el.validHint) el.validHint.textContent = `Thỏa mãn toàn bộ điều kiện lọc`;
+
     if (el.topName) el.topName.textContent = top ? top.name : "–";
     if (el.topScore) {
-      el.topScore.textContent = top ? `${formatScore(top.score)}/100 điểm` : "";
+      const scoreVal = top ? (top.total_score ?? top.score ?? 0) : 0;
+      el.topScore.textContent = top ? `${formatScore(scoreVal)}/100 điểm (WSM)` : "";
+    }
+
+    if (el.excludedCount) el.excludedCount.textContent = excludedList.length;
+    if (el.excludedHint) {
+      el.excludedHint.textContent = excludedList.length > 0 ? "Vi phạm điều kiện bắt buộc" : "Không có phương án vi phạm";
     }
   }
 
@@ -65,26 +108,28 @@
 
     el.rankingList.innerHTML = sortedResults
       .map((option, index) => {
-        const isTop = index === 0;
+        const rank = option.ranking ?? option.rank ?? (index + 1);
+        const isTop = rank === 1;
+        const scoreVal = option.total_score ?? option.score ?? 0;
         const thumbHtml = option.image
-          ? `<img class="results-rank-thumb" src="${option.image}" alt="${escapeHtml(option.name)}" loading="lazy">`
+          ? `<img class="results-rank-thumb" src="${option.image}" alt="${safeHtml(option.name)}" loading="lazy">`
           : "";
         return `
         <li>
           <button type="button" class="results-rank-item${isTop ? " is-top" : ""}"
                   data-option-id="${option.id}" aria-pressed="false">
-            <span class="results-rank-number">${option.ranking}</span>
+            <span class="results-rank-number">${rank}</span>
             ${thumbHtml}
             <span class="results-rank-main">
               <span class="results-rank-head">
                 <span class="results-rank-name">
-                  ${escapeHtml(option.name)}
+                  ${safeHtml(option.name)}
                   ${isTop ? '<span class="dh-status dh-status-success">★ Đứng đầu</span>' : ""}
                 </span>
-                <span class="results-rank-score">${formatScore(option.score)}<small>/100</small></span>
+                <span class="results-rank-score">${formatScore(scoreVal)}<small>/100</small></span>
               </span>
               <span class="dh-progress-track" aria-hidden="true">
-                <span class="dh-progress-bar" style="width: ${option.score}%"></span>
+                <span class="dh-progress-bar" style="width: ${Math.min(100, Math.max(0, scoreVal))}%"></span>
               </span>
             </span>
           </button>
@@ -93,20 +138,32 @@
       .join("");
   }
 
-  function renderCriteria(option, criteria) {
+  // Thanh tiến trình trực quan từng tiêu chí
+  function renderCriteriaBars(option, criteria) {
+    const details = option.criteria_details || {};
+    const criteriaScores = option.criteria || option.criteria_scores || {};
+
     return criteria
       .map((criterion) => {
-        const value = option.criteria[criterion.key] || 0;
+        const key = criterion.key || criterion.field_name;
+        const detail = details[key] || {};
+        const scoreVal = detail.normalized_score !== undefined
+          ? detail.normalized_score
+          : (criteriaScores[key] !== undefined ? criteriaScores[key] : 0);
+        const weightVal = detail.weight !== undefined ? detail.weight : criterion.weight;
+        const label = getCriterionLabel(key, criterion.label || detail.label);
+        const displayScore = scoreVal !== null ? `${Math.round(scoreVal)}/100` : "Thiếu dữ liệu";
+
         return `
       <div class="dh-criteria-item">
         <div class="dh-criteria-header">
-          <span>${escapeHtml(criterion.label)}
-            <span class="results-criteria-weight">· trọng số ${formatWeight(criterion.weight)}</span>
+          <span>${safeHtml(label)}
+            <span class="results-criteria-weight">· trọng số ${formatWeight(weightVal)}</span>
           </span>
-          <strong>${value}/100</strong>
+          <strong>${displayScore}</strong>
         </div>
         <div class="dh-progress-track">
-          <div class="dh-progress-bar" style="width: ${value}%"></div>
+          <div class="dh-progress-bar" style="width: ${scoreVal !== null ? Math.min(100, Math.max(0, scoreVal)) : 0}%"></div>
         </div>
       </div>`;
       })
@@ -114,12 +171,13 @@
   }
 
   function renderReasonItems(items, icon) {
+    if (!items || items.length === 0) return "";
     return items
       .map(
         (text) => `
         <li class="dh-reason-item">
           <span class="dh-reason-icon" aria-hidden="true">${icon}</span>
-          <span>${escapeHtml(text)}</span>
+          <span>${safeHtml(text)}</span>
         </li>`,
       )
       .join("");
@@ -129,12 +187,28 @@
     const el = getElements();
     if (!el.explanationBody) return;
 
-    const isTop = option.ranking === 1;
+    const rank = option.ranking ?? option.rank ?? 1;
+    const isTop = rank === 1;
+    const totalScoreVal = option.total_score ?? option.score ?? 0;
     const imageHtml = option.image
       ? `<div class="results-explain-image">
-        <img src="${option.image}" alt="${escapeHtml(option.name)}" loading="lazy">
+        <img src="${option.image}" alt="${safeHtml(option.name)}" loading="lazy">
        </div>`
       : "";
+
+    // Quick specs chips (giá, thời gian, loại bữa ăn)
+    const specs = [];
+    if (option.price !== undefined && option.price !== null) {
+      const priceStr = Number(option.price).toLocaleString("vi-VN") + " ₫";
+      specs.push(`<span class="results-spec-chip">Giá: <strong>${priceStr}</strong></span>`);
+    }
+    if (option.prep_time !== undefined && option.prep_time !== null) {
+      specs.push(`<span class="results-spec-chip">Thời gian: <strong>${option.prep_time} phút</strong></span>`);
+    }
+    if (option.meal_type) {
+      const mealLabels = { breakfast: "Sáng", lunch: "Trưa", dinner: "Tối", snack: "Ăn vặt" };
+      specs.push(`<span class="results-spec-chip">Bữa: <strong>${mealLabels[option.meal_type] || option.meal_type}</strong></span>`);
+    }
 
     el.explanationBody.innerHTML = `
     <div class="results-explain-head">
@@ -142,33 +216,140 @@
         ${imageHtml}
         <div>
           <span class="dh-status ${isTop ? "dh-status-success" : "dh-status-info"}">
-            Hạng ${option.ranking}${isTop ? " · Đứng đầu" : ""}
+            Hạng ${rank}${isTop ? " · Đứng đầu" : ""}
           </span>
-          <h3 class="results-explain-name">${escapeHtml(option.name)}</h3>
+          <h3 class="results-explain-name">${safeHtml(option.name)}</h3>
+          ${specs.length > 0 ? `<div class="results-specs-chips">${specs.join("")}</div>` : ""}
         </div>
       </div>
       <div class="dh-score-box">
-        <span class="dh-score-value">${formatScore(option.score)}</span>
-        <span class="dh-score-label">Điểm tổng</span>
+        <span class="dh-score-value">${formatScore(totalScoreVal)}</span>
+        <span class="dh-score-label">Điểm tổng (WSM)</span>
       </div>
     </div>
 
-    <h4 class="results-subtitle">Điểm theo từng tiêu chí</h4>
-    <div class="dh-criteria-group">${renderCriteria(option, criteria)}</div>
+    <!-- Thanh tiến trình từng tiêu chí -->
+    <h4 class="results-subtitle mt-3">Mức độ đáp ứng tiêu chí</h4>
+    <div class="dh-criteria-group">${renderCriteriaBars(option, criteria)}</div>
 
-    <h4 class="results-subtitle">Vì sao phương án này đạt hạng ${option.ranking}?</h4>
-    <p class="results-reason-text">${escapeHtml(option.explanation)}</p>
+    <h4 class="results-subtitle">Vì sao phương án này đạt hạng ${rank}?</h4>
+    <p class="results-reason-text">${safeHtml(option.explanation || "")}</p>
+    ${
+      option.reasons && option.reasons.length > 0
+        ? `<ul class="dh-reason-list mb-3">${renderReasonItems(option.reasons, "✦")}</ul>`
+        : ""
+    }
 
     <div class="results-pros-cons">
       <div class="results-note-box results-pros">
-        <h4 class="results-note-title">Ưu điểm</h4>
-        <ul class="dh-reason-list">${renderReasonItems(option.advantages, "✓")}</ul>
+        <h4 class="results-note-title">Ưu điểm nổi bật</h4>
+        <ul class="dh-reason-list">${renderReasonItems(option.advantages || (option.reasons || []).slice(0, 2), "✓")}</ul>
       </div>
       <div class="results-note-box results-cons">
-        <h4 class="results-note-title">Hạn chế</h4>
-        <ul class="dh-reason-list">${renderReasonItems(option.disadvantages, "!")}</ul>
+        <h4 class="results-note-title">Điểm cần lưu ý</h4>
+        <ul class="dh-reason-list">${renderReasonItems(option.disadvantages || ["Điểm tổng hợp phụ thuộc vào mức ngân sách và điều kiện lọc đã chọn"], "!")}</ul>
       </div>
     </div>`;
+  }
+
+  // Hiển thị danh sách các phương án bị loại (Excluded Candidates)
+  function renderExcludedCandidates(excludedList) {
+    const el = getElements();
+    if (!el.excludedSection || !el.excludedBody) return;
+
+    const list = Array.isArray(excludedList) ? excludedList : [];
+    if (el.excludedBadge) {
+      el.excludedBadge.textContent = `${list.length} phương án`;
+      el.excludedBadge.className = `dh-status ${list.length > 0 ? "dh-status-danger" : "dh-status-success"}`;
+    }
+    if (el.excludedCount) {
+      el.excludedCount.textContent = list.length;
+    }
+    if (el.excludedHint) {
+      el.excludedHint.textContent = list.length > 0 ? "Vi phạm điều kiện bắt buộc" : "Không có phương án vi phạm";
+    }
+
+    if (list.length === 0) {
+      el.excludedBody.innerHTML = `
+        <div class="p-4 text-center text-muted dh-small">
+          <span class="text-success fw-bold fs-5 d-block mb-1">✓</span>
+          Tất cả các phương án xem xét đều thỏa mãn toàn bộ điều kiện bắt buộc (không có phương án nào bị loại).
+        </div>
+      `;
+      return;
+    }
+
+    const rows = list.map((item, idx) => {
+      const name = safeHtml(item.name || `Phương án #${item.id || idx + 1}`);
+      const reason = safeHtml(item.exclusion_reason || "Không thỏa mãn điều kiện bắt buộc");
+      const reasonsList = Array.isArray(item.exclusion_reasons) && item.exclusion_reasons.length > 1
+        ? `<ul class="results-excluded-reasons-list dh-small mt-1 mb-0 ps-3">
+             ${item.exclusion_reasons.map((r) => `<li>${safeHtml(r)}</li>`).join("")}
+           </ul>`
+        : "";
+
+      return `
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <span class="results-excluded-dot" aria-hidden="true">✕</span>
+            <strong class="results-excluded-name">${name}</strong>
+          </div>
+        </td>
+        <td class="text-center">
+          <span class="dh-status dh-status-danger">Bị loại</span>
+        </td>
+        <td>
+          <div class="results-excluded-reason">${reason}</div>
+          ${reasonsList}
+        </td>
+      </tr>`;
+    }).join("");
+
+    el.excludedBody.innerHTML = `
+      <div class="table-responsive">
+        <table class="dh-table results-excluded-table" aria-label="Danh sách phương án bị loại">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 28%;">Tên phương án</th>
+              <th scope="col" style="width: 16%;" class="text-center">Trạng thái</th>
+              <th scope="col">Lý do bị loại cụ thể</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Khi tất cả phương án bị loại (không còn phương án hợp lệ)
+  function renderAllExcludedState(excludedList, message) {
+    const el = getElements();
+    if (el.total) el.total.textContent = "0";
+    if (el.topName) el.topName.textContent = "Không có phương án";
+    if (el.topScore) el.topScore.textContent = "0 phương án hợp lệ";
+
+    if (el.rankingList) {
+      el.rankingList.innerHTML = `
+      <li class="dh-empty-state py-4">
+        <div class="dh-empty-icon text-warning">⚠️</div>
+        <div class="dh-empty-title">Không có phương án hợp lệ</div>
+        <p class="dh-empty-desc">${safeHtml(message || "Tất cả phương án đều đã bị loại bởi các điều kiện bắt buộc. Vui lòng xem lý do chi tiết ở bảng bên dưới và thử nới lỏng bộ lọc.")}</p>
+      </li>`;
+    }
+
+    if (el.explanationBody) {
+      el.explanationBody.innerHTML = `
+      <div class="dh-empty-state py-4">
+        <div class="dh-empty-icon text-muted">📋</div>
+        <div class="dh-empty-title">Không thể chấm điểm WSM</div>
+        <p class="dh-empty-desc">Decision Engine đã dừng quá trình chấm điểm vì không còn phương án nào thỏa mãn điều kiện lọc. Vui lòng điều chỉnh lại ngân sách, thời gian chuẩn bị hoặc nguyên liệu cần tránh.</p>
+      </div>`;
+    }
+
+    renderExcludedCandidates(excludedList);
   }
 
   function renderEmptyState(message) {
@@ -178,11 +359,11 @@
     if (el.topScore) el.topScore.textContent = "";
     if (el.rankingList) {
       el.rankingList.innerHTML = `
-    <li class="dh-empty-state">
-      <div class="dh-empty-icon">📋</div>
-      <div class="dh-empty-title">Chưa có phương án phù hợp</div>
-      <p class="dh-empty-desc">${message || "Hãy thử nới lỏng điều kiện để nhận thêm kết quả."}</p>
-    </li>`;
+      <li class="dh-empty-state">
+        <div class="dh-empty-icon">📋</div>
+        <div class="dh-empty-title">Chưa có phương án phù hợp</div>
+        <p class="dh-empty-desc">${safeHtml(message || "Hãy thử nới lỏng điều kiện để nhận thêm kết quả.")}</p>
+      </li>`;
     }
     if (el.explanationBody) {
       el.explanationBody.innerHTML =
@@ -226,10 +407,12 @@
 
   // ---------- Khởi tạo trang kết quả ----------
 
-  // config: { results: [...], criteria: [...] }
+  // config: { results: [...], criteria: [...], excluded: [...], message: "..." }
   function initResultsPage(config) {
     state.results = config.results || [];
     state.criteria = config.criteria || [];
+    state.excluded = config.excluded || [];
+    state.message = config.message || "";
 
     initSidebar();
 
@@ -237,11 +420,17 @@
     const sorted = sortResults(state.results);
 
     if (sorted.length === 0) {
-      renderEmptyState();
+      if (state.excluded.length > 0) {
+        renderAllExcludedState(state.excluded, state.message);
+      } else {
+        renderEmptyState(state.message);
+        renderExcludedCandidates([]);
+      }
     } else {
-      renderSummary(sorted);
+      renderSummary(sorted, state.excluded);
       renderRanking(sorted);
       selectOption(sorted[0].id, state.results, state.criteria);
+      renderExcludedCandidates(state.excluded);
     }
 
     if (el.rankingList && !el.rankingList.dataset.bound) {
@@ -268,9 +457,11 @@
     sortResults,
     renderSummary,
     renderRanking,
-    renderCriteria,
+    renderCriteriaBars,
     renderReasonItems,
     renderExplanation,
+    renderExcludedCandidates,
+    renderAllExcludedState,
     renderEmptyState,
     selectOption,
     initSidebar,
