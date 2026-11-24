@@ -1,7 +1,5 @@
 """Decision Engine dùng chung cho Food và Travel."""
 
-from typing import Any
-
 from app.modules.decision.engine.calculator import (
     CriteriaScoresResult,
     FoodWSMResult,
@@ -20,6 +18,7 @@ from app.modules.decision.engine.filters import (
     inspect_candidate,
     passes_hard_constraints,
 )
+from app.modules.decision.engine.pipeline import evaluate, evaluate_decision
 from app.modules.decision.engine.ranking import rank_candidates
 from app.modules.decision.engine.scoring import (
     EQUAL_RANGE_SCORE,
@@ -59,11 +58,3 @@ __all__ = [
     "score_preference",
     "validate_weights",
 ]
-
-
-def __getattr__(name: str) -> Any:
-    if name in ("evaluate", "evaluate_decision"):
-        from app.modules.decision.engine import pipeline
-
-        return getattr(pipeline, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
