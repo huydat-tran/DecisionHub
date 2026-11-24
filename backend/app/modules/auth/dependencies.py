@@ -12,7 +12,13 @@ from app.modules.users.models import User
 from app.modules.users.repository import get_user_by_id
 
 # auto_error=False để tự trả về lỗi theo format chuẩn của dự án.
-bearer_scheme = HTTPBearer(auto_error=False, description="JWT access token")
+bearer_scheme = HTTPBearer(
+    auto_error=False,
+    description=(
+        "JWT access token. Nhấn **Authorize** trên Swagger UI và dán token "
+        "(lấy từ `POST /auth/login`) để gọi các API cần đăng nhập."
+    ),
+)
 
 UNAUTHORIZED_MESSAGE = "Không có quyền truy cập. Vui lòng đăng nhập."
 INVALID_TOKEN_MESSAGE = "Access token không hợp lệ hoặc đã hết hạn."

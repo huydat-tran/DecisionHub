@@ -33,6 +33,22 @@ class UpdateProfileRequest(BaseModel):
 class ProfileResponse(BaseModel):
     """Response hồ sơ cá nhân, theo format chung của dự án."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Lấy thông tin tài khoản thành công.",
+                "data": {
+                    "id": 1,
+                    "username": "nguyenvanan",
+                    "email": "nguyenvanan@example.com",
+                    "role": "USER",
+                    "created_at": "2026-11-24T10:30:00Z",
+                },
+            }
+        }
+    )
+
     success: bool = True
     message: str
     data: UserProfile
