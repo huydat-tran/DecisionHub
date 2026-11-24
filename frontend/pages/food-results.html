@@ -1,254 +1,538 @@
 <!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đề xuất món ăn (Food Recommendation) – DecisionHub</title>
-  <link rel="icon" href="../assets/images/logo.svg">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../css/variables.css">
-  <link rel="stylesheet" href="../css/common.css">
-  <link rel="stylesheet" href="../css/components.css">
-  <link rel="stylesheet" href="../css/results.css">
-</head>
-<body class="results-page">
-<div class="dh-app">
-  <!-- Sidebar điều hướng chuẩn -->
-  <aside class="dh-sidebar">
-    <a class="dh-brand" href="../demo-design-system.html">
-      <span class="dh-brand-mark">D</span>
-      <span class="dh-brand-name">DecisionHub</span>
-    </a>
-    <div class="dh-nav-label">Workspace</div>
-    <nav class="dh-nav" aria-label="Điều hướng chính">
-      <a class="dh-nav-link" href="../demo-design-system.html">
-        <span class="dh-nav-icon">⌂</span> Tổng quan
-      </a>
-      <a class="dh-nav-link" href="food.html">
-        <span class="dh-nav-icon">✦</span> Khám phá món ăn
-      </a>
-      <a class="dh-nav-link" href="travel.html">
-        <span class="dh-nav-icon">⌖</span> Khám phá du lịch
-      </a>
-      <a class="dh-nav-link active" href="food-results.html" aria-current="page">
-        <span class="dh-nav-icon">☰</span> Đề xuất món ăn
-      </a>
-      <a class="dh-nav-link" href="travel-results.html">
-        <span class="dh-nav-icon">✈</span> Đề xuất du lịch
-      </a>
-      <a class="dh-nav-link" href="history.html">
-        <span class="dh-nav-icon">◷</span> Lịch sử
-      </a>
-    </nav>
-    <div class="dh-nav-label">Tài liệu</div>
-    <nav class="dh-nav">
-      <a class="dh-nav-link" href="../docs/UI-GUIDELINES.md" target="_blank">
-        <span class="dh-nav-icon">📘</span> UI Guidelines
-      </a>
-    </nav>
-    <div class="dh-sidebar-bottom">
-      <div class="px-2 text-muted" style="font-size:12px;">DecisionHub v1.1 · Recommendation Module</div>
-    </div>
-  </aside>
-
-  <!-- Navbar chuẩn -->
-  <header class="dh-navbar">
-    <div class="dh-navbar-left">
-      <button class="dh-icon-button d-lg-none" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">☰</button>
-      <div class="dh-navbar-search">
-        <input class="dh-input" type="search" placeholder="Tìm kiếm nhanh..." aria-label="Tìm kiếm">
-      </div>
-    </div>
-    <div class="dh-navbar-right">
-      <a href="../demo-design-system.html" class="dh-btn dh-btn-sm dh-btn-outline" style="text-decoration:none;">⬅ Về Tổng quan</a>
-      <a href="profile.html" class="dh-user-chip d-none" data-user-chip>
-        <span class="dh-avatar" data-user-avatar>DH</span>
-        <span class="dh-user-name">
-          <strong class="d-block" style="font-size:13px" data-user-name>Thành viên</strong>
-          <small class="dh-muted" data-user-role>Thành viên</small>
-        </span>
-      </a>
-      <a href="signup.html" class="dh-btn dh-btn-sm dh-btn-primary" style="text-decoration:none;" data-login-btn>Đăng nhập</a>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="dh-main">
-    <div class="dh-page">
-      <div class="dh-page-heading">
-        <div>
-          <p class="dh-eyebrow">Decision Engine · Food Recommendation</p>
-          <h1 class="dh-page-title">Đề xuất món ăn</h1>
-          <p class="dh-page-description">Các phương án món ăn được xếp hạng theo mô hình WSM: điểm tổng = Σ (trọng số × điểm tiêu chí).</p>
-        </div>
-      </div>
-
-      <!-- Form gợi ý món ăn theo tiêu chí (Food Recommendation) -->
-      <section id="food-recommend-section" class="dh-card mb-4" aria-labelledby="food-recommend-title">
-        <div class="dh-card-header">
-          <div>
-            <h2 id="food-recommend-title" class="dh-section-title mb-0" style="font-size: 16px">
-              Gợi ý món ăn theo tiêu chí
-            </h2>
-            <small class="dh-muted">Nhập ngân sách tối đa, loại bữa ăn và nguyên liệu cần tránh</small>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Đề xuất món ăn (Food Recommendation) – DecisionHub</title>
+    <link rel="icon" href="../assets/images/logo.svg" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/variables.css" />
+    <link rel="stylesheet" href="../css/common.css" />
+    <link rel="stylesheet" href="../css/components.css" />
+    <link rel="stylesheet" href="../css/results.css" />
+  </head>
+  <body class="results-page">
+    <div class="dh-app">
+      <!-- Sidebar điều hướng chuẩn -->
+      <aside class="dh-sidebar">
+        <a class="dh-brand" href="../demo-design-system.html">
+          <span class="dh-brand-mark">D</span>
+          <span class="dh-brand-name">DecisionHub</span>
+        </a>
+        <div class="dh-nav-label">Workspace</div>
+        <nav class="dh-nav" aria-label="Điều hướng chính">
+          <a class="dh-nav-link" href="../demo-design-system.html">
+            <span class="dh-nav-icon">⌂</span> Tổng quan
+          </a>
+          <a class="dh-nav-link" href="food.html">
+            <span class="dh-nav-icon">✦</span> Khám phá món ăn
+          </a>
+          <a class="dh-nav-link" href="travel.html">
+            <span class="dh-nav-icon">⌖</span> Khám phá du lịch
+          </a>
+          <a
+            class="dh-nav-link active"
+            href="food-results.html"
+            aria-current="page"
+          >
+            <span class="dh-nav-icon">☰</span> Đề xuất món ăn
+          </a>
+          <a class="dh-nav-link" href="travel-results.html">
+            <span class="dh-nav-icon">✈</span> Đề xuất du lịch
+          </a>
+          <a class="dh-nav-link" href="history.html">
+            <span class="dh-nav-icon">◷</span> Lịch sử
+          </a>
+        </nav>
+        <div class="dh-nav-label">Tài liệu</div>
+        <nav class="dh-nav">
+          <a
+            class="dh-nav-link"
+            href="../docs/UI-GUIDELINES.md"
+            target="_blank"
+          >
+            <span class="dh-nav-icon">📘</span> UI Guidelines
+          </a>
+        </nav>
+        <div class="dh-sidebar-bottom">
+          <div class="px-2 text-muted" style="font-size: 12px">
+            DecisionHub v1.1 · Recommendation Module
           </div>
         </div>
-        <div class="dh-card-body">
-          <form id="food-recommend-form" novalidate>
-            <div class="row g-3">
-              <div class="col-12 col-md-4">
-                <div class="dh-field mb-0">
-                  <label class="dh-label" for="food-max-budget">
-                    Ngân sách tối đa (VNĐ) <span class="text-danger">*</span>
-                  </label>
-                  <input
-                    id="food-max-budget"
-                    name="max_budget"
-                    class="dh-input"
-                    type="number"
-                    min="1000"
-                    step="1000"
-                    inputmode="numeric"
-                    placeholder="VD: 50000"
-                    aria-describedby="food-max-budget-help food-max-budget-error"
-                    required
-                  />
-                  <span id="food-max-budget-help" class="dh-help">
-                    Số tiền lớn hơn 0 (đơn vị VNĐ).
-                  </span>
-                  <span id="food-max-budget-error" class="dh-error" role="alert"></span>
-                </div>
-              </div>
+      </aside>
 
-              <div class="col-12 col-md-4">
-                <div class="dh-field mb-0">
-                  <label class="dh-label" for="food-meal-type">
-                    Loại bữa ăn <span class="text-danger">*</span>
-                  </label>
-                  <select
-                    id="food-meal-type"
-                    name="meal_type"
-                    class="dh-select"
-                    aria-describedby="food-meal-type-error"
-                    required
-                  >
-                    <option value="">-- Chọn loại bữa ăn --</option>
-                    <option value="breakfast">Bữa sáng</option>
-                    <option value="lunch">Bữa trưa</option>
-                    <option value="dinner">Bữa tối</option>
-                    <option value="snack">Bữa phụ / Ăn vặt</option>
-                  </select>
-                  <span id="food-meal-type-error" class="dh-error" role="alert"></span>
-                </div>
-              </div>
-
-              <div class="col-12 col-md-4">
-                <div class="dh-field mb-0">
-                  <label class="dh-label" for="food-avoid-ingredients">
-                    Nguyên liệu cần tránh
-                  </label>
-                  <input
-                    id="food-avoid-ingredients"
-                    name="avoid_ingredients"
-                    class="dh-input"
-                    type="text"
-                    maxlength="200"
-                    placeholder="VD: hành, hải sản, đậu phộng"
-                    aria-describedby="food-avoid-ingredients-help food-avoid-ingredients-error"
-                  />
-                  <span id="food-avoid-ingredients-help" class="dh-help">
-                    Tùy chọn, phân tách nhiều nguyên liệu bằng dấu phẩy.
-                  </span>
-                  <span id="food-avoid-ingredients-error" class="dh-error" role="alert"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex flex-wrap gap-2 mt-3">
-              <button type="submit" class="dh-btn dh-btn-primary">
-                Gợi ý món ăn
-              </button>
-              <button type="reset" id="btn-food-recommend-reset" class="dh-btn dh-btn-outline">
-                Đặt lại form
-              </button>
-            </div>
-
-            <div
-              id="food-recommend-status"
-              class="food-form-status d-none mt-3"
-              role="status"
-              aria-live="polite"
-            ></div>
-          </form>
-        </div>
-      </section>
-
-      <!-- A. Khu vực thông tin kết quả -->
-      <section class="row g-3 mb-4" aria-label="Tổng quan kết quả">
-        <div class="col-12 col-md-4">
-          <div class="dh-card results-summary-card h-100">
-            <div class="dh-card-body">
-              <p class="results-summary-label">Tổng số phương án</p>
-              <p class="results-summary-value" id="results-total">–</p>
-            </div>
+      <!-- Navbar chuẩn -->
+      <header class="dh-navbar">
+        <div class="dh-navbar-left">
+          <button
+            class="dh-icon-button d-lg-none"
+            data-sidebar-toggle
+            aria-label="Mở menu"
+            aria-expanded="false"
+          >
+            ☰
+          </button>
+          <div class="dh-navbar-search">
+            <input
+              class="dh-input"
+              type="search"
+              placeholder="Tìm kiếm nhanh..."
+              aria-label="Tìm kiếm"
+            />
           </div>
         </div>
-        <div class="col-12 col-md-4">
-          <div class="dh-card results-summary-card h-100">
-            <div class="dh-card-body">
-              <p class="results-summary-label">Phương án điểm cao nhất</p>
-              <p class="results-summary-value" id="results-top-name">–</p>
-              <p class="results-summary-hint dh-muted dh-small" id="results-top-score"></p>
-            </div>
-          </div>
+        <div class="dh-navbar-right">
+          <a
+            href="../demo-design-system.html"
+            class="dh-btn dh-btn-sm dh-btn-outline"
+            style="text-decoration: none"
+            >⬅ Về Tổng quan</a
+          >
+          <a href="profile.html" class="dh-user-chip d-none" data-user-chip>
+            <span class="dh-avatar" data-user-avatar>DH</span>
+            <span class="dh-user-name">
+              <strong class="d-block" style="font-size: 13px" data-user-name
+                >Thành viên</strong
+              >
+              <small class="dh-muted" data-user-role>Thành viên</small>
+            </span>
+          </a>
+          <a
+            href="signup.html"
+            class="dh-btn dh-btn-sm dh-btn-primary"
+            style="text-decoration: none"
+            data-login-btn
+            >Đăng nhập</a
+          >
         </div>
-        <div class="col-12 col-md-4">
-          <div class="dh-card results-summary-card h-100">
-            <div class="dh-card-body">
-              <p class="results-summary-label">Trạng thái phân tích</p>
-              <p class="results-summary-value">
-                <span class="dh-status dh-status-success">✓ Đã hoàn thành</span>
+      </header>
+
+      <!-- Main Content -->
+      <main class="dh-main">
+        <div class="dh-page">
+          <div class="dh-page-heading">
+            <div>
+              <p class="dh-eyebrow">Decision Engine · Food Recommendation</p>
+              <h1 class="dh-page-title">Đề xuất món ăn</h1>
+              <p class="dh-page-description">
+                Các phương án món ăn được xếp hạng theo mô hình WSM: điểm tổng =
+                Σ (trọng số × điểm tiêu chí).
               </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      <div class="row g-4">
-        <!-- B. Danh sách xếp hạng -->
-        <div class="col-12 col-lg-5">
-          <section class="dh-card" aria-labelledby="results-ranking-title">
+          <!-- Form gợi ý món ăn theo tiêu chí (Food Recommendation) -->
+          <section
+            id="food-recommend-section"
+            class="dh-card mb-4"
+            aria-labelledby="food-recommend-title"
+          >
             <div class="dh-card-header">
-              <h2 class="dh-section-title" id="results-ranking-title">Bảng xếp hạng</h2>
-              <span class="dh-muted dh-small">Chọn một phương án để xem giải thích</span>
+              <div>
+                <h2
+                  id="food-recommend-title"
+                  class="dh-section-title mb-0"
+                  style="font-size: 16px"
+                >
+                  Gợi ý món ăn theo tiêu chí
+                </h2>
+                <small class="dh-muted"
+                  >Nhập ngân sách tối đa và các điều kiện tùy chọn (bữa ăn, thời
+                  gian chuẩn bị, nguyên liệu tránh, khẩu vị ưu tiên)</small
+                >
+              </div>
             </div>
             <div class="dh-card-body">
-              <ul class="results-rank-list" id="results-ranking-list"></ul>
-            </div>
-          </section>
-        </div>
+              <form id="food-recommend-form" novalidate>
+                <div class="row g-3">
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-max-budget">
+                        Ngân sách tối đa (VNĐ)
+                        <span class="text-danger">*</span>
+                      </label>
+                      <input
+                        id="food-max-budget"
+                        name="budget_max"
+                        class="dh-input"
+                        type="number"
+                        min="1000"
+                        step="1000"
+                        inputmode="numeric"
+                        placeholder="VD: 50000"
+                        aria-describedby="food-max-budget-help food-max-budget-error"
+                        required
+                      />
+                      <span id="food-max-budget-help" class="dh-help">
+                        Số tiền lớn hơn 0 (đơn vị VNĐ).
+                      </span>
+                      <span
+                        id="food-max-budget-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
 
-        <!-- C. Khung giải thích -->
-        <div class="col-12 col-lg-7">
-          <section class="dh-card results-explain-card" id="results-explanation" aria-labelledby="results-explanation-title" aria-live="polite">
-            <div class="dh-card-header">
-              <h2 class="dh-section-title" id="results-explanation-title">Giải thích kết quả</h2>
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-meal-type">
+                        Loại bữa ăn
+                      </label>
+                      <select
+                        id="food-meal-type"
+                        name="meal_type"
+                        class="dh-select"
+                        aria-describedby="food-meal-type-help food-meal-type-error"
+                      >
+                        <option value="">-- Tất cả loại bữa ăn --</option>
+                        <option value="breakfast">Bữa sáng</option>
+                        <option value="lunch">Bữa trưa</option>
+                        <option value="dinner">Bữa tối</option>
+                        <option value="snack">Bữa phụ / Ăn vặt</option>
+                      </select>
+                      <span id="food-meal-type-help" class="dh-help">
+                        Tùy chọn, để trống nếu không lọc theo bữa.
+                      </span>
+                      <span
+                        id="food-meal-type-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-4">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-max-prep-time">
+                        Thời gian chuẩn bị tối đa (phút)
+                      </label>
+                      <input
+                        id="food-max-prep-time"
+                        name="max_prep_time"
+                        class="dh-input"
+                        type="number"
+                        min="1"
+                        max="1440"
+                        step="1"
+                        inputmode="numeric"
+                        placeholder="VD: 30"
+                        aria-describedby="food-max-prep-time-help food-max-prep-time-error"
+                      />
+                      <span id="food-max-prep-time-help" class="dh-help">
+                        Tùy chọn, số nguyên dương (phút). Để trống nếu không
+                        giới hạn.
+                      </span>
+                      <span
+                        id="food-max-prep-time-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                  <div class="col-12 col-md-5">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-avoid-ingredients">
+                        Nguyên liệu cần tránh
+                      </label>
+                      <input
+                        id="food-avoid-ingredients"
+                        name="excluded_ingredients"
+                        class="dh-input"
+                        type="text"
+                        maxlength="200"
+                        placeholder="VD: hành, hải sản, đậu phộng"
+                        aria-describedby="food-avoid-ingredients-help food-avoid-ingredients-error"
+                      />
+                      <span id="food-avoid-ingredients-help" class="dh-help">
+                        Tùy chọn, phân tách nhiều nguyên liệu bằng dấu phẩy.
+                      </span>
+                      <span
+                        id="food-avoid-ingredients-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-5">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-preferred-tags">
+                        Khẩu vị / nhãn ưu tiên
+                      </label>
+                      <input
+                        id="food-preferred-tags"
+                        name="preferred_tags"
+                        class="dh-input"
+                        type="text"
+                        maxlength="200"
+                        placeholder="VD: chay, cay, nhanh"
+                        aria-describedby="food-preferred-tags-help food-preferred-tags-error"
+                      />
+                      <div
+                        id="food-preferred-tag-chips"
+                        class="dh-chip-group mt-2 mb-0"
+                        role="group"
+                        aria-label="Gợi ý khẩu vị ưu tiên"
+                      >
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="chay"
+                          aria-pressed="false"
+                        >
+                          Chay
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="cay"
+                          aria-pressed="false"
+                        >
+                          Cay
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="nhanh"
+                          aria-pressed="false"
+                        >
+                          Nhanh
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="nước"
+                          aria-pressed="false"
+                        >
+                          Món nước
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="đậm đà"
+                          aria-pressed="false"
+                        >
+                          Đậm đà
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="thanh đạm"
+                          aria-pressed="false"
+                        >
+                          Thanh đạm
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="truyền thống"
+                          aria-pressed="false"
+                        >
+                          Truyền thống
+                        </button>
+                        <button
+                          type="button"
+                          class="dh-chip"
+                          data-tag="hải sản"
+                          aria-pressed="false"
+                        >
+                          Hải sản
+                        </button>
+                      </div>
+                      <span id="food-preferred-tags-help" class="dh-help">
+                        Tùy chọn, chọn nhanh hoặc nhập nhiều nhãn phân tách bằng
+                        dấu phẩy.
+                      </span>
+                      <span
+                        id="food-preferred-tags-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-2">
+                    <div class="dh-field mb-0">
+                      <label class="dh-label" for="food-limit">
+                        Số món gợi ý
+                      </label>
+                      <input
+                        id="food-limit"
+                        name="limit"
+                        class="dh-input"
+                        type="number"
+                        min="1"
+                        max="20"
+                        step="1"
+                        value="5"
+                        inputmode="numeric"
+                        aria-describedby="food-limit-help food-limit-error"
+                      />
+                      <span id="food-limit-help" class="dh-help">
+                        Từ 1 đến 20 (mặc định 5).
+                      </span>
+                      <span
+                        id="food-limit-error"
+                        class="dh-error"
+                        role="alert"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button type="submit" class="dh-btn dh-btn-primary">
+                    Gợi ý món ăn
+                  </button>
+                  <button
+                    type="reset"
+                    id="btn-food-recommend-reset"
+                    class="dh-btn dh-btn-outline"
+                  >
+                    Đặt lại form
+                  </button>
+                </div>
+
+                <div
+                  id="food-recommend-status"
+                  class="food-form-status d-none mt-3"
+                  role="status"
+                  aria-live="polite"
+                ></div>
+              </form>
             </div>
-            <div class="dh-card-body" id="results-explanation-body"></div>
+          </section>
+
+          <!-- A. Khu vực thông tin kết quả -->
+          <section class="row g-3 mb-4" aria-label="Tổng quan kết quả">
+            <div class="col-12 col-md-4">
+              <div class="dh-card results-summary-card h-100">
+                <div class="dh-card-body">
+                  <p class="results-summary-label">Tổng phương án hợp lệ</p>
+                  <p class="results-summary-value" id="results-total">–</p>
+                  <p
+                    class="results-summary-hint dh-muted dh-small"
+                    id="results-valid-hint"
+                  >
+                    Được chấm điểm WSM
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="dh-card results-summary-card h-100">
+                <div class="dh-card-body">
+                  <p class="results-summary-label">Phương án điểm cao nhất</p>
+                  <p class="results-summary-value" id="results-top-name">–</p>
+                  <p
+                    class="results-summary-hint dh-muted dh-small"
+                    id="results-top-score"
+                  ></p>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="dh-card results-summary-card h-100">
+                <div class="dh-card-body">
+                  <p class="results-summary-label">Phương án bị loại</p>
+                  <p class="results-summary-value" id="results-excluded-count">
+                    0
+                  </p>
+                  <p
+                    class="results-summary-hint dh-muted dh-small"
+                    id="results-excluded-hint"
+                  >
+                    Không đạt điều kiện bắt buộc
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="row g-4">
+            <!-- B. Danh sách xếp hạng -->
+            <div class="col-12 col-lg-5">
+              <section class="dh-card" aria-labelledby="results-ranking-title">
+                <div class="dh-card-header">
+                  <h2 class="dh-section-title" id="results-ranking-title">
+                    Bảng xếp hạng
+                  </h2>
+                  <span class="dh-muted dh-small"
+                    >Chọn một phương án để xem giải thích</span
+                  >
+                </div>
+                <div class="dh-card-body">
+                  <ul class="results-rank-list" id="results-ranking-list"></ul>
+                </div>
+              </section>
+            </div>
+
+            <!-- C. Khung giải thích -->
+            <div class="col-12 col-lg-7">
+              <section
+                class="dh-card results-explain-card"
+                id="results-explanation"
+                aria-labelledby="results-explanation-title"
+                aria-live="polite"
+              >
+                <div class="dh-card-header">
+                  <h2 class="dh-section-title" id="results-explanation-title">
+                    Giải thích kết quả
+                  </h2>
+                </div>
+                <div class="dh-card-body" id="results-explanation-body"></div>
+              </section>
+            </div>
+          </div>
+
+          <!-- D. Danh sách phương án bị loại (Excluded Candidates) -->
+          <section
+            id="results-excluded-section"
+            class="dh-card mt-4"
+            aria-labelledby="results-excluded-title"
+          >
+            <div
+              class="dh-card-header d-flex flex-wrap align-items-center justify-content-between gap-2"
+            >
+              <div>
+                <h2 class="dh-section-title mb-0" id="results-excluded-title">
+                  Phương án không đủ điều kiện (Bị loại)
+                </h2>
+                <small class="dh-muted"
+                  >Các phương án vi phạm điều kiện bắt buộc trước khi chấm điểm
+                  WSM</small
+                >
+              </div>
+              <span
+                id="results-excluded-badge"
+                class="dh-status dh-status-danger"
+                >0 phương án</span
+              >
+            </div>
+            <div class="dh-card-body" id="results-excluded-body">
+              <div class="p-3 text-center text-muted dh-small">
+                Đang tải danh sách phương án bị loại...
+              </div>
+            </div>
           </section>
         </div>
-      </div>
+      </main>
     </div>
-  </main>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
-<script src="../js/config.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/navbar-auth.js"></script>
-<script src="../js/pages/result-common.js"></script>
-<script src="../js/pages/food-recommend.js"></script>
-<script src="../js/pages/food-result.js"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/navbar-auth.js"></script>
+    <script src="../js/pages/result-common.js"></script>
+    <script src="../js/pages/food-result.js"></script>
+    <script src="../js/pages/food-recommend.js"></script>
+  </body>
 </html>

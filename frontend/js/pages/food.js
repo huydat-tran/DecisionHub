@@ -15,12 +15,7 @@ const MEAL_LABELS = {
 };
 
 const gridEl = document.getElementById("food-results-grid");
-const loadingEl = document.getElementById("food-loading");
 const emptyEl = document.getElementById("food-empty");
-const errorEl = document.getElementById("food-error");
-const errorTextEl = document.getElementById("food-error-text");
-const btnEmptyResetEl = document.getElementById("btn-food-empty-reset");
-const btnRetryEl = document.getElementById("btn-food-retry");
 const countEl = document.getElementById("food-results-count");
 const paginationEl = document.getElementById("food-pagination");
 const detailOverlayEl = document.getElementById("detall_food");
@@ -28,30 +23,6 @@ const btnCloseDetailEl = document.getElementById("btnCloseDetail");
 
 let allFoods = [];
 let currentPage = 1;
-
-function setListState(state, message = "") {
-  if (loadingEl) loadingEl.classList.toggle("d-none", state !== "loading");
-  if (emptyEl) emptyEl.classList.toggle("d-none", state !== "empty");
-  if (errorEl) errorEl.classList.toggle("d-none", state !== "error");
-  if (gridEl) gridEl.classList.toggle("d-none", state !== "ready");
-  if (paginationEl) paginationEl.classList.toggle("d-none", state !== "ready");
-
-  if (state === "loading") {
-    if (countEl) countEl.textContent = "Đang tải danh sách món ăn...";
-  } else if (state === "empty") {
-    if (gridEl) gridEl.innerHTML = "";
-    if (paginationEl) paginationEl.innerHTML = "";
-    if (countEl) countEl.textContent = "Hiển thị 0 món ăn";
-  } else if (state === "error") {
-    if (gridEl) gridEl.innerHTML = "";
-    if (paginationEl) paginationEl.innerHTML = "";
-    if (errorTextEl) {
-      errorTextEl.textContent =
-        message || "Không tải được danh sách món ăn. Vui lòng thử lại.";
-    }
-    if (countEl) countEl.textContent = "Không tải được danh sách món ăn.";
-  }
-}
 
 function renderFoodCards(foods) {
   if (!gridEl) return;
@@ -108,9 +79,17 @@ function renderPage(page) {
   if (!gridEl) return;
 
   if (!allFoods.length) {
-    setListState("empty");
+    gridEl.innerHTML = "";
+    if (emptyEl) emptyEl.classList.remove("d-none");
+    if (paginationEl) {
+      paginationEl.innerHTML = "";
+      paginationEl.classList.add("d-none");
+    }
+    if (countEl) countEl.textContent = "Hiển thị 0 phương án phù hợp";
     return;
   }
+
+  if (emptyEl) emptyEl.classList.add("d-none");
 
   const totalPages = Math.ceil(allFoods.length / FOODS_PER_PAGE);
   currentPage = Math.min(Math.max(1, page), totalPages);
@@ -124,7 +103,6 @@ function renderPage(page) {
   }
 
   renderPagination(totalPages);
-  setListState("ready");
 }
 
 function renderFoodDetail(food) {
@@ -262,29 +240,21 @@ if (paginationEl) {
 async function loadAllFoods() {
   if (!gridEl) return;
 
-  setListState("loading");
   try {
     const response = await api.get("/api/v1/food");
     allFoods = Array.isArray(response.data) ? response.data : [];
     renderPage(1);
   } catch (error) {
-    const errorMessage =
-      error && error.message
-        ? error.message
-        : "Không tải được danh sách món ăn. Vui lòng thử lại.";
-    setListState("error", errorMessage);
+    if (countEl) {
+      countEl.textContent = error.message || "Không tải được danh sách món ăn.";
+    }
     if (typeof showToast === "function") {
-      showToast(errorMessage, "error");
+      showToast(
+        error.message || "Không tải được chi tiết danh sách món ăn.",
+        "error",
+      );
     }
   }
-}
-
-if (btnRetryEl) {
-  btnRetryEl.addEventListener("click", loadAllFoods);
-}
-
-if (btnEmptyResetEl) {
-  btnEmptyResetEl.addEventListener("click", loadAllFoods);
 }
 
 // ---------- Menu mobile ----------

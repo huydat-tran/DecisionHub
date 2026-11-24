@@ -2,53 +2,11 @@
    CSS riêng cho phân hệ Food (WhatShouldIEat)
    ========================================================== */
 
-.food-page .food-loading,
 .food-page #food-results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 20px;
   margin: 0;
-}
-
-.food-page .food-skeleton-card {
-  background-color: var(--dh-surface);
-  border: 1px solid var(--dh-border);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.food-page .food-skeleton-img {
-  width: 100%;
-  height: 150px;
-  border-radius: 0;
-}
-
-.food-page .food-skeleton-body {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.food-page .food-skeleton-title {
-  height: 20px;
-  width: 72%;
-}
-
-.food-page .food-skeleton-line {
-  height: 14px;
-  width: 100%;
-}
-
-.food-page .food-skeleton-line.short {
-  width: 60%;
-}
-
-.food-page .food-skeleton-btn {
-  height: 32px;
-  width: 100%;
-  margin-top: 6px;
-  border-radius: 20px;
 }
 
 .food-page #food-results-grid > .card {
@@ -295,7 +253,6 @@
 }
 
 @media (max-width: 767.98px) {
-  .food-page .food-loading,
   .food-page #food-results-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 14px;
@@ -315,7 +272,6 @@
 }
 
 @media (max-width: 479.98px) {
-  .food-page .food-loading,
   .food-page #food-results-grid {
     grid-template-columns: 1fr;
   }

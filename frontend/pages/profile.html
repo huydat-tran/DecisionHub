@@ -75,15 +75,17 @@
   <!-- Main Content -->
   <main class="dh-main">
     <div class="dh-page">
+      <!-- 1. Page Header: chỉ giữ nút Chỉnh sửa hồ sơ -->
       <div class="dh-page-heading">
         <div>
           <p class="dh-eyebrow">Phân hệ P1 · Users</p>
           <h1 class="dh-page-title">Hồ sơ cá nhân</h1>
-          <p class="dh-page-description">Thông tin tài khoản DecisionHub của bạn và các tuỳ chỉnh hiện có.</p>
+          <p class="dh-page-description">Quản lý thông tin định danh và trạng thái tài khoản DecisionHub của bạn.</p>
         </div>
         <div class="d-flex gap-2">
-          <button class="dh-btn dh-btn-sm dh-btn-outline" id="btn-profile-refresh">↻ Tải lại</button>
-          <button class="dh-btn dh-btn-sm dh-btn-primary d-none" id="btn-profile-edit">Chỉnh sửa hồ sơ</button>
+          <button type="button" class="dh-btn dh-btn-sm dh-btn-primary profile-edit-trigger d-none" id="btn-profile-edit">
+            ✎ Chỉnh sửa hồ sơ
+          </button>
         </div>
       </div>
 
@@ -103,52 +105,98 @@
           <div class="dh-empty-icon">⚠️</div>
           <div class="dh-empty-title">Không tải được hồ sơ</div>
           <p class="dh-empty-desc" id="profile-error-text">Đã xảy ra lỗi. Vui lòng thử lại.</p>
-          <button class="dh-btn dh-btn-outline" id="btn-profile-retry">Thử lại</button>
+          <button type="button" class="dh-btn dh-btn-outline" id="btn-profile-retry">Thử lại</button>
         </div>
       </section>
 
       <!-- Nội dung hồ sơ -->
-      <div id="profile-content" class="d-none">
+      <div id="profile-content" class="profile-layout d-none">
 
-        <!-- Profile Hero: nơi dồn toàn bộ điểm nhấn thị giác của trang -->
-        <section class="profile-hero" aria-labelledby="profile-hero-name">
-          <div class="profile-hero-grid" aria-hidden="true"></div>
-          <div class="profile-hero-glow" aria-hidden="true"></div>
+        <!-- 2. Banner & Overlapping Avatar Card -->
+        <section class="profile-header-card" aria-labelledby="profile-hero-name">
+          <div class="profile-banner" aria-hidden="true">
+            <div class="profile-banner-mesh"></div>
+            <div class="profile-banner-dots"></div>
+          </div>
 
-          <div class="profile-hero-main">
-            <div class="profile-monogram" id="profile-monogram" aria-hidden="true">DH</div>
-            <div class="profile-hero-text">
-              <p class="profile-hero-label">Hồ sơ cá nhân</p>
-              <h2 class="profile-hero-name" id="profile-hero-name">Thành viên</h2>
-              <p class="profile-hero-email" id="profile-hero-email">—</p>
-              <div class="profile-hero-tags">
-                <span class="profile-hero-tag" id="profile-hero-role">Vai trò: —</span>
-                <span class="profile-hero-tag" id="profile-hero-created">Thành viên từ —</span>
+          <div class="profile-identity-bar">
+            <div class="profile-avatar-wrap">
+              <div class="profile-monogram" id="profile-monogram" aria-hidden="true">DH</div>
+            </div>
+
+            <div class="profile-identity-main">
+              <div class="profile-identity-top">
+                <h2 class="profile-hero-name" id="profile-hero-name">Thành viên</h2>
+                <div class="profile-badges">
+                  <span class="profile-badge profile-badge-role" id="profile-hero-role">—</span>
+                  <span class="profile-badge profile-badge-verified">✓ Đã xác thực</span>
+                </div>
+              </div>
+
+              <div class="profile-identity-sub">
+                <span class="profile-hero-email" id="profile-hero-email">—</span>
+                <button
+                  type="button"
+                  class="profile-copy-btn"
+                  id="btn-copy-email"
+                  aria-label="Sao chép email đăng nhập"
+                  title="Sao chép email"
+                >
+                  Sao chép
+                </button>
               </div>
             </div>
           </div>
-
-          <!-- Thanh thao tác: chỉ hiện khi vào chế độ chỉnh sửa -->
-          <div class="profile-hero-actions d-none" id="profile-edit-bar">
-            <span class="profile-edit-hint" id="profile-edit-hint">Chỉ tên người dùng có thể thay đổi.</span>
-            <button class="dh-btn dh-btn-sm dh-btn-secondary" id="btn-profile-cancel">Hủy</button>
-            <button class="dh-btn dh-btn-sm dh-btn-primary" id="btn-profile-save">Lưu thay đổi</button>
-          </div>
         </section>
 
-        <!-- Sheet: một bề mặt duy nhất, chia bằng đường kẻ mảnh -->
-        <section class="profile-sheet">
-          <div class="profile-sheet-grid">
+        <!-- 3. Hàng 4 Mini Stat Cards -->
+        <section class="profile-stats-grid" aria-label="Tổng quan tài khoản">
+          <article class="profile-stat-card">
+            <div class="profile-stat-icon stat-icon-blue" aria-hidden="true">#</div>
+            <div class="profile-stat-body">
+              <span class="profile-stat-label">Mã tài khoản</span>
+              <strong class="profile-stat-value profile-value-mono" id="profile-id-text">—</strong>
+            </div>
+          </article>
 
-            <!-- Thông tin cá nhân -->
-            <div class="profile-column">
-              <h3 class="profile-section-title">Thông tin cá nhân</h3>
-              <p class="profile-section-desc">Thông tin hiển thị cùng tài khoản của bạn.</p>
+          <article class="profile-stat-card">
+            <div class="profile-stat-icon stat-icon-emerald" aria-hidden="true">📅</div>
+            <div class="profile-stat-body">
+              <span class="profile-stat-label">Ngày tham gia</span>
+              <strong class="profile-stat-value" id="profile-created-text">—</strong>
+            </div>
+          </article>
 
+          <article class="profile-stat-card">
+            <div class="profile-stat-icon stat-icon-indigo" aria-hidden="true">🛡️</div>
+            <div class="profile-stat-body">
+              <span class="profile-stat-label">Vai trò hệ thống</span>
+              <strong class="profile-stat-value" id="profile-role-text">—</strong>
+            </div>
+          </article>
+
+          <article class="profile-stat-card">
+            <div class="profile-stat-icon stat-icon-teal" aria-hidden="true">✓</div>
+            <div class="profile-stat-body">
+              <span class="profile-stat-label">Trạng thái xác thực</span>
+              <strong class="profile-stat-value profile-stat-ok">Đã xác thực</strong>
+            </div>
+          </article>
+        </section>
+
+        <!-- 4. Khu vực thông tin chi tiết – 2 cột -->
+        <section class="profile-details-grid" aria-label="Chi tiết hồ sơ">
+
+          <!-- Cột trái: Thông tin định danh -->
+          <article class="profile-detail-card">
+            <div class="profile-card-head">
+              <h3 class="profile-section-title">Thông tin định danh</h3>
+            </div>
+
+            <div class="profile-rows">
               <div class="profile-row">
                 <div class="profile-row-label">
-                  <span class="profile-row-name">Tên người dùng</span>
-                  <span class="profile-row-note">Dùng để nhận diện trong DecisionHub</span>
+                  <span class="profile-row-name">Tên hiển thị</span>
                 </div>
                 <div class="profile-row-value">
                   <span class="profile-value-text" id="profile-username-text">—</span>
@@ -163,59 +211,49 @@
 
               <div class="profile-row">
                 <div class="profile-row-label">
-                  <span class="profile-row-name">Email</span>
-                  <span class="profile-row-note">Dùng để đăng nhập</span>
+                  <span class="profile-row-name">Email đăng nhập</span>
                 </div>
                 <div class="profile-row-value">
                   <span class="profile-value-text" id="profile-email-text">—</span>
-                  <span class="profile-locked">Đang khóa</span>
                 </div>
               </div>
             </div>
 
-            <!-- Thông tin tài khoản -->
-            <div class="profile-column">
-              <h3 class="profile-section-title">Thông tin tài khoản</h3>
-              <p class="profile-section-desc">Các thông tin hệ thống quản lý, không thể sửa tại đây.</p>
-
-              <div class="profile-row">
-                <div class="profile-row-label">
-                  <span class="profile-row-name">Mã tài khoản</span>
-                </div>
-                <div class="profile-row-value">
-                  <span class="profile-value-text profile-value-mono" id="profile-id-text">—</span>
-                </div>
-              </div>
-
-              <div class="profile-row">
-                <div class="profile-row-label">
-                  <span class="profile-row-name">Vai trò</span>
-                </div>
-                <div class="profile-row-value">
-                  <span class="profile-value-text" id="profile-role-text">—</span>
-                </div>
-              </div>
-
-              <div class="profile-row">
-                <div class="profile-row-label">
-                  <span class="profile-row-name">Ngày tham gia</span>
-                </div>
-                <div class="profile-row-value">
-                  <span class="profile-value-text" id="profile-created-text">—</span>
-                </div>
-              </div>
-
-              <div class="profile-row">
-                <div class="profile-row-label">
-                  <span class="profile-row-name">Trạng thái</span>
-                </div>
-                <div class="profile-row-value">
-                  <span class="dh-status dh-status-success">Đã xác thực</span>
-                </div>
+            <!-- Thanh thao tác: chỉ hiện khi vào chế độ chỉnh sửa -->
+            <div class="profile-edit-actions d-none" id="profile-edit-bar">
+              <span class="profile-edit-hint" id="profile-edit-hint">Chỉ tên người dùng có thể thay đổi.</span>
+              <div class="profile-edit-buttons">
+                <button type="button" class="dh-btn dh-btn-sm dh-btn-secondary" id="btn-profile-cancel">Hủy</button>
+                <button type="button" class="dh-btn dh-btn-sm dh-btn-primary" id="btn-profile-save">Lưu thay đổi</button>
               </div>
             </div>
+          </article>
 
-          </div>
+          <!-- Cột phải: Tình trạng tài khoản và xác thực -->
+          <article class="profile-detail-card">
+            <div class="profile-card-head">
+              <h3 class="profile-section-title">Tình trạng tài khoản và xác thực</h3>
+            </div>
+
+            <ul class="profile-checklist">
+              <li class="profile-check-item">
+                <div class="profile-check-left">
+                  <span class="profile-check-icon" aria-hidden="true">✓</span>
+                  <span class="profile-check-label">Xác minh tài khoản</span>
+                </div>
+                <span class="profile-badge profile-badge-verified">Đã xác thực</span>
+              </li>
+
+              <li class="profile-check-item">
+                <div class="profile-check-left">
+                  <span class="profile-check-icon" aria-hidden="true">✓</span>
+                  <span class="profile-check-label">Trạng thái tài khoản</span>
+                </div>
+                <span class="profile-badge profile-badge-active">Đang hoạt động</span>
+              </li>
+            </ul>
+          </article>
+
         </section>
       </div>
     </div>
