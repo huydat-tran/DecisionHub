@@ -416,7 +416,9 @@
   }
 
   // ---------- HÀM THỰC THI GỢI Ý MÓN ĂN CHÍNH ----------
-  async function executeRecommendation(payload) {
+  async function executeRecommendation(payload, options = { saveHistory: true }) {
+    const shouldSaveHistory = options && options.saveHistory !== false;
+    const reqOptions = { authMode: shouldSaveHistory ? "optional" : "none" };
     setLoading(true);
     clearStatus();
 
@@ -434,12 +436,7 @@
     // 1. Thử gọi API Backend trước nếu có server chạy
     if (typeof api !== "undefined" && typeof api.post === "function") {
       try {
-        let res;
-        try {
-          res = await api.post("/api/v1/decisions/recommend", payload);
-        } catch {
-          res = await api.post("/api/v1/decisions/food/recommend", payload);
-        }
+        const res = await api.post("/decisions/food/recommend", payload, reqOptions);
 
         const data = res && res.data ? res.data : res;
         if (data) {
@@ -746,14 +743,19 @@
     });
     const limitCheck = validateLimit();
 
-    executeRecommendation({
-      budget_max: budgetCheck.valid ? budgetCheck.value : 50000,
-      meal_type: mealCheck.valid ? mealCheck.value : null,
-      max_prep_time: prepTimeCheck.valid ? prepTimeCheck.value : null,
-      excluded_ingredients: avoidCheck.valid ? avoidCheck.value : [],
-      preferred_tags: tagsCheck.valid ? tagsCheck.value : [],
-      limit: limitCheck.valid ? limitCheck.value : DEFAULT_LIMIT,
-    });
+    const hasQueryParams = Array.from(params.keys()).length > 0;
+
+    executeRecommendation(
+      {
+        budget_max: budgetCheck.valid ? budgetCheck.value : 50000,
+        meal_type: mealCheck.valid ? mealCheck.value : null,
+        max_prep_time: prepTimeCheck.valid ? prepTimeCheck.value : null,
+        excluded_ingredients: avoidCheck.valid ? avoidCheck.value : [],
+        preferred_tags: tagsCheck.valid ? tagsCheck.value : [],
+        limit: limitCheck.valid ? limitCheck.value : DEFAULT_LIMIT,
+      },
+      { saveHistory: hasQueryParams },
+    );
   }
 
   if (document.readyState === "loading") {
