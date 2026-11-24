@@ -144,9 +144,42 @@ DEFAULT_FOOD_CRITERIA: list[dict[str, Any]] = [
 
 def build_mock_response(payload: DecisionRecommendRequest) -> DecisionResponse:
     """Tạo response sử dụng Decision Engine trên dữ liệu ứng viên mẫu."""
+    if payload.weights is not None:
+        criteria = [
+            {
+                "domain": "food",
+                "name": "Giá",
+                "direction": "min",
+                "weight": payload.weights.price,
+            },
+            {
+                "domain": "food",
+                "name": "Mức phù hợp nhu cầu/khẩu vị",
+                "direction": "max",
+                "weight": payload.weights.preference,
+            },
+            {
+                "domain": "food",
+                "name": "Thời gian chuẩn bị",
+                "direction": "min",
+                "weight": payload.weights.prep_time,
+            },
+        ]
+        scoring = ScoringResponse(
+            method="WSM",
+            weights=ScoringWeights(
+                price=payload.weights.price,
+                preference=payload.weights.preference,
+                prep_time=payload.weights.prep_time,
+            ),
+        )
+    else:
+        criteria = DEFAULT_FOOD_CRITERIA
+        scoring = ScoringResponse()
+
     eval_result = evaluate_decision(
         candidates=RAW_MOCK_CANDIDATES,
-        criteria=DEFAULT_FOOD_CRITERIA,
+        criteria=criteria,
         domain="food",
         user_preferences=payload.preferred_tags,
         budget_max=payload.budget_max,
@@ -222,4 +255,5 @@ def build_mock_response(payload: DecisionRecommendRequest) -> DecisionResponse:
             excluded_ingredients=payload.excluded_ingredients,
             preferred_tags=payload.preferred_tags,
         ),
+        scoring=scoring,
     )
