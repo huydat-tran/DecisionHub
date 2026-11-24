@@ -220,6 +220,25 @@
   color: #172b23;
 }
 
+.food-page .detail-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.food-page .detail-tag-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background-color: #e8f5ef;
+  border: 1px solid #bfe3d2;
+  color: #16845b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 .food-page .food-pagination {
   display: flex;
   flex-wrap: wrap;

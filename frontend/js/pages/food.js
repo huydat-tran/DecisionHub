@@ -116,6 +116,8 @@ function renderFoodDetail(food) {
   const descEl = document.getElementById("detailFoodDesc");
   const ingTitleEl = document.getElementById("detailIngredientTitle");
   const ingListEl = document.getElementById("ingredientList");
+  const tagTitleEl = document.getElementById("detailTagTitle");
+  const tagListEl = document.getElementById("detailTagList");
 
   if (imgEl) {
     imgEl.src = food.image_url || DEFAULT_FOOD_IMAGE;
@@ -159,6 +161,18 @@ function renderFoodDetail(food) {
           )
           .join("")
       : `<li class="ingredient-item"><span class="ingredient-name">Chưa có thông tin nguyên liệu</span></li>`;
+  }
+
+  const tags = Array.isArray(food.tags) ? food.tags : [];
+  if (tagTitleEl) {
+    tagTitleEl.textContent = `Nhãn món ăn (${tags.length})`;
+  }
+  if (tagListEl) {
+    tagListEl.innerHTML = tags.length
+      ? tags
+          .map((tag) => `<li class="detail-tag-item">#${escapeHtml(tag)}</li>`)
+          .join("")
+      : `<li class="detail-tag-item">Chưa có nhãn</li>`;
   }
 
   detailOverlayEl.classList.add("active");
