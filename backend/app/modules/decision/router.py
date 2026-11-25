@@ -21,6 +21,11 @@ from app.modules.decision.service import (
     list_user_decision_history,
     recommend_food_decisions,
 )
+from app.modules.travel.schemas import (
+    TravelRecommendRequest,
+    TravelRecommendResponse,
+)
+from app.modules.travel.services import recommend_travel
 from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -88,6 +93,25 @@ def recommend_decisions(
             exc,
         )
         return build_mock_response(payload)
+
+
+@router.post(
+    "/api/v1/decisions/travel/recommend",
+    response_model=TravelRecommendResponse,
+    summary="Gợi ý địa điểm du lịch theo tiêu chí WSM (Decision Engine)",
+)
+@router.post(
+    "/decisions/travel/recommend",
+    response_model=TravelRecommendResponse,
+    summary="Gợi ý địa điểm du lịch theo tiêu chí WSM (Decision Engine)",
+)
+def recommend_travel_decisions(
+    payload: TravelRecommendRequest,
+    db: Session = Depends(get_db),  # noqa: B008
+) -> TravelRecommendResponse:
+    """Đánh giá và gợi ý địa điểm du lịch theo WSM qua Decision Engine."""
+    data, message = recommend_travel(db=db, payload=payload)
+    return TravelRecommendResponse(success=True, message=message, data=data)
 
 
 @router.get(
