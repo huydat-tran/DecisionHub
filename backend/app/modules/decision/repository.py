@@ -25,7 +25,11 @@ _FALLBACK_WEIGHTS: dict[str, dict[str, float]] = {
         "preference": 0.35,
         "prep_time": 0.25,
     },
-    # "travel": {"estimated_cost": 0.40, "estimated_duration": 0.30, "activities": 0.30},
+    "travel": {
+        "estimated_cost": 0.40,
+        "estimated_duration": 0.30,
+        "activities": 0.30,
+    },
 }
 
 
@@ -145,6 +149,27 @@ def get_criteria_by_domain(db: Session, domain: str) -> list[DecisionCriterion]:
                     name="Thời gian chuẩn bị",
                     direction="min",
                     weight=Decimal("0.2500"),
+                ),
+            ]
+        if domain == "travel":
+            return [
+                DecisionCriterion(
+                    domain="travel",
+                    name="cost",
+                    direction="min",
+                    weight=Decimal("0.4000"),
+                ),
+                DecisionCriterion(
+                    domain="travel",
+                    name="duration",
+                    direction="min",
+                    weight=Decimal("0.3000"),
+                ),
+                DecisionCriterion(
+                    domain="travel",
+                    name="activities",
+                    direction="max",
+                    weight=Decimal("0.3000"),
                 ),
             ]
         return []

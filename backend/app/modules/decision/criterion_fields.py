@@ -28,9 +28,12 @@ CRITERION_FIELD_MAP: dict[str, str] = {
     "prep_time": "prep_time",
     "cost": "estimated_cost",
     "estimated_cost": "estimated_cost",
+    "chi phí": "estimated_cost",
     "duration": "estimated_duration",
     "estimated_duration": "estimated_duration",
+    "thời lượng": "estimated_duration",
     "activities": "activities",
+    "hoạt động": "activities",
 }
 
 # Tập field_name hợp lệ — chặn key sai (vd. "Giá") đi vào Engine.
