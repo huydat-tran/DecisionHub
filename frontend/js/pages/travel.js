@@ -246,7 +246,7 @@
 
     try {
       const payload  = buildPayload();
-      const response = await api.post("/v1/travel/recommend", payload);
+      const response = await api.post("/api/v1/travel/recommend", payload);
 
       state.lastItems = (response.data && response.data.items) ? response.data.items : [];
       const sorted = sortItems(state.lastItems);
