@@ -1,21 +1,19 @@
 """Dịch vụ gợi ý địa điểm du lịch (Travel Recommendation Service).
 
-Điều phối: Truy vấn CSDL -> Adapter -> Decision Engine -> Trả kết quả xếp hạng.
+Điều phối: Repository -> Adapter -> Decision Engine -> Trả kết quả xếp hạng.
 """
 
 import logging
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .repository import get_active_travel_places
 from app.modules.decision.engine.pipeline import evaluate_decision
 from app.modules.travel.adapter import (
     adapt_travel_candidates,
     adapt_travel_criteria,
 )
-from app.modules.travel.mock_data import RAW_MOCK_TRAVEL_CANDIDATES
-from app.modules.travel.models import TravelPlace
 from app.modules.travel.schemas import (
     RecommendedTravelResponse,
     TravelAppliedFilters,
@@ -72,28 +70,12 @@ def _build_travel_reasons(
     return reasons[:3]
 
 
-def get_travel_candidates(db: Session) -> list[Any]:
-    """Truy vấn các địa điểm du lịch đang hoạt động từ CSDL; fallback sang mock nếu rỗng."""
-    try:
-        stmt = (
-            select(TravelPlace)
-            .where(TravelPlace.is_active.is_(True), TravelPlace.estimated_cost >= 0)
-            .order_by(TravelPlace.id.asc())
-        )
-        places = list(db.scalars(stmt).all())
-        if places:
-            return places
-    except Exception as exc:
-        logger.warning("Không thể đọc travel_places từ DB (%s), dùng dữ liệu mẫu.", exc)
-    return list(RAW_MOCK_TRAVEL_CANDIDATES)
-
-
 def recommend_travel(
     db: Session,
     payload: TravelRecommendRequest,
 ) -> tuple[TravelDecisionData, str]:
     """Thực thi pipeline gợi ý địa điểm du lịch qua Decision Engine chung."""
-    raw_candidates = get_travel_candidates(db)
+    raw_candidates = get_active_travel_places(db)
 
     # 1. Chuyển đổi dữ liệu sang schema Engine chung
     adapted_candidates = adapt_travel_candidates(
@@ -120,11 +102,7 @@ def recommend_travel(
                 f"Thời lượng {duration:.1f}h vượt quá thời lượng tối đa {payload.max_duration:.1f}h."
             )
         if payload.region is not None:
-            reg_val = (
-                payload.region.value
-                if hasattr(payload.region, "value")
-                else str(payload.region)
-            )
+            reg_val = payload.region.value
             if cand.get("region") != reg_val:
                 reasons.append(
                     f"Khu vực '{cand.get('region')}' không khớp khu vực yêu cầu '{reg_val}'."
@@ -193,11 +171,7 @@ def recommend_travel(
 
     # 5. Đóng gói response data
     weights_dict = {c["field_name"]: c["weight"] for c in adapted_criteria}
-    region_str = (
-        payload.region.value
-        if hasattr(payload.region, "value")
-        else payload.region
-    )
+    region_str = payload.region.value if payload.region is not None else None
     decision_data = TravelDecisionData(
         items=items,
         excluded_items=excluded_items,

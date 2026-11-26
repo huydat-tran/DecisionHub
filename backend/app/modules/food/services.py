@@ -457,3 +457,13 @@ def get_food_detail(db: Session, food_id: int) -> FoodOut:
     #     message = f"Đề xuất {len(top_items)} món ăn phù hợp nhất."
 
     # return decision_data, message
+
+
+
+def recommend_foods(
+    db: Session,
+    payload: FoodRecommendRequest,
+) -> tuple[DecisionResponse, str]:
+    """Stub – original implementation commented out; raises until restored."""
+    # shortcut: stub to unblock app import, restore full logic when Food recommend is re-enabled
+    raise NotImplementedError("recommend_foods chưa được kích hoạt lại.")
