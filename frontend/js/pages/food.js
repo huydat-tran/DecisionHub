@@ -3,7 +3,7 @@
 // - Khi bấm nút "Chi tiết", gọi GET /api/v1/food/{id} và hiển thị modal chi tiết món ăn (#detall_food).
 
 const DEFAULT_FOOD_IMAGE = "../assets/images/foods/hihi.png";
-const FOODS_PER_PAGE = 10;
+const FOODS_PER_PAGE = 8;
 
 const MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -49,6 +49,12 @@ function renderFoodCards(foods) {
       const description = escapeHtml(item.description || "");
       const imageSrc = escapeHtml(item.image_url || DEFAULT_FOOD_IMAGE);
       const idVal = escapeHtml(item.id);
+      const tags = Array.isArray(item.tags) ? item.tags : [];
+      const tagsHtml = tags.length
+        ? `<ul class="list-unstyled card-tags-list">${tags
+            .map((tag) => `<li class="card-tag-item">#${escapeHtml(tag)}</li>`)
+            .join("")}</ul>`
+        : "";
 
       return `
         <div class="card" data-food-id="${idVal}">
@@ -61,6 +67,7 @@ function renderFoodCards(foods) {
           <div class="card-body">
             <h5 class="card-title">${name}</h5>
             <p class="card-text">${description}</p>
+            ${tagsHtml}
             <div class="card-detail-book">
               <a
                 href="#"
