@@ -20,12 +20,12 @@ from app.modules.decision.service import (
     get_user_decision_detail,
     list_user_decision_history,
     recommend_food_decisions,
+    recommend_travel,
 )
 from app.modules.travel.schemas import (
     TravelRecommendRequest,
     TravelRecommendResponse,
 )
-from app.modules.travel.services import recommend_travel
 from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)

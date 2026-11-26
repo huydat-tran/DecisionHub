@@ -1,24 +1,20 @@
-"""Dịch vụ gợi ý địa điểm du lịch (Travel Recommendation Service).
-
-Điều phối: Repository -> Logic gợi ý (Decision) -> Đóng gói dữ liệu hiển thị.
-"""
+"""Dịch vụ hiển thị và đóng gói dữ liệu gợi ý địa điểm du lịch (Travel Display Service)."""
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from app.modules.decision.travel_recommendation import (
-    _format_vnd,
-    evaluate_travel_recommendation,
-)
-from app.modules.travel.repository import get_active_travel_places
 from app.modules.travel.schemas import (
     RecommendedTravelResponse,
     TravelAppliedFilters,
     TravelDecisionData,
+    TravelExcludedOptionResponse,
     TravelRecommendRequest,
     TravelScoringResponse,
 )
+
+
+def _format_vnd(amount: int) -> str:
+    """Format số tiền VND sang định dạng hiển thị (vd: 500000 -> '500.000đ')."""
+    return f"{amount:,}".replace(",", ".") + "đ"
 
 
 def _build_travel_reasons(
@@ -60,16 +56,14 @@ def _build_travel_reasons(
     return reasons[:3]
 
 
-def recommend_travel(
-    db: Session,
+def build_travel_decision_response(
+    ranked_candidates: list[dict[str, Any]],
+    total_valid: int,
+    excluded_items: list[TravelExcludedOptionResponse],
+    adapted_criteria: list[dict[str, Any]],
     payload: TravelRecommendRequest,
 ) -> tuple[TravelDecisionData, str]:
-    """Lấy dữ liệu từ repository, gọi logic gợi ý trong decision và đóng gói response."""
-    raw_candidates = get_active_travel_places(db)
-    ranked_candidates, total_valid, excluded_items, adapted_criteria = (
-        evaluate_travel_recommendation(raw_candidates, payload)
-    )
-
+    """Đóng gói kết quả gợi ý thành dữ liệu hiển thị TravelDecisionData và thông báo."""
     items: list[RecommendedTravelResponse] = []
     for cand in ranked_candidates:
         reasons = _build_travel_reasons(cand, payload)

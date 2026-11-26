@@ -17,7 +17,7 @@ from app.modules.travel.schemas import (
     TravelRecommendResponse,
     TravelScoringResponse,
 )
-from app.modules.travel.services import recommend_travel
+from app.modules.decision.service import recommend_travel
 
 __all__ = [
     "DEFAULT_TRAVEL_CRITERIA",

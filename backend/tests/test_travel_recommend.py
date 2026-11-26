@@ -18,7 +18,7 @@ from app.core.database import Base, get_db
 from app.main import app
 from app.modules.travel.models import TravelPlace, TravelRegion
 from app.modules.travel.schemas import TravelRecommendRequest
-from app.modules.travel.services import recommend_travel
+from app.modules.decision.service import recommend_travel
 
 
 class TestTravelRecommendation(unittest.TestCase):

@@ -8,7 +8,7 @@ from app.modules.travel.schemas import (
     TravelRecommendRequest,
     TravelRecommendResponse,
 )
-from app.modules.travel.services import recommend_travel
+from app.modules.decision.service import recommend_travel
 
 router = APIRouter(prefix="/api/v1/travel", tags=["Travel"])
 
