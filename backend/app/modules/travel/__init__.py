@@ -8,7 +8,6 @@ from app.modules.travel.adapter import (
     adapt_travel_criteria,
 )
 from app.modules.travel.models import Destination, TravelPlace, TravelRegion
-from app.modules.travel.router import router
 from app.modules.travel.schemas import (
     RecommendedTravelResponse,
     TravelAppliedFilters,
@@ -17,7 +16,6 @@ from app.modules.travel.schemas import (
     TravelRecommendResponse,
     TravelScoringResponse,
 )
-from app.modules.decision.service import recommend_travel
 
 __all__ = [
     "DEFAULT_TRAVEL_CRITERIA",
@@ -34,6 +32,4 @@ __all__ = [
     "adapt_travel_candidate",
     "adapt_travel_candidates",
     "adapt_travel_criteria",
-    "recommend_travel",
-    "router",
 ]
