@@ -17,11 +17,12 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
+from app.core.database import Base
 from app.modules.decision.engine.filters import filter_candidates, passes_hard_constraints
-from app.modules.decision.engine.pipeline import evaluate
+from app.modules.decision.engine.pipeline import MAX_EXCLUDED_DETAIL, evaluate, evaluate_decision
 from app.modules.decision.hard_constraint_fields import (
     DOMAIN_CONSTRAINT_CONFIG,
     SUPPORTED_OPERATORS,
@@ -32,8 +33,18 @@ from app.modules.decision.hard_constraint_fields import (
     validate_constraint,
 )
 from app.modules.decision.models import DecisionCriterion, HardConstraint
-from app.modules.decision.repository import get_hard_constraints_by_domain, get_weights_by_domain
-from app.modules.decision.service import build_constraints, build_food_constraints
+from app.modules.decision.repository import (
+    filter_food_candidates_in_db,
+    get_hard_constraints_by_domain,
+    get_weights_by_domain,
+)
+from app.modules.decision.schema import DecisionRecommendRequest
+from app.modules.decision.service import (
+    build_constraints,
+    build_food_constraints,
+    recommend_food_decisions,
+)
+from app.modules.food.models_food import Food, FoodIngredient, Ingredient
 
 CRITERIA = [
     {"domain": "food", "name": "Giá", "direction": "min", "weight": Decimal("0.5000")},
@@ -612,6 +623,246 @@ class TestPipelineWithConstraints(unittest.TestCase):
         candidates = [_food(1, "Món A", price=30_000, prep_time=10)]
         results = evaluate(candidates, CRITERIA, domain="food", max_prep_time=30)
         self.assertEqual([r["id"] for r in results], [1])
+
+
+class TestDatabaseHardConstraintOptimization(unittest.TestCase):
+    """Kiểm tra lọc hard constraints ở database tương đương 100% lọc trong bộ nhớ."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(bind=cls.engine)
+        cls.SessionLocal = sessionmaker(bind=cls.engine, autoflush=False, autocommit=False)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        Base.metadata.drop_all(bind=cls.engine)
+        cls.engine.dispose()
+
+    def setUp(self) -> None:
+        self.db = self.SessionLocal()
+        self.db.query(FoodIngredient).delete()
+        self.db.query(Food).delete()
+        self.db.query(Ingredient).delete()
+        self.db.query(DecisionCriterion).delete()
+        self.db.query(HardConstraint).delete()
+        self.db.commit()
+
+        self.db.add_all(
+            [
+                DecisionCriterion(
+                    id=1, domain="food", name="Giá", direction="min", weight=Decimal("0.4000")
+                ),
+                DecisionCriterion(
+                    id=2,
+                    domain="food",
+                    name="Mức phù hợp nhu cầu/khẩu vị",
+                    direction="max",
+                    weight=Decimal("0.3500"),
+                ),
+                DecisionCriterion(
+                    id=3,
+                    domain="food",
+                    name="Thời gian chuẩn bị",
+                    direction="min",
+                    weight=Decimal("0.2500"),
+                ),
+            ]
+        )
+        self.db.add_all([HardConstraint(**row) for row in FOOD_CONSTRAINT_ROWS])
+
+        ings = [
+            Ingredient(id=1, name="Thịt bò"),
+            Ingredient(id=2, name="Tôm sú"),
+            Ingredient(id=3, name="Đậu phộng"),
+            Ingredient(id=4, name="Rau sống"),
+            Ingredient(id=5, name="Shrimp"),
+        ]
+        self.db.add_all(ings)
+        self.db.commit()
+
+        meal_cycle = ("breakfast", "lunch", "dinner", "snack")
+        foods: list[Food] = []
+        for idx in range(1, 301):
+            meal = meal_cycle[idx % 4]
+            price = Decimal(str(15000 + (idx % 10) * 5000))  # 15k .. 60k (gồm mốc 30k)
+            prep_time = None if idx % 25 == 0 else (5 + (idx % 6) * 5)  # 5..30 + None
+            food = Food(
+                id=idx,
+                name=f"Món Test {idx:03d}",
+                price=price,
+                meal_type=meal,
+                prep_time=prep_time,
+                tags=["nhanh", "truyền thống"] if idx % 2 == 0 else ["thanh đạm"],
+                is_active=True,
+            )
+            if idx % 5 == 0:
+                food.ingredients = [ings[1], ings[3]]
+            elif idx % 7 == 0:
+                food.ingredients = [ings[2], ings[0]]
+            elif idx % 9 == 0:
+                food.ingredients = [ings[4], ings[3]]
+            else:
+                food.ingredients = [ings[0], ings[3]]
+            foods.append(food)
+        self.db.add_all(foods)
+        self.db.commit()
+
+    def tearDown(self) -> None:
+        self.db.rollback()
+        self.db.close()
+
+    def test_scalar_constraints_push_down_to_sql_and_skip_ingredients_noload(self) -> None:
+        """Lọc scalar tại SQL giảm mạnh số Food nạp vào ORM và bỏ qua selectinload ingredients."""
+        executed_sql: list[str] = []
+        loaded_foods = 0
+
+        def _before_exec(_conn, _cursor, statement, _params, _ctx, _many) -> None:
+            executed_sql.append(statement)
+
+        def _on_load(_target, _ctx) -> None:
+            nonlocal loaded_foods
+            loaded_foods += 1
+
+        event.listen(self.engine, "before_cursor_execute", _before_exec)
+        event.listen(Food, "load", _on_load)
+        try:
+            req = DecisionRecommendRequest(
+                budget_max=30000,
+                meal_type="lunch",
+                max_prep_time=15,
+                preferred_tags=["nhanh"],
+                limit=5,
+            )
+            resp = recommend_food_decisions(db=self.db, payload=req)
+        finally:
+            event.remove(Food, "load", _on_load)
+            event.remove(self.engine, "before_cursor_execute", _before_exec)
+
+        food_selects = [s for s in executed_sql if "FROM foods" in s]
+        self.assertTrue(any("foods.price <=" in s and "foods.prep_time <=" in s for s in food_selects))
+        self.assertFalse(any("FROM food_ingredients" in s for s in executed_sql))
+        self.assertLess(loaded_foods, 100)
+        self.assertTrue(resp.has_valid_candidates)
+        self.assertGreater(resp.total, 0)
+        self.assertEqual(len(resp.excluded_items), MAX_EXCLUDED_DETAIL)
+
+    def test_db_filtering_matches_in_memory_evaluate_decision_exactly(self) -> None:
+        """Kết quả DB filtering khớp 100% evaluate_decision thuần bộ nhớ (kể cả Unicode ingredients)."""
+        all_foods = (
+            self.db.query(Food)
+            .filter(Food.is_active.is_(True), Food.price >= 0)
+            .order_by(Food.id.asc())
+            .all()
+        )
+        all_dicts = [
+            {
+                "id": f.id,
+                "food_id": f.id,
+                "name": f.name,
+                "price": float(f.price),
+                "prep_time": f.prep_time,
+                "meal_type": f.meal_type,
+                "image_url": f.image_url,
+                "tags": list(f.tags or []),
+                "ingredients": [ing.name for ing in f.ingredients],
+            }
+            for f in all_foods
+        ]
+        criteria = [
+            {"domain": "food", "name": "Giá", "direction": "min", "weight": 0.40},
+            {
+                "domain": "food",
+                "name": "Mức phù hợp nhu cầu/khẩu vị",
+                "direction": "max",
+                "weight": 0.35,
+            },
+            {"domain": "food", "name": "Thời gian chuẩn bị", "direction": "min", "weight": 0.25},
+        ]
+
+        scenarios = [
+            DecisionRecommendRequest(
+                budget_max=30000,
+                meal_type="lunch",
+                max_prep_time=15,
+                preferred_tags=["nhanh"],
+                limit=5,
+            ),
+            DecisionRecommendRequest(
+                budget_max=50000,
+                meal_type="lunch",
+                max_prep_time=20,
+                excluded_ingredients=["tôm", "đậu phộng"],
+                preferred_tags=["truyền thống"],
+                limit=5,
+            ),
+            DecisionRecommendRequest(
+                budget_max=50000,
+                meal_type="lunch",
+                max_prep_time=20,
+                excluded_ingredients=["shrimp"],
+                preferred_tags=["truyền thống"],
+                limit=5,
+            ),
+            DecisionRecommendRequest(
+                budget_max=5000,
+                meal_type="lunch",
+                limit=5,
+            ),
+        ]
+
+        for req in scenarios:
+            with self.subTest(req=req.model_dump()):
+                self.db.expire_all()
+                db_resp = recommend_food_decisions(db=self.db, payload=req)
+
+                mem_constraints: dict[str, tuple[str, object]] = {
+                    "price": ("<=", req.budget_max),
+                }
+                if req.meal_type is not None:
+                    mem_constraints["meal_type"] = ("=", req.meal_type)
+                if req.max_prep_time is not None:
+                    mem_constraints["prep_time"] = ("<=", req.max_prep_time)
+                if req.excluded_ingredients:
+                    mem_constraints["ingredients"] = ("not_in", req.excluded_ingredients)
+
+                mem_eval = evaluate_decision(
+                    candidates=all_dicts,
+                    criteria=criteria,
+                    domain="food",
+                    constraints=mem_constraints,
+                    user_preferences=req.preferred_tags,
+                    limit=req.limit,
+                )
+
+                self.assertEqual(db_resp.has_valid_candidates, mem_eval["has_valid_candidates"])
+                self.assertEqual(db_resp.total, mem_eval["returned_count"])
+                self.assertEqual(db_resp.total_excluded, mem_eval["total_excluded"])
+                self.assertEqual(
+                    [(i.food_id, i.score, i.rank) for i in db_resp.items],
+                    [(c["id"], c["score"], c["rank"]) for c in mem_eval["valid_candidates"]],
+                )
+                self.assertEqual(
+                    [(e.id, e.exclusion_reason) for e in db_resp.excluded_items],
+                    [(e["id"], e["exclusion_reason"]) for e in mem_eval["excluded_candidates"]],
+                )
+
+    def test_empty_db_returns_none_and_all_excluded_keeps_exact_counts(self) -> None:
+        """Phân biệt DB rỗng (trả None để fallback mock) với DB có dữ liệu nhưng bị loại hết."""
+        req = DecisionRecommendRequest(budget_max=5000, meal_type="lunch", limit=5)
+        resp_all_excluded = recommend_food_decisions(db=self.db, payload=req)
+        self.assertFalse(resp_all_excluded.has_valid_candidates)
+        self.assertEqual(resp_all_excluded.total, 0)
+        self.assertEqual(resp_all_excluded.total_excluded, 300)
+        self.assertEqual(len(resp_all_excluded.excluded_items), MAX_EXCLUDED_DETAIL)
+
+        self.db.query(FoodIngredient).delete()
+        self.db.query(Food).delete()
+        self.db.commit()
+        self.assertIsNone(filter_food_candidates_in_db(self.db, {"price": ("<=", 5000)}))
+        resp_empty_db = recommend_food_decisions(db=self.db, payload=req)
+        self.assertFalse(resp_empty_db.has_valid_candidates)
+        self.assertEqual(resp_empty_db.total_excluded, 3)
 
 
 if __name__ == "__main__":

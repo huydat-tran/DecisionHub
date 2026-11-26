@@ -9,11 +9,15 @@ import logging
 from decimal import Decimal
 from typing import Any
 
+import sqlalchemy as sa
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, raiseload, selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
+from app.modules.decision.engine.filters import _as_list, _normalize_text, _to_number
+from app.modules.decision.engine.pipeline import MAX_EXCLUDED_DETAIL
 from app.modules.decision.models import Decision, DecisionCriterion, HardConstraint
-from app.modules.food.models_food import Food
+from app.modules.food.models_food import Food, Ingredient
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +179,245 @@ def get_criteria_by_domain(db: Session, domain: str) -> list[DecisionCriterion]:
         return []
 
     return rows
+
+
+def _get_session_dialect_name(db: Session) -> str:
+    """Trả về tên dialect SQLAlchemy viết thường (mysql, sqlite, ...), hoặc '' nếu là mock."""
+    bind = getattr(db, "bind", None)
+    if bind is None and hasattr(db, "get_bind"):
+        try:
+            bind = db.get_bind()
+        except Exception:
+            bind = None
+    dialect = getattr(bind, "dialect", None)
+    raw_name = getattr(dialect, "name", None)
+    return raw_name.lower() if isinstance(raw_name, str) else ""
+
+
+def _build_food_constraint_clause(
+    field_name: str,
+    operator: str,
+    expected: Any,
+    *,
+    dialect_name: str,
+) -> ColumnElement[bool] | None:
+    """Chuyển một hard constraint sang biểu thức SQLAlchemy WHERE nếu đảm bảo tương đương 100%.
+
+    Trả về None nếu điều kiện không phù hợp lọc ở SQL (để Engine lọc trong bộ nhớ).
+    """
+    if field_name in ("price", "prep_time"):
+        col = Food.price if field_name == "price" else Food.prep_time
+        guards = [col.is_not(None), col >= 0]
+
+        if operator in ("in", "not_in"):
+            values = _as_list(expected)
+            if values is None:
+                return None
+            parsed = [_to_number(v) for v in values]
+            if any(num is None for num in parsed):
+                return None
+            nums: list[Decimal | float] = [
+                Decimal(str(v))
+                if isinstance(v, (int, Decimal)) and not isinstance(v, bool)
+                else float(num)
+                for v, num in zip(values, parsed)
+                if num is not None
+            ]
+            if not nums:
+                return sa.false() if operator == "in" else sa.and_(*guards)
+            cmp_expr = col.in_(nums) if operator == "in" else col.not_in(nums)
+            return sa.and_(*guards, cmp_expr)
+
+        num = _to_number(expected)
+        if num is None:
+            return None
+        bound: Decimal | float = (
+            Decimal(str(expected))
+            if isinstance(expected, (int, Decimal)) and not isinstance(expected, bool)
+            else num
+        )
+        if operator == "<=":
+            return sa.and_(*guards, col <= bound)
+        if operator == ">=":
+            return sa.and_(*guards, col >= bound)
+        if operator == "=":
+            return sa.and_(*guards, col == bound)
+        if operator == "!=":
+            return sa.and_(*guards, col != bound)
+        return None
+
+    if field_name == "meal_type":
+        norm_col = func.lower(func.trim(Food.meal_type))
+        guards = [Food.meal_type.is_not(None), func.trim(Food.meal_type) != ""]
+
+        if operator in ("in", "not_in"):
+            values = _as_list(expected)
+            if values is None:
+                return None
+            texts = [t for t in (_normalize_text(v) for v in values) if t]
+            if not texts:
+                return sa.false() if operator == "in" else sa.and_(*guards)
+            if dialect_name == "sqlite" and not all(t.isascii() for t in texts):
+                return None
+            if dialect_name == "mysql" and not all(t.isascii() for t in texts):
+                norm_expr: Any = norm_col.collate("utf8mb4_bin")
+                target_vals: list[Any] = [sa.literal(t).collate("utf8mb4_bin") for t in texts]
+            else:
+                norm_expr = norm_col
+                target_vals = texts
+            cmp_expr = (
+                norm_expr.in_(target_vals)
+                if operator == "in"
+                else norm_expr.not_in(target_vals)
+            )
+            return sa.and_(*guards, cmp_expr)
+
+        text_val = _normalize_text(expected)
+        if text_val is None:
+            return None
+        if dialect_name == "sqlite" and not text_val.isascii():
+            return None
+        if dialect_name == "mysql" and not text_val.isascii():
+            norm_expr = norm_col.collate("utf8mb4_bin")
+            target: Any = sa.literal(text_val).collate("utf8mb4_bin")
+        else:
+            norm_expr = norm_col
+            target = text_val
+        if operator == "=":
+            return sa.and_(*guards, norm_expr == target)
+        if operator == "!=":
+            return sa.and_(*guards, norm_expr != target)
+        return None
+
+    if field_name == "ingredients":
+        if dialect_name not in ("mysql", "sqlite") or operator not in ("in", "not_in"):
+            return None
+        values = _as_list(expected)
+        if values is None:
+            return None
+        texts = [t for t in (_normalize_text(v) for v in values) if t]
+        if not texts:
+            return sa.true()
+        if dialect_name == "sqlite" and not all(t.isascii() for t in texts):
+            # SQLite LOWER() chỉ xử lý ASCII; giữ nguyên liệu Unicode lọc ở bộ nhớ.
+            return None
+
+        if dialect_name == "mysql":
+            ing_norm: Any = func.lower(func.trim(Ingredient.name)).collate("utf8mb4_bin")
+            empty_val: Any = sa.literal("").collate("utf8mb4_bin")
+            t_exprs = [sa.literal(t).collate("utf8mb4_bin") for t in texts]
+            any_match = sa.or_(
+                *[
+                    (func.locate(te, ing_norm) > 0) | (func.locate(ing_norm, te) > 0)
+                    for te in t_exprs
+                ]
+            )
+        else:
+            ing_norm = func.lower(func.trim(Ingredient.name))
+            empty_val = ""
+            t_exprs = [sa.literal(t) for t in texts]
+            any_match = sa.or_(
+                *[
+                    (func.instr(ing_norm, te) > 0) | (func.instr(te, ing_norm) > 0)
+                    for te in t_exprs
+                ]
+            )
+
+        ing_valid = sa.and_(Ingredient.name.is_not(None), ing_norm != empty_val)
+        if operator == "not_in":
+            return ~Food.ingredients.any(sa.and_(ing_valid, any_match))
+        return ~Food.ingredients.any(sa.and_(ing_valid, ~any_match))
+
+    return None
+
+
+def filter_food_candidates_in_db(
+    db: Session,
+    constraints: dict[str, tuple[str, Any]] | None = None,
+    *,
+    excluded_limit: int = MAX_EXCLUDED_DETAIL,
+) -> tuple[list[Food], list[Food], int, dict[str, tuple[str, Any]]] | None:
+    """Lọc trước các hard constraint phù hợp ngay tại database.
+
+    Trả về `(sql_matched_foods, sql_excluded_sample, sql_excluded_count, remaining_constraints)`
+    hoặc `None` nếu bảng `foods` không có món ăn active nào (để Service fallback sang mock).
+    """
+    dialect_name = _get_session_dialect_name(db)
+    if not dialect_name:
+        rows = get_food_candidates(db)
+        if not rows:
+            return None
+        return rows, [], 0, dict(constraints or {})
+
+    sql_clauses: list[ColumnElement[bool]] = []
+    remaining_constraints: dict[str, tuple[str, Any]] = {}
+    for field_name, (operator, expected) in (constraints or {}).items():
+        clause = _build_food_constraint_clause(
+            field_name,
+            operator,
+            expected,
+            dialect_name=dialect_name,
+        )
+        if clause is None:
+            remaining_constraints[field_name] = (operator, expected)
+        else:
+            sql_clauses.append(clause)
+
+    base_cond = sa.and_(Food.is_active.is_(True), Food.price >= 0)
+    matched_load_opt = (
+        selectinload(Food.ingredients)
+        if "ingredients" in remaining_constraints
+        else raiseload(Food.ingredients)
+    )
+
+    if not sql_clauses:
+        rows = list(
+            db.scalars(
+                select(Food)
+                .options(matched_load_opt)
+                .where(base_cond)
+                .order_by(Food.id.asc())
+            ).all()
+        )
+        if not rows:
+            return None
+        return rows, [], 0, remaining_constraints
+
+    combined_sql = sa.and_(*sql_clauses)
+    stmt_valid = (
+        select(Food)
+        .options(matched_load_opt)
+        .where(base_cond, combined_sql)
+        .order_by(Food.id.asc())
+    )
+    sql_matched_foods = list(db.scalars(stmt_valid).all())
+
+    # Dùng CASE để xử lý đúng 3-valued logic (NULL/UNKNOWN -> bị loại) của SQL.
+    not_matched_sql = sa.case((combined_sql, sa.false()), else_=sa.true())
+    sql_excluded_count = int(
+        db.scalar(select(func.count(Food.id)).where(base_cond, not_matched_sql)) or 0
+    )
+
+    if not sql_matched_foods and sql_excluded_count == 0:
+        return None
+
+    sql_excluded_sample: list[Food] = []
+    if sql_excluded_count > 0 and excluded_limit > 0:
+        exc_load_opt = (
+            selectinload(Food.ingredients)
+            if (constraints and "ingredients" in constraints)
+            else raiseload(Food.ingredients)
+        )
+        stmt_exc_sample = (
+            select(Food)
+            .options(exc_load_opt)
+            .where(base_cond, not_matched_sql)
+            .order_by(Food.id.asc())
+            .limit(excluded_limit)
+        )
+        sql_excluded_sample = list(db.scalars(stmt_exc_sample).all())
+
+    return sql_matched_foods, sql_excluded_sample, sql_excluded_count, remaining_constraints
 
 
 def get_food_candidates(db: Session) -> list[Food]:

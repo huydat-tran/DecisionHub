@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Any
 
 from fastapi import status
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Session
 
 from app.common.exceptions import DecisionHubException, ResourceNotFoundException
@@ -24,7 +25,8 @@ from app.modules.decision.decision_response import (
     ScoringResponse,
     ScoringWeights,
 )
-from app.modules.decision.engine.pipeline import evaluate_decision
+from app.modules.decision.engine.filters import filter_and_explain_candidates
+from app.modules.decision.engine.pipeline import MAX_EXCLUDED_DETAIL, evaluate_decision
 from app.modules.decision.hard_constraint_fields import (
     get_default_operators,
     get_request_field_mapping,
@@ -33,9 +35,9 @@ from app.modules.decision.hard_constraint_fields import (
 from app.modules.decision.repository import (
     count_decisions_by_user,
     create_decision,
+    filter_food_candidates_in_db,
     get_decision_by_id_and_user,
     get_decisions_by_user,
-    get_food_candidates,
     get_food_criteria,
     get_food_hard_constraints,
     get_hard_constraints_by_domain,
@@ -231,6 +233,37 @@ def _normalize_food_tags(raw: Any) -> list[str]:
     return []
 
 
+def _food_to_candidate_dict(f: Any) -> dict[str, Any]:
+    """Chuyển đổi bản ghi Food ORM hoặc dict sang dict ứng viên chuẩn cho Decision Engine."""
+    if isinstance(f, dict):
+        return f
+    cand_id = getattr(f, "id", 0)
+    raw_price = getattr(f, "price", 0.0)
+    price_val = float(raw_price) if raw_price is not None else 0.0
+    ingredients_list: list[str] = []
+    unloaded = (
+        sa_inspect(f).unloaded if hasattr(f, "_sa_instance_state") else set()
+    )
+    f_ingredients = None if "ingredients" in unloaded else getattr(f, "ingredients", None)
+    if f_ingredients:
+        for ing in f_ingredients:
+            if isinstance(ing, str):
+                ingredients_list.append(ing)
+            elif hasattr(ing, "name"):
+                ingredients_list.append(str(ing.name))
+    return {
+        "id": cand_id,
+        "food_id": cand_id,
+        "name": getattr(f, "name", ""),
+        "price": price_val,
+        "prep_time": getattr(f, "prep_time", 0),
+        "meal_type": getattr(f, "meal_type", ""),
+        "image_url": getattr(f, "image_url", None),
+        "tags": _normalize_food_tags(getattr(f, "tags", None)),
+        "ingredients": ingredients_list,
+    }
+
+
 def _build_food_reasons(
     price_int: int,
     budget_max: int,
@@ -308,10 +341,9 @@ def recommend_food_decisions(
     )
 
     # --------------------------------------------------------------------------
-    # BƯỚC 1: Lấy toàn bộ dữ liệu từ Repository (DB queries hoàn toàn nằm ở repo)
+    # BƯỚC 1: Lấy cấu hình tiêu chí và Hard Constraints từ Repository
     # --------------------------------------------------------------------------
     try:
-        candidates_raw = get_food_candidates(db)
         criteria_objs = get_food_criteria(db)
         hard_constraint_configs = get_food_hard_constraints(db)
         raw_weights = repo_get_food_weights(db)
@@ -382,48 +414,8 @@ def recommend_food_decisions(
             },
         ]
 
-    # Chuẩn hóa candidates cho Engine.
-    # candidates_raw: list[Food] từ SQLite thực, [] rỗng, hoặc MagicMock (unit test).
-    candidates: list[dict[str, Any]] = []
-    for f in (candidates_raw or []):
-        if isinstance(f, dict):
-            candidates.append(f)
-        else:
-            cand_id = getattr(f, "id", 0)
-            raw_price = getattr(f, "price", 0.0)
-            price_val = float(raw_price) if raw_price is not None else 0.0
-            ingredients_list: list[str] = []
-            f_ingredients = getattr(f, "ingredients", None)
-            if f_ingredients:
-                for ing in f_ingredients:
-                    if isinstance(ing, str):
-                        ingredients_list.append(ing)
-                    elif hasattr(ing, "name"):
-                        ingredients_list.append(str(ing.name))
-            candidates.append(
-                {
-                    "id": cand_id,
-                    "food_id": cand_id,
-                    "name": getattr(f, "name", ""),
-                    "price": price_val,
-                    "prep_time": getattr(f, "prep_time", 0),
-                    "meal_type": getattr(f, "meal_type", ""),
-                    "image_url": getattr(f, "image_url", None),
-                    "tags": _normalize_food_tags(getattr(f, "tags", None)),
-                    "ingredients": ingredients_list,
-                }
-            )
-
-    # Khi DB không trả về món ăn nào (table rỗng hoặc mock DB) → fallback sang dữ liệu mẫu.
-    # Giúp test với mock DB và demo không có DB đều hoạt động bình thường.
-    if not candidates:
-        from app.modules.decision.mock_data import RAW_MOCK_CANDIDATES
-
-        logger.info("Không có món ăn trong database, dùng dữ liệu mẫu để demo/test.")
-        candidates = list(RAW_MOCK_CANDIDATES)
-
     # --------------------------------------------------------------------------
-    # BƯỚC 2: Xây dựng điều kiện lọc (Hard Constraints)
+    # BƯỚC 2: Xây dựng điều kiện lọc (Hard Constraints) & lọc tại Database khi phù hợp
     # --------------------------------------------------------------------------
     try:
         constraints = build_food_constraints(
@@ -458,18 +450,84 @@ def recommend_food_decisions(
                 if fn and fn in default_ops:
                     constraints[fn] = (default_ops[fn], val)
 
+    try:
+        db_filter_result = filter_food_candidates_in_db(db, constraints)
+    except Exception as exc:
+        logger.exception("Lỗi khi lọc ứng viên tại database trong recommend_food_decisions")
+        raise DecisionHubException(
+            message=f"Lỗi truy vấn cơ sở dữ liệu: {exc}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        ) from exc
+
     # --------------------------------------------------------------------------
     # BƯỚC 3: Gọi Decision Engine (pipeline.evaluate_decision)
     # --------------------------------------------------------------------------
     try:
-        eval_result = evaluate_decision(
-            candidates=candidates,
-            criteria=criteria,
-            domain="food",
-            constraints=constraints,
-            user_preferences=payload.preferred_tags,
-            limit=payload.limit,
-        )
+        if db_filter_result is None:
+            # Khi DB không trả về món ăn nào (table rỗng hoặc mock DB) → fallback sang dữ liệu mẫu.
+            from app.modules.decision.mock_data import RAW_MOCK_CANDIDATES
+
+            logger.info("Không có món ăn trong database, dùng dữ liệu mẫu để demo/test.")
+            eval_result = evaluate_decision(
+                candidates=list(RAW_MOCK_CANDIDATES),
+                criteria=criteria,
+                domain="food",
+                constraints=constraints,
+                user_preferences=payload.preferred_tags,
+                limit=payload.limit,
+            )
+        else:
+            (
+                sql_matched_foods,
+                sql_excluded_sample,
+                sql_excluded_count,
+                remaining_constraints,
+            ) = db_filter_result
+
+            sql_matched_dicts = [_food_to_candidate_dict(f) for f in sql_matched_foods]
+            excluded_sample_dicts = [
+                _food_to_candidate_dict(f) for f in sql_excluded_sample
+            ]
+
+            if not remaining_constraints and sql_matched_dicts:
+                # Toàn bộ điều kiện bắt buộc đã được lọc ở database: chỉ chấm điểm tập hợp lệ.
+                eval_result = evaluate_decision(
+                    candidates=sql_matched_dicts,
+                    criteria=criteria,
+                    domain="food",
+                    constraints=None,
+                    user_preferences=payload.preferred_tags,
+                    limit=payload.limit,
+                )
+                if excluded_sample_dicts:
+                    _, sql_excluded_details = filter_and_explain_candidates(
+                        excluded_sample_dicts,
+                        constraints,
+                        domain="food",
+                    )
+                    excluded_detail = sql_excluded_details[:MAX_EXCLUDED_DETAIL]
+                    eval_result["excluded_candidates"] = excluded_detail
+                    eval_result["excluded_returned_count"] = len(excluded_detail)
+                eval_result["total_excluded"] = sql_excluded_count
+            else:
+                combined_dicts = sorted(
+                    sql_matched_dicts + excluded_sample_dicts,
+                    key=lambda c: c.get("id") or 0,
+                )
+                omitted_excluded_count = max(
+                    0, sql_excluded_count - len(excluded_sample_dicts)
+                )
+                eval_result = evaluate_decision(
+                    candidates=combined_dicts,
+                    criteria=criteria,
+                    domain="food",
+                    constraints=constraints,
+                    user_preferences=payload.preferred_tags,
+                    limit=payload.limit,
+                )
+                eval_result["total_excluded"] = (
+                    int(eval_result.get("total_excluded", 0)) + omitted_excluded_count
+                )
     except ValueError as val_err:
         logger.error(
             "Lỗi tham số/trọng số khi thực thi Decision Engine evaluate_decision: %s",

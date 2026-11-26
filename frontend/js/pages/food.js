@@ -5,7 +5,7 @@
 
 // shortcut: phân trang phía client trên dữ liệu GET /api/v1/food; chuyển sang limit/offset ở backend khi bảng foods vượt vài trăm món.
 const DEFAULT_FOOD_IMAGE = "../assets/images/foods/hihi.png";
-const FOODS_PER_PAGE = 10;
+const FOODS_PER_PAGE = 8;
 
 const MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -32,6 +32,12 @@ function renderFoodCards(foods) {
       const name = escapeHtml(item.name);
       const description = escapeHtml(item.description || "");
       const imageSrc = escapeHtml(item.image_url || DEFAULT_FOOD_IMAGE);
+      const tags = Array.isArray(item.tags) ? item.tags : [];
+      const tagsHtml = tags.length
+        ? `<ul class="list-unstyled card-tags-list">${tags
+            .map((tag) => `<li class="card-tag-item">#${escapeHtml(tag)}</li>`)
+            .join("")}</ul>`
+        : "";
 
       return `
         <div class="card" data-food-id="${item.id}">
@@ -43,6 +49,7 @@ function renderFoodCards(foods) {
           <div class="card-body">
             <h5 class="card-title">${name}</h5>
             <p class="card-text">${description}</p>
+            ${tagsHtml}
             <div class="card-detail-book">
               <a
                 href="#"
