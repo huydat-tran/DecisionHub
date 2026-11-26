@@ -354,12 +354,16 @@ window.filterAndScoreFoods = filterAndScoreFoods;
 window.FOOD_CATALOG = FOOD_CATALOG;
 window.FOOD_CRITERIA = FOOD_CRITERIA;
 
-// Dữ liệu khởi tạo ban đầu cho trang kết quả (trước khi người dùng gửi form lần đầu)
+// Dữ liệu khởi tạo ban đầu chỉ dùng cho trang kết quả tĩnh (khi không có form gợi ý động)
 const defaultInit = filterAndScoreFoods({ budget_max: 50000, limit: 5 });
 const FOOD_RESULTS = defaultInit.items;
 const FOOD_EXCLUDED = defaultInit.excluded_items;
 
-if (typeof DHResults !== "undefined" && typeof DHResults.initResultsPage === "function") {
+if (
+  !document.getElementById("food-recommend-form") &&
+  typeof DHResults !== "undefined" &&
+  typeof DHResults.initResultsPage === "function"
+) {
   DHResults.initResultsPage({
     results: FOOD_RESULTS,
     criteria: FOOD_CRITERIA,
