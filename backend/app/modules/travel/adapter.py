@@ -79,7 +79,10 @@ def _extract_activities_count(candidate: Any, highlights: list[str]) -> float:
     return float(len(highlights))
 
 
-def adapt_travel_candidate(candidate: Any) -> dict[str, Any]:
+def adapt_travel_candidate(
+    candidate: Any,
+    preferred_activities: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """Chuyển đổi một ứng viên Travel (ORM, Pydantic, dict) sang cấu trúc chung của Decision Engine.
 
     Output format phẳng:
@@ -92,6 +95,8 @@ def adapt_travel_candidate(candidate: Any) -> dict[str, Any]:
     - region: str
     - province_city: str
     - highlights: list[str]
+    - tags: list[str]
+    - matched_activities: list[str]
     - description: str | None
     - image_url: str | None
     - rating: float | None
@@ -130,7 +135,30 @@ def adapt_travel_candidate(candidate: Any) -> dict[str, Any]:
         estimated_duration = 0.0
 
     highlights = _extract_highlights(candidate)
-    activities_count = _extract_activities_count(candidate, highlights)
+    base_activities_count = _extract_activities_count(candidate, highlights)
+
+    matched_activities: list[str] = []
+    activities_count = base_activities_count
+    if preferred_activities:
+        pref_lower = [str(p).strip().lower() for p in preferred_activities if str(p).strip()]
+        for h in highlights:
+            h_lower = h.lower()
+            if any(p in h_lower for p in pref_lower):
+                matched_activities.append(h)
+        act_type_raw = str(_get_field(candidate, "activity_type") or "").strip()
+        if (
+            act_type_raw
+            and any(p in act_type_raw.lower() for p in pref_lower)
+            and act_type_raw not in matched_activities
+        ):
+            matched_activities.append(act_type_raw)
+        if matched_activities:
+            activities_count += len(matched_activities) * 5.0
+
+    tags = list(highlights)
+    act_type = str(_get_field(candidate, "activity_type") or "").strip()
+    if act_type and act_type not in tags:
+        tags.append(act_type)
 
     region_raw = _get_field(candidate, "region")
     region_str = region_raw.value if isinstance(region_raw, Enum) else str(region_raw or "")
@@ -154,6 +182,8 @@ def adapt_travel_candidate(candidate: Any) -> dict[str, Any]:
         "region": region_str,
         "province_city": str(_get_field(candidate, "province_city") or ""),
         "highlights": highlights,
+        "tags": tags,
+        "matched_activities": matched_activities,
         "description": _get_field(candidate, "description"),
         "image_url": _get_field(candidate, "image_url"),
         "rating": rating_val,
@@ -161,9 +191,12 @@ def adapt_travel_candidate(candidate: Any) -> dict[str, Any]:
     }
 
 
-def adapt_travel_candidates(candidates: Iterable[Any]) -> list[dict[str, Any]]:
+def adapt_travel_candidates(
+    candidates: Iterable[Any],
+    preferred_activities: Sequence[str] | None = None,
+) -> list[dict[str, Any]]:
     """Chuyển đổi danh sách ứng viên Travel sang cấu trúc chung của Decision Engine."""
-    return [adapt_travel_candidate(c) for c in (candidates or [])]
+    return [adapt_travel_candidate(c, preferred_activities=preferred_activities) for c in (candidates or [])]
 
 
 def _normalize_custom_weights(custom_weights: dict[str, float]) -> dict[str, float]:

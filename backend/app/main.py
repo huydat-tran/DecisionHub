@@ -11,9 +11,10 @@ from app.common.exceptions import register_exception_handlers
 from app.common.responses import success_response
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
-from app.modules.food.router_food import router as food_router
-from app.modules.users.router import router as users_router
 from app.modules.decision.router import router as decision_router
+from app.modules.food.router_food import router as food_router
+from app.modules.travel.router import router as travel_router
+from app.modules.users.router import router as users_router
 app = FastAPI(
     title=settings.APP_NAME,
     description="Hệ thống hỗ trợ ra quyết định DecisionHub - API Backend",
@@ -36,6 +37,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(food_router)
+app.include_router(travel_router)
 app.include_router(decision_router)
 
 @app.get("/health", summary="Kiểm tra sức khỏe hệ thống", tags=["Hệ thống"])
