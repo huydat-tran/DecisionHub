@@ -53,6 +53,14 @@ from app.modules.decision.schema import (
     DecisionRecommendRequest,
 )
 
+from app.modules.travel.adapter import (
+        adapt_travel_candidates,
+        adapt_travel_criteria,
+    )
+from app.modules.travel.schemas import TravelExcludedOptionResponse
+from app.modules.travel.repository import get_active_travel_places
+from app.modules.travel.services import build_travel_decision_response
+
 logger = logging.getLogger(__name__)
 
 
@@ -680,11 +688,7 @@ def evaluate_travel_recommendation(
     payload: Any,
 ) -> tuple[list[dict[str, Any]], int, list[Any], list[dict[str, Any]]]:
     """Lọc điều kiện cứng và chạy Decision Engine cho danh sách ứng viên Travel."""
-    from app.modules.travel.adapter import (
-        adapt_travel_candidates,
-        adapt_travel_criteria,
-    )
-    from app.modules.travel.schemas import TravelExcludedOptionResponse
+    
 
     adapted_candidates = adapt_travel_candidates(
         raw_candidates,
@@ -755,8 +759,7 @@ def recommend_travel(
     payload: Any,
 ) -> tuple[Any, str]:
     """Lấy dữ liệu từ Travel repository, chấm điểm qua Decision Engine và trả về hiển thị."""
-    from app.modules.travel.repository import get_active_travel_places
-    from app.modules.travel.services import build_travel_decision_response
+    
 
     raw_candidates = get_active_travel_places(db)
     ranked_candidates, total_valid, excluded_items, adapted_criteria = (
