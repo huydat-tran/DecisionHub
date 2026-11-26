@@ -388,7 +388,11 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-3">
-                  <button type="submit" class="dh-btn dh-btn-primary">
+                  <button
+                    type="submit"
+                    id="btn-food-recommend-submit"
+                    class="dh-btn dh-btn-primary"
+                  >
                     Gợi ý món ăn
                   </button>
                   <button
@@ -410,92 +414,232 @@
             </div>
           </section>
 
-          <!-- A. Khu vực thông tin kết quả -->
-          <section class="row g-3 mb-4" aria-label="Tổng quan kết quả">
-            <div class="col-12 col-md-4">
-              <div class="dh-card results-summary-card h-100">
-                <div class="dh-card-body">
-                  <p class="results-summary-label">Tổng phương án hợp lệ</p>
-                  <p class="results-summary-value" id="results-total">–</p>
-                  <p
-                    class="results-summary-hint dh-muted dh-small"
-                    id="results-valid-hint"
-                  >
-                    Được chấm điểm WSM
-                  </p>
-                </div>
-              </div>
+          <!-- Trạng thái khởi tạo (chưa gửi form tìm kiếm) -->
+          <section
+            id="results-initial-state"
+            class="dh-card results-state-card mb-4"
+            aria-live="polite"
+          >
+            <div class="dh-empty-state">
+              <div class="dh-empty-icon" aria-hidden="true">🍲</div>
+              <div class="dh-empty-title">Sẵn sàng gợi ý món ăn cho bạn</div>
+              <p class="dh-empty-desc">
+                Hãy nhập ngân sách tối đa và chọn các tiêu chí mong muốn ở biểu mẫu phía trên, sau đó nhấn
+                <strong>Gợi ý món ăn</strong> để hệ thống phân tích và xếp hạng.
+              </p>
+              <button
+                type="button"
+                id="btn-results-focus-form"
+                class="dh-btn dh-btn-outline dh-btn-sm"
+              >
+                Nhập tiêu chí ngay
+              </button>
             </div>
-            <div class="col-12 col-md-4">
-              <div class="dh-card results-summary-card h-100">
-                <div class="dh-card-body">
-                  <p class="results-summary-label">Phương án điểm cao nhất</p>
-                  <p class="results-summary-value" id="results-top-name">–</p>
-                  <p
-                    class="results-summary-hint dh-muted dh-small"
-                    id="results-top-score"
-                  ></p>
+          </section>
+
+          <!-- Trạng thái Đang tải (Loading State) -->
+          <section
+            id="results-loading-state"
+            class="dh-card results-state-card mb-4 d-none"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div class="dh-card-body py-5 text-center">
+              <div
+                class="spinner-border text-success mb-3"
+                role="status"
+                aria-hidden="true"
+              ></div>
+              <h2 class="results-state-title">
+                Đang phân tích và tìm món ăn phù hợp với bạn...
+              </h2>
+              <p class="dh-muted dh-small mb-4">
+                Hệ thống đang kiểm tra điều kiện lọc bắt buộc và tính điểm xếp hạng theo mô hình WSM.
+              </p>
+              <div class="results-skeleton-wrapper" aria-hidden="true">
+                <div class="row g-3 mb-3">
+                  <div class="col-12 col-md-4">
+                    <div class="dh-skeleton results-skeleton-stat"></div>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <div class="dh-skeleton results-skeleton-stat"></div>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <div class="dh-skeleton results-skeleton-stat"></div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div class="col-12 col-md-4">
-              <div class="dh-card results-summary-card h-100">
-                <div class="dh-card-body">
-                  <p class="results-summary-label">Phương án bị loại</p>
-                  <p class="results-summary-value" id="results-excluded-count">
-                    0
-                  </p>
-                  <p
-                    class="results-summary-hint dh-muted dh-small"
-                    id="results-excluded-hint"
-                  >
-                    Không đạt điều kiện bắt buộc
-                  </p>
+                <div class="row g-3">
+                  <div class="col-12 col-lg-5">
+                    <div class="dh-skeleton results-skeleton-list"></div>
+                  </div>
+                  <div class="col-12 col-lg-7">
+                    <div class="dh-skeleton results-skeleton-explain"></div>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
-          <div class="row g-4">
-            <!-- B. Danh sách xếp hạng -->
-            <div class="col-12 col-lg-5">
-              <section class="dh-card" aria-labelledby="results-ranking-title">
-                <div class="dh-card-header">
-                  <h2 class="dh-section-title" id="results-ranking-title">
-                    Bảng xếp hạng
-                  </h2>
-                  <span class="dh-muted dh-small"
-                    >Chọn một phương án để xem giải thích</span
-                  >
-                </div>
-                <div class="dh-card-body">
-                  <ul class="results-rank-list" id="results-ranking-list"></ul>
-                </div>
-              </section>
+          <!-- Trạng thái Không có kết quả phù hợp từ API (Empty State) -->
+          <section
+            id="results-empty-state"
+            class="dh-card results-state-card mb-4 d-none"
+            aria-live="polite"
+          >
+            <div class="dh-empty-state">
+              <div class="dh-empty-icon" aria-hidden="true">🍽️</div>
+              <div class="dh-empty-title" id="results-empty-title">
+                Không tìm thấy món ăn phù hợp với tiêu chí hiện tại.
+              </div>
+              <p class="dh-empty-desc" id="results-empty-desc">
+                Bạn có thể thử thay đổi ngân sách, khẩu vị hoặc bỏ bớt điều kiện lọc.
+              </p>
+              <div class="results-state-actions">
+                <button
+                  type="button"
+                  id="btn-results-adjust-criteria"
+                  class="dh-btn dh-btn-primary"
+                >
+                  ✎ Thay đổi tiêu chí
+                </button>
+                <button
+                  type="button"
+                  id="btn-results-retry-empty"
+                  class="dh-btn dh-btn-outline"
+                >
+                  ↻ Tìm lại
+                </button>
+              </div>
             </div>
+          </section>
 
-            <!-- C. Khung giải thích -->
-            <div class="col-12 col-lg-7">
-              <section
-                class="dh-card results-explain-card"
-                id="results-explanation"
-                aria-labelledby="results-explanation-title"
-                aria-live="polite"
-              >
-                <div class="dh-card-header">
-                  <h2 class="dh-section-title" id="results-explanation-title">
-                    Giải thích kết quả
-                  </h2>
+          <!-- Trạng thái Lỗi khi gọi API Recommend (Error State) -->
+          <section
+            id="results-error-state"
+            class="dh-card results-state-card results-error-card mb-4 d-none"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div class="dh-empty-state">
+              <div class="dh-empty-icon" aria-hidden="true">⚠️</div>
+              <div class="dh-empty-title" id="results-error-title">
+                Không thể tìm kiếm món ăn vào lúc này
+              </div>
+              <p class="dh-empty-desc" id="results-error-desc">
+                Đã xảy ra lỗi khi gửi yêu cầu gợi ý món ăn. Vui lòng kiểm tra kết nối và thử lại.
+              </p>
+              <div class="results-state-actions">
+                <button
+                  type="button"
+                  id="btn-results-retry-error"
+                  class="dh-btn dh-btn-primary"
+                >
+                  ↻ Thử lại
+                </button>
+                <button
+                  type="button"
+                  id="btn-results-error-adjust"
+                  class="dh-btn dh-btn-outline"
+                >
+                  ✎ Thay đổi tiêu chí
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Khu vực nội dung kết quả khi thành công (Success Content) -->
+          <div id="results-success-content" class="d-none">
+            <!-- A. Khu vực thông tin kết quả -->
+            <section
+              id="results-summary-section"
+              class="row g-3 mb-4"
+              aria-label="Tổng quan kết quả"
+            >
+              <div class="col-12 col-md-4">
+                <div class="dh-card results-summary-card h-100">
+                  <div class="dh-card-body">
+                    <p class="results-summary-label">Tổng phương án hợp lệ</p>
+                    <p class="results-summary-value" id="results-total">–</p>
+                    <p
+                      class="results-summary-hint dh-muted dh-small"
+                      id="results-valid-hint"
+                    >
+                      Được chấm điểm WSM
+                    </p>
+                  </div>
                 </div>
-                <div class="dh-card-body" id="results-explanation-body"></div>
-              </section>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="dh-card results-summary-card h-100">
+                  <div class="dh-card-body">
+                    <p class="results-summary-label">Phương án điểm cao nhất</p>
+                    <p class="results-summary-value" id="results-top-name">–</p>
+                    <p
+                      class="results-summary-hint dh-muted dh-small"
+                      id="results-top-score"
+                    ></p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="dh-card results-summary-card h-100">
+                  <div class="dh-card-body">
+                    <p class="results-summary-label">Phương án bị loại</p>
+                    <p class="results-summary-value" id="results-excluded-count">
+                      0
+                    </p>
+                    <p
+                      class="results-summary-hint dh-muted dh-small"
+                      id="results-excluded-hint"
+                    >
+                      Không đạt điều kiện bắt buộc
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="row g-4" id="results-main-grid">
+              <!-- B. Danh sách xếp hạng -->
+              <div class="col-12 col-lg-5">
+                <section class="dh-card" aria-labelledby="results-ranking-title">
+                  <div class="dh-card-header">
+                    <h2 class="dh-section-title" id="results-ranking-title">
+                      Bảng xếp hạng
+                    </h2>
+                    <span class="dh-muted dh-small"
+                      >Chọn một phương án để xem giải thích</span
+                    >
+                  </div>
+                  <div class="dh-card-body">
+                    <ul class="results-rank-list" id="results-ranking-list"></ul>
+                  </div>
+                </section>
+              </div>
+
+              <!-- C. Khung giải thích -->
+              <div class="col-12 col-lg-7">
+                <section
+                  class="dh-card results-explain-card"
+                  id="results-explanation"
+                  aria-labelledby="results-explanation-title"
+                  aria-live="polite"
+                >
+                  <div class="dh-card-header">
+                    <h2 class="dh-section-title" id="results-explanation-title">
+                      Giải thích kết quả
+                    </h2>
+                  </div>
+                  <div class="dh-card-body" id="results-explanation-body"></div>
+                </section>
+              </div>
             </div>
           </div>
 
           <!-- D. Danh sách phương án bị loại (Excluded Candidates) -->
           <section
             id="results-excluded-section"
-            class="dh-card mt-4"
+            class="dh-card mt-4 d-none"
             aria-labelledby="results-excluded-title"
           >
             <div

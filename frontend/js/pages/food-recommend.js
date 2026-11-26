@@ -1,9 +1,10 @@
 // ==========================================================
 // Module: Food Recommendation (Đề xuất món ăn thông minh)
-// Nối form → API/Engine → Bảng xếp hạng WSM → Giải thích chi tiết
+// Quản lý trọn vẹn vòng đời giao diện Form & Kết quả:
+//   Initial -> Loading -> Success | Empty | Error (kèm Retry & Chống gửi trùng)
 // ==========================================================
 
-(function () {
+(function (global) {
   const ALLOWED_MEAL_TYPES = {
     breakfast: "Bữa sáng",
     lunch: "Bữa trưa",
@@ -38,7 +39,29 @@
   const preferredTagsError = document.getElementById("food-preferred-tags-error");
   const limitError = document.getElementById("food-limit-error");
   const statusBox = document.getElementById("food-recommend-status");
-  const submitBtn = form.querySelector('button[type="submit"]');
+
+  const submitBtn =
+    document.getElementById("btn-food-recommend-submit") ||
+    form.querySelector('button[type="submit"]');
+  const resetBtn = document.getElementById("btn-food-recommend-reset");
+
+  // Các container trạng thái khu vực kết quả (đảm bảo loại trừ lẫn nhau, không chồng giao diện)
+  const initialStateEl = document.getElementById("results-initial-state");
+  const loadingStateEl = document.getElementById("results-loading-state");
+  const emptyStateEl = document.getElementById("results-empty-state");
+  const emptyTitleEl = document.getElementById("results-empty-title");
+  const emptyDescEl = document.getElementById("results-empty-desc");
+  const errorStateEl = document.getElementById("results-error-state");
+  const errorTitleEl = document.getElementById("results-error-title");
+  const errorDescEl = document.getElementById("results-error-desc");
+  const successContentEl = document.getElementById("results-success-content");
+  const excludedSectionEl = document.getElementById("results-excluded-section");
+
+  const btnFocusForm = document.getElementById("btn-results-focus-form");
+  const btnAdjustCriteria = document.getElementById("btn-results-adjust-criteria");
+  const btnRetryEmpty = document.getElementById("btn-results-retry-empty");
+  const btnRetryError = document.getElementById("btn-results-retry-error");
+  const btnErrorAdjust = document.getElementById("btn-results-error-adjust");
 
   const rankingListEl = document.getElementById("results-ranking-list");
   const explanationBodyEl = document.getElementById("results-explanation-body");
@@ -64,15 +87,49 @@
     limit: { input: limitInput, error: limitError },
   };
 
-  // Helper an toàn tiền tệ
+  // Trạng thái điều phối request (chống gửi trùng & race condition)
+  const uiState = {
+    view: "initial", // "initial" | "loading" | "success" | "empty" | "error"
+    isSubmitting: false,
+    requestSeq: 0,
+    lastPayload: null,
+    lastSaveHistory: true,
+    hasPreviousSuccess: false,
+  };
+
+  // ---------- Helpers an toàn ----------
+  function safeHtml(val) {
+    if (typeof escapeHtml === "function") return escapeHtml(val);
+    if (val === null || val === undefined) return "";
+    return String(val)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function moneyStr(val) {
     if (typeof formatMoney === "function") return formatMoney(val);
     return Number(val || 0).toLocaleString("vi-VN") + " ₫";
   }
 
-  // Quản lý lỗi form
+  function getMealLabel(mealType) {
+    return mealType ? ALLOWED_MEAL_TYPES[mealType] || mealType : "tất cả bữa ăn";
+  }
+
+  function focusRecommendForm() {
+    if (form && typeof form.scrollIntoView === "function") {
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (maxBudgetInput && typeof maxBudgetInput.focus === "function") {
+      maxBudgetInput.focus();
+    }
+  }
+
+  // ---------- Quản lý lỗi trên từng trường của Form ----------
   function setFieldError(inputEl, errorEl, message) {
-    if (errorEl) errorEl.textContent = message;
+    if (errorEl) errorEl.textContent = message || "";
     if (inputEl) {
       if (message) {
         inputEl.classList.add("food-input-invalid");
@@ -116,9 +173,14 @@
   }
 
   function cleanApiErrorMessage(rawMessage) {
-    return String(rawMessage || "")
+    const msg = String(rawMessage || "")
       .trim()
       .replace(/^(?:Value error,\s*)+/i, "");
+    // Chặn các chuỗi lỗi kỹ thuật thô (stack trace / SQL / exception class)
+    if (/traceback|sqlalchemy|pymysql|operationalerror|syntaxerror/i.test(msg)) {
+      return "Hệ thống máy chủ đang gặp sự cố tạm thời. Vui lòng thử lại sau.";
+    }
+    return msg;
   }
 
   function pushUniqueMessage(list, message) {
@@ -172,7 +234,78 @@
     return { fieldErrors, generalErrors, summaryMessage };
   }
 
-  function applyApiErrors(apiErr) {
+  // Phân loại lỗi API sang thông báo thân thiện cho người dùng
+  function classifyRecommendError(apiErr) {
+    const status = apiErr && typeof apiErr.status === "number" ? apiErr.status : -1;
+
+    if (apiErr && apiErr.isTimeout) {
+      return {
+        title: "Yêu cầu quá thời gian phản hồi",
+        message:
+          "Máy chủ phản hồi chậm hơn dự kiến. Vui lòng kiểm tra kết nối mạng và nhấn Thử lại.",
+        canRetry: true,
+      };
+    }
+
+    if (status === 0) {
+      return {
+        title: "Không thể kết nối tới máy chủ",
+        message:
+          "Không kết nối được với hệ thống DecisionHub. Vui lòng kiểm tra mạng hoặc đảm bảo máy chủ Backend đang hoạt động rồi thử lại.",
+        canRetry: true,
+      };
+    }
+
+    if (status === 401) {
+      return {
+        title: "Phiên đăng nhập đã hết hạn",
+        message:
+          "Phiên xác thực của bạn không còn hợp lệ. Bạn có thể nhấn Thử lại để tiếp tục tìm món ăn hoặc đăng nhập lại để lưu lịch sử quyết định.",
+        canRetry: true,
+        isAuthError: true,
+      };
+    }
+
+    if (status === 403) {
+      return {
+        title: "Không có quyền truy cập",
+        message: "Tài khoản hiện tại không có quyền thực hiện thao tác này.",
+        canRetry: false,
+      };
+    }
+
+    if (status === 422 || status === 400) {
+      const { summaryMessage, generalErrors } = extractApiErrors(apiErr);
+      return {
+        title: "Dữ liệu tìm kiếm chưa hợp lệ",
+        message:
+          generalErrors[0] ||
+          summaryMessage ||
+          "Một số tiêu chí gửi lên chưa hợp lệ. Vui lòng kiểm tra lại các ô được đánh dấu trên biểu mẫu.",
+        canRetry: false,
+        isValidation: true,
+      };
+    }
+
+    if (status >= 500) {
+      return {
+        title: "Máy chủ đang gặp sự cố tạm thời",
+        message:
+          "Hệ thống xử lý gợi ý món ăn đang bận hoặc gặp lỗi nội bộ. Vui lòng nhấn Thử lại sau giây lát.",
+        canRetry: true,
+      };
+    }
+
+    return {
+      title: "Không thể hoàn tất gợi ý món ăn",
+      message:
+        cleanApiErrorMessage(apiErr && apiErr.message) ||
+        "Đã xảy ra sự cố không mong muốn khi tìm món ăn phù hợp. Vui lòng thử lại.",
+      canRetry: true,
+    };
+  }
+
+  function applyApiValidationErrors(apiErr) {
     clearAllFieldErrors();
 
     const { fieldErrors, generalErrors, summaryMessage } = extractApiErrors(apiErr);
@@ -193,31 +326,27 @@
       firstInvalidInput.focus();
     }
 
-    if (generalErrors.length > 0) {
-      showStatus(
-        generalErrors.map((msg) => escapeHtml(msg)).join("<br>"),
-        "error",
-      );
-    } else if (firstInvalidInput) {
-      showStatus(
-        escapeHtml(
-          summaryMessage ||
-            "Dữ liệu đầu vào không hợp lệ. Vui lòng kiểm tra các ô được đánh dấu.",
-        ),
-        "error",
-      );
-    } else {
-      showStatus(
-        escapeHtml("Dữ liệu đầu vào không hợp lệ. Vui lòng kiểm tra lại."),
-        "error",
-      );
-    }
+    const displayMessage =
+      generalErrors.length > 0
+        ? generalErrors.map((msg) => safeHtml(msg)).join("<br>")
+        : safeHtml(
+            summaryMessage ||
+              "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra và điều chỉnh các trường được đánh dấu.",
+          );
+
+    showStatus(`<strong>Dữ liệu chưa hợp lệ:</strong> ${displayMessage}`, "error");
   }
 
+  // ---------- Validate dữ liệu Form phía Client ----------
   function validateMaxBudget() {
+    if (!maxBudgetInput) return { valid: false, empty: true, message: "Vui lòng nhập ngân sách tối đa." };
     const raw = maxBudgetInput.value.trim();
     if (!raw) {
-      return { valid: false, message: "Vui lòng nhập ngân sách tối đa." };
+      return {
+        valid: false,
+        empty: true,
+        message: "Vui lòng nhập ngân sách tối đa để bắt đầu tìm món ăn.",
+      };
     }
 
     const value = Number(raw);
@@ -236,11 +365,8 @@
     return { valid: true, value };
   }
 
-  function getMealLabel(mealType) {
-    return mealType ? (ALLOWED_MEAL_TYPES[mealType] || mealType) : "tất cả bữa ăn";
-  }
-
   function validateMealType() {
+    if (!mealTypeSelect) return { valid: true, value: null };
     const value = mealTypeSelect.value.trim();
     if (!value) {
       return { valid: true, value: null };
@@ -280,7 +406,7 @@
   }
 
   function parseCommaList(raw) {
-    return raw
+    return String(raw || "")
       .split(",")
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
@@ -341,6 +467,68 @@
     return { valid: true, value };
   }
 
+  function validateAllFormFields() {
+    const budgetResult = validateMaxBudget();
+    const mealResult = validateMealType();
+    const prepTimeResult = validateMaxPrepTime();
+    const avoidResult = validateCommaList(avoidInput, {
+      maxItems: MAX_LIST_ITEMS,
+      itemNoun: "nguyên liệu cần tránh",
+    });
+    const tagsResult = validateCommaList(preferredTagsInput, {
+      maxItems: MAX_LIST_ITEMS,
+      itemNoun: "khẩu vị/nhãn ưu tiên",
+    });
+    const limitResult = validateLimit();
+
+    setFieldError(maxBudgetInput, maxBudgetError, budgetResult.valid ? "" : budgetResult.message);
+    setFieldError(mealTypeSelect, mealTypeError, mealResult.valid ? "" : mealResult.message);
+    setFieldError(maxPrepTimeInput, maxPrepTimeError, prepTimeResult.valid ? "" : prepTimeResult.message);
+    setFieldError(avoidInput, avoidError, avoidResult.valid ? "" : avoidResult.message);
+    setFieldError(preferredTagsInput, preferredTagsError, tagsResult.valid ? "" : tagsResult.message);
+    setFieldError(limitInput, limitError, limitResult.valid ? "" : limitResult.message);
+
+    const orderedChecks = [
+      [budgetResult, maxBudgetInput],
+      [mealResult, mealTypeSelect],
+      [prepTimeResult, maxPrepTimeInput],
+      [avoidResult, avoidInput],
+      [tagsResult, preferredTagsInput],
+      [limitResult, limitInput],
+    ];
+    const firstFailure = orderedChecks.find(([result]) => !result.valid);
+
+    if (firstFailure) {
+      if (firstFailure[1] && typeof firstFailure[1].focus === "function") {
+        firstFailure[1].focus();
+      }
+      if (budgetResult.empty) {
+        showStatus(
+          "<strong>Chưa nhập đủ thông tin:</strong> Vui lòng nhập <strong>Ngân sách tối đa (VNĐ)</strong> để hệ thống tìm món ăn phù hợp cho bạn.",
+          "warning",
+        );
+      } else {
+        showStatus(
+          `<strong>Thông tin chưa hợp lệ:</strong> ${safeHtml(firstFailure[0].message)} Vui lòng điều chỉnh lại điều kiện trên biểu mẫu.`,
+          "error",
+        );
+      }
+      return { valid: false, isEmptyForm: Boolean(budgetResult.empty) };
+    }
+
+    return {
+      valid: true,
+      payload: {
+        budget_max: budgetResult.value,
+        meal_type: mealResult.value,
+        max_prep_time: prepTimeResult.value,
+        excluded_ingredients: avoidResult.value,
+        preferred_tags: tagsResult.value,
+        limit: limitResult.value,
+      },
+    };
+  }
+
   function syncTagChips() {
     if (!preferredTagChips || !preferredTagsInput) return;
     const activeTags = new Set(
@@ -354,6 +542,7 @@
     });
   }
 
+  // ---------- Quản lý thanh trạng thái Form & Chuyển đổi View Kết quả ----------
   function clearStatus() {
     if (statusBox) {
       statusBox.classList.add("d-none");
@@ -364,97 +553,69 @@
 
   function showStatus(html, type = "info") {
     if (!statusBox) return;
-    statusBox.className = `food-form-status mt-3 alert alert-${type === "error" ? "danger" : type === "success" ? "success" : "info"} py-2 px-3`;
+    const alertClass =
+      type === "error"
+        ? "danger"
+        : type === "warning"
+          ? "warning"
+          : type === "success"
+            ? "success"
+            : "info";
+    statusBox.className = `food-form-status mt-3 alert alert-${alertClass} py-2 px-3`;
     statusBox.innerHTML = html;
     statusBox.classList.remove("d-none");
   }
 
-  // Quản lý trạng thái loading
-  function setLoading(isLoading) {
-    if (!submitBtn) return;
-    const excludedBodyEl = document.getElementById("results-excluded-body");
+  // Khoá/mở các nút thao tác trên Form trong lúc chờ API (giữ nguyên dữ liệu người dùng đã nhập)
+  function setFormLoading(isLoading) {
+    form.setAttribute("aria-busy", isLoading ? "true" : "false");
 
-    if (isLoading) {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `
-        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-        Đang phân tích WSM...
-      `;
-      if (rankingListEl) {
-        rankingListEl.innerHTML = `
-          <li class="p-4 text-center">
-            <div class="spinner-border text-success mb-2" role="status"></div>
-            <div class="dh-muted dh-small">Đang lọc điều kiện và tính toán điểm số WSM...</div>
-          </li>
-        `;
-      }
-      if (explanationBodyEl) {
-        explanationBodyEl.innerHTML = `
-          <div class="p-4 text-center dh-muted dh-small">
-            Đang tải dữ liệu chi tiết phương án...
-          </div>
-        `;
-      }
-      if (excludedBodyEl) {
-        excludedBodyEl.innerHTML = `
-          <div class="p-4 text-center dh-muted dh-small">
-            <div class="spinner-border spinner-border-sm text-secondary me-1" role="status"></div>
-            Đang phân tích điều kiện loại trừ...
-          </div>
-        `;
-      }
-    } else {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = "Gợi ý món ăn";
+    if (submitBtn) {
+      submitBtn.disabled = isLoading;
+      submitBtn.innerHTML = isLoading
+        ? `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Đang tìm kiếm món ăn phù hợp...`
+        : "Gợi ý món ăn";
+    }
+
+    if (resetBtn) {
+      resetBtn.disabled = isLoading;
+    }
+
+    if (preferredTagChips) {
+      preferredTagChips.querySelectorAll("button.dh-chip").forEach((chip) => {
+        chip.disabled = isLoading;
+      });
     }
   }
 
-  // Lưu lịch sử vào LocalStorage
-  function saveToDecisionHistory(data) {
-    try {
-      const STORAGE_KEY = "dh_decision_history";
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const list = raw ? JSON.parse(raw) : [];
+  // Đảm bảo tại mỗi thời điểm chỉ có ĐÚNG 1 trạng thái khu vực kết quả hiển thị (không chồng chéo)
+  function switchResultsView(mode, options = {}) {
+    uiState.view = mode;
+    const showExcluded = Boolean(options.showExcluded);
 
-      const summaryParts = [
-        `Ngân sách ≤ ${moneyStr(data.budget_max)}`,
-        getMealLabel(data.meal_type),
-      ];
-      if (data.max_prep_time) {
-        summaryParts.push(`≤ ${data.max_prep_time} phút`);
-      }
-      if (data.avoid_ingredients && data.avoid_ingredients.length) {
-        summaryParts.push(`tránh: ${data.avoid_ingredients.join(", ")}`);
-      }
-      if (data.preferred_tags && data.preferred_tags.length) {
-        summaryParts.push(`ưu tiên: ${data.preferred_tags.join(", ")}`);
-      }
+    if (initialStateEl) initialStateEl.classList.toggle("d-none", mode !== "initial");
+    if (loadingStateEl) loadingStateEl.classList.toggle("d-none", mode !== "loading");
+    if (emptyStateEl) emptyStateEl.classList.toggle("d-none", mode !== "empty");
+    if (errorStateEl) errorStateEl.classList.toggle("d-none", mode !== "error");
+    if (successContentEl) successContentEl.classList.toggle("d-none", mode !== "success");
+    if (excludedSectionEl) {
+      excludedSectionEl.classList.toggle(
+        "d-none",
+        !(mode === "success" || (mode === "empty" && showExcluded)),
+      );
+    }
 
-      const record = {
-        id: "hist_" + Date.now(),
-        createdAt: new Date().toISOString(),
-        module: "food",
-        moduleLabel: "Gợi ý Món ăn",
-        criteriaSummary: summaryParts.join(", "),
-        resultSummary: data.top_name ? `Top 1: ${data.top_name} (${Number(data.top_score).toFixed(1)}đ)` : "Không có kết quả",
-        total: data.total,
-        budget_max: data.budget_max,
-        meal_type: data.meal_type,
-        max_prep_time: data.max_prep_time ?? null,
-        avoid_ingredients: data.avoid_ingredients,
-        preferred_tags: data.preferred_tags || [],
-        limit: data.limit || DEFAULT_LIMIT,
-      };
-
-      list.unshift(record);
-      const trimmed = list.slice(0, 30);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-    } catch (err) {
-      console.warn("Không thể lưu lịch sử quyết định:", err);
+    // Khi bắt đầu loading, xóa nội dung kết quả cũ để tránh hiểu nhầm dữ liệu cũ là kết quả mới
+    if (mode === "loading") {
+      if (rankingListEl) rankingListEl.innerHTML = "";
+      if (explanationBodyEl) explanationBodyEl.innerHTML = "";
+      if (resultsTotalEl) resultsTotalEl.textContent = "–";
+      if (resultsTopNameEl) resultsTopNameEl.textContent = "–";
+      if (resultsTopScoreEl) resultsTopScoreEl.textContent = "";
     }
   }
 
-  // Ánh xạ ảnh
+  // ---------- Định dạng kết quả từ API Backend ----------
   function resolveFoodImage(foodName, imageUrl) {
     if (imageUrl && typeof imageUrl === "string" && imageUrl.trim()) {
       return imageUrl;
@@ -474,7 +635,6 @@
     return "../assets/images/foods/phobo.jpg";
   }
 
-  // Định dạng dữ liệu từ API Backend sang cấu trúc UI
   function formatApiResults(items, criteriaList, weightsMap) {
     const criteria = criteriaList || [
       { key: "price", label: "Giá / Ngân sách", weight: 0.4 },
@@ -494,15 +654,24 @@
       criteria.forEach((crit) => {
         const key = crit.key;
         const detailObj = rawDetails[key] || {};
-        const scoreVal = detailObj.normalized_score !== undefined
-          ? detailObj.normalized_score
-          : (criteriaScores[key] !== undefined ? criteriaScores[key] : null);
-        const weightVal = detailObj.weight !== undefined
-          ? detailObj.weight
-          : (weightsMap && weightsMap[key] !== undefined ? weightsMap[key] : crit.weight);
-        const contribVal = detailObj.contribution !== undefined
-          ? detailObj.contribution
-          : (scoreVal !== null ? Math.round(weightVal * scoreVal * 100) / 100 : 0);
+        const scoreVal =
+          detailObj.normalized_score !== undefined
+            ? detailObj.normalized_score
+            : criteriaScores[key] !== undefined
+              ? criteriaScores[key]
+              : null;
+        const weightVal =
+          detailObj.weight !== undefined
+            ? detailObj.weight
+            : weightsMap && weightsMap[key] !== undefined
+              ? weightsMap[key]
+              : crit.weight;
+        const contribVal =
+          detailObj.contribution !== undefined
+            ? detailObj.contribution
+            : scoreVal !== null
+              ? Math.round(weightVal * scoreVal * 100) / 100
+              : 0;
 
         details[key] = {
           label: crit.label,
@@ -514,8 +683,12 @@
 
       const reasons = Array.isArray(item.reasons) ? [...item.reasons] : [];
       if (reasons.length === 0) {
-        if (item.price) reasons.push(`Mức giá ${moneyStr(item.price)} phù hợp với ngân sách của bạn`);
-        if (item.prep_time) reasons.push(`Thời gian chuẩn bị ${item.prep_time} phút nhanh chóng`);
+        if (item.price) {
+          reasons.push(`Mức giá ${moneyStr(item.price)} phù hợp với ngân sách của bạn`);
+        }
+        if (item.prep_time) {
+          reasons.push(`Thời gian chuẩn bị ${item.prep_time} phút nhanh chóng`);
+        }
       }
 
       const pros = [...reasons];
@@ -528,11 +701,15 @@
         cons.push(`Thời gian chuẩn bị (${item.prep_time} phút) cần đợi lâu hơn`);
       }
       if (cons.length === 0) {
-        cons.push(isTop ? "Là lựa chọn hài hòa nhất trong tầm giá" : "Điểm tổng hợp thấp hơn phương án đứng đầu");
+        cons.push(
+          isTop
+            ? "Là lựa chọn hài hòa nhất trong tầm giá"
+            : "Điểm tổng hợp thấp hơn phương án đứng đầu",
+        );
       }
 
       return {
-        id: item.food_id || item.id || (index + 1),
+        id: item.food_id || item.id || index + 1,
         name: item.name,
         price: item.price,
         prep_time: item.prep_time,
@@ -565,15 +742,26 @@
 
   // ---------- HÀM THỰC THI GỢI Ý MÓN ĂN CHÍNH ----------
   async function executeRecommendation(payload, options = { saveHistory: true }) {
+    // Chặn gửi request trùng ngoài ý muốn khi người dùng bấm liên tục
+    if (uiState.isSubmitting) {
+      return;
+    }
+
     const shouldSaveHistory = options && options.saveHistory !== false;
     const reqOptions = { authMode: shouldSaveHistory ? "optional" : "none" };
-    const excludedBodyEl = document.getElementById("results-excluded-body");
-    const prevRankingHtml = rankingListEl ? rankingListEl.innerHTML : null;
-    const prevExplanationHtml = explanationBodyEl ? explanationBodyEl.innerHTML : null;
-    const prevExcludedHtml = excludedBodyEl ? excludedBodyEl.innerHTML : null;
+    const reqSeq = ++uiState.requestSeq;
 
-    setLoading(true);
-    clearStatus();
+    uiState.isSubmitting = true;
+    uiState.lastPayload = { ...payload };
+    uiState.lastSaveHistory = shouldSaveHistory;
+
+    clearAllFieldErrors();
+    setFormLoading(true);
+    switchResultsView("loading");
+    showStatus(
+      `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang tìm kiếm món ăn phù hợp...`,
+      "info",
+    );
 
     const criteriaList = window.FOOD_CRITERIA || [
       { key: "price", label: "Giá", weight: 0.4 },
@@ -581,107 +769,56 @@
       { key: "prep_time", label: "Thời gian chuẩn bị", weight: 0.25 },
     ];
 
-    let finalResults = [];
-    let excludedItems = [];
-    let isFromBackend = false;
-    let backendMessage = "";
+    try {
+      if (typeof api === "undefined" || typeof api.post !== "function") {
+        throw new Error("Không tìm thấy module kết nối API.");
+      }
 
-    // 1. Thử gọi API Backend trước nếu có server chạy
-    if (typeof api !== "undefined" && typeof api.post === "function") {
-      try {
-        const res = await api.post("/decisions/food/recommend", payload, reqOptions);
+      const res = await api.post("/decisions/food/recommend", payload, reqOptions);
 
-        const data = res && res.data ? res.data : res;
-        if (data) {
-          if (Array.isArray(data.items)) {
-            finalResults = formatApiResults(data.items, criteriaList, data.scoring?.weights);
-          }
-          if (Array.isArray(data.excluded_items)) {
-            excludedItems = data.excluded_items;
-          }
-          backendMessage = data.message || "";
-          isFromBackend = true;
+      // Chống race condition nếu có phiên request mới hơn
+      if (reqSeq !== uiState.requestSeq) return;
+
+      const data = res && res.data ? res.data : res;
+      const rawItems = data && Array.isArray(data.items) ? data.items : [];
+      const excludedItems = data && Array.isArray(data.excluded_items) ? data.excluded_items : [];
+      const backendMessage = (data && data.message) || "";
+      const finalResults = formatApiResults(rawItems, criteriaList, data && data.scoring ? data.scoring.weights : null);
+      const mealText = getMealLabel(payload.meal_type);
+
+      // Trường hợp 1: Thành công nhưng KHÔNG có món ăn phù hợp (Empty State)
+      if (finalResults.length === 0) {
+        const hasExcluded = excludedItems.length > 0;
+        if (emptyTitleEl) {
+          emptyTitleEl.textContent = "Không tìm thấy món ăn phù hợp với tiêu chí hiện tại.";
         }
-      } catch (apiErr) {
-        if (apiErr && (apiErr.status === 422 || apiErr.status === 400)) {
-          if (rankingListEl && prevRankingHtml !== null) {
-            rankingListEl.innerHTML = prevRankingHtml;
-          }
-          if (explanationBodyEl && prevExplanationHtml !== null) {
-            explanationBodyEl.innerHTML = prevExplanationHtml;
-          }
-          if (excludedBodyEl && prevExcludedHtml !== null) {
-            excludedBodyEl.innerHTML = prevExcludedHtml;
-          }
-          applyApiErrors(apiErr);
-          setLoading(false);
-          return;
+        if (emptyDescEl) {
+          emptyDescEl.textContent = hasExcluded
+            ? `Tất cả ${excludedItems.length} món ăn đều không đạt điều kiện lọc bắt buộc (ngân sách ≤ ${moneyStr(payload.budget_max)}, ${mealText}). Bạn có thể thử thay đổi ngân sách, khẩu vị hoặc bỏ bớt điều kiện lọc.`
+            : "Bạn có thể thử thay đổi ngân sách, khẩu vị hoặc bỏ bớt điều kiện lọc.";
         }
-        console.info("Backend chưa sẵn sàng hoặc gặp lỗi, sử dụng Client-Side Decision Engine:", apiErr.message);
-      }
-    }
 
-    // 2. Nếu Backend offline hoặc chưa có kết quả: dùng Engine lọc động thông minh của Frontend
-    if (!isFromBackend) {
-      if (typeof window.filterAndScoreFoods === "function") {
-        const fallback = window.filterAndScoreFoods(payload);
-        finalResults = fallback.items || [];
-        excludedItems = fallback.excluded_items || [];
-        backendMessage = fallback.message || "";
-      }
-    }
-
-    // 3. Render kết quả lên giao diện
-    const mealText = getMealLabel(payload.meal_type);
-    const historyBase = {
-      budget_max: payload.budget_max,
-      meal_type: payload.meal_type,
-      max_prep_time: payload.max_prep_time,
-      avoid_ingredients: payload.excluded_ingredients,
-      preferred_tags: payload.preferred_tags,
-      limit: payload.limit,
-    };
-
-    if (!finalResults || finalResults.length === 0) {
-      // Trạng thái Không có món thỏa mãn
-      if (typeof DHResults !== "undefined") {
-        if (excludedItems.length > 0 && typeof DHResults.renderAllExcludedState === "function") {
-          DHResults.renderAllExcludedState(
-            excludedItems,
-            `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${mealText}. Tất cả ${excludedItems.length} phương án đều đã bị loại bởi điều kiện bắt buộc.`,
-          );
-        } else if (typeof DHResults.renderEmptyState === "function") {
-          DHResults.renderEmptyState(
-            `Không tìm thấy món ăn nào phù hợp với ngân sách ≤ ${moneyStr(payload.budget_max)} cho ${mealText}. Hãy thử tăng ngân sách hoặc nới bớt điều kiện lọc!`,
-          );
-          if (typeof DHResults.renderExcludedCandidates === "function") {
-            DHResults.renderExcludedCandidates([]);
-          }
+        if (hasExcluded && typeof DHResults !== "undefined" && typeof DHResults.renderExcludedCandidates === "function") {
+          DHResults.renderExcludedCandidates(excludedItems);
         }
+
+        switchResultsView("empty", { showExcluded: hasExcluded });
+
+        showStatus(
+          `<strong>Không tìm thấy món ăn phù hợp:</strong> Chưa có phương án nào thỏa mãn ngân sách <strong>${safeHtml(moneyStr(payload.budget_max))}</strong> (${safeHtml(mealText)}). Hãy thử tăng ngân sách hoặc nới bớt điều kiện lọc.`,
+          "warning",
+        );
+
+        if (typeof showToast === "function") {
+          showToast("Không tìm thấy món ăn phù hợp với tiêu chí hiện tại.", "error");
+        }
+        return;
       }
 
-      if (resultsTotalEl) resultsTotalEl.textContent = "0";
-      if (resultsTopNameEl) resultsTopNameEl.textContent = "Không có phương án";
-      if (resultsTopScoreEl) resultsTopScoreEl.textContent = "";
+      // Trường hợp 2: Thành công và CÓ dữ liệu gợi ý (Success State)
+      uiState.hasPreviousSuccess = true;
+      switchResultsView("success");
 
-      const msgHtml = excludedItems.length > 0
-        ? `<strong>Không có món ăn phù hợp:</strong> Tất cả <strong>${excludedItems.length}</strong> món ăn đều đã bị loại bởi điều kiện bắt buộc (ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong>, <strong>${escapeHtml(mealText)}</strong>). Vui lòng xem lý do chi tiết ở bảng phía dưới để nới lỏng điều kiện!`
-        : `<strong>Không có món ăn phù hợp:</strong> Với ngân sách <strong>${escapeHtml(moneyStr(payload.budget_max))}</strong> cho <strong>${escapeHtml(mealText)}</strong>, không có món nào thỏa mãn. Bạn hãy thử nới lỏng điều kiện nhé!`;
-
-      showStatus(msgHtml, "warning");
-
-      saveToDecisionHistory({
-        ...historyBase,
-        top_name: "",
-        top_score: 0,
-        total: 0,
-      });
-
-      if (typeof showToast === "function") {
-        showToast("Không tìm thấy món ăn phù hợp với tiêu chí.", "warning");
-      }
-    } else {
-      // Có kết quả -> Render bảng xếp hạng, giải thích chi tiết và danh sách bị loại
       if (typeof DHResults !== "undefined" && typeof DHResults.initResultsPage === "function") {
         DHResults.initResultsPage({
           results: finalResults,
@@ -692,79 +829,137 @@
       }
 
       const topOption = finalResults[0];
-      if (resultsTotalEl) resultsTotalEl.textContent = finalResults.length;
+      if (resultsTotalEl) resultsTotalEl.textContent = String(finalResults.length);
       if (resultsTopNameEl) resultsTopNameEl.textContent = topOption.name;
       if (resultsTopScoreEl) {
         resultsTopScoreEl.textContent = `${Number(topOption.score).toFixed(1)}/100 điểm (WSM)`;
       }
 
-      const excludedNotice = excludedItems.length > 0
-        ? ` (và <strong>${excludedItems.length}</strong> phương án bị loại bởi điều kiện bắt buộc)`
-        : "";
+      const excludedNotice =
+        excludedItems.length > 0
+          ? ` (đã loại <strong>${excludedItems.length}</strong> món không thỏa điều kiện bắt buộc)`
+          : "";
 
       showStatus(
-        `✓ Đã tìm thấy <strong>${finalResults.length}</strong> món ăn tối ưu nhất${excludedNotice}. Lựa chọn số 1: <strong>${escapeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)} điểm WSM).`,
+        `✓ Đã tìm thấy <strong>${finalResults.length}</strong> món ăn phù hợp nhất${excludedNotice}. Đề xuất số 1: <strong>${safeHtml(topOption.name)}</strong> (${Number(topOption.score).toFixed(1)}/100 điểm WSM).`,
         "success",
       );
-
-      saveToDecisionHistory({
-        ...historyBase,
-        top_name: topOption.name,
-        top_score: topOption.score,
-        total: finalResults.length,
-      });
 
       if (typeof showToast === "function") {
         showToast(`Đã đề xuất ${finalResults.length} món ăn phù hợp!`, "success");
       }
 
-      // Cuộn mượt màn hình tới bảng xếp hạng nếu đang trên màn hình nhỏ
-      if (window.matchMedia("(max-width: 991.98px)").matches) {
-        const rankingHeader = document.getElementById("results-ranking-title");
-        if (rankingHeader) {
-          rankingHeader.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (window.matchMedia && window.matchMedia("(max-width: 991.98px)").matches) {
+        const summarySection = document.getElementById("results-summary-section");
+        if (summarySection && typeof summarySection.scrollIntoView === "function") {
+          summarySection.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
-    }
+    } catch (apiErr) {
+      if (reqSeq !== uiState.requestSeq) return;
 
-    setLoading(false);
+      const classified = classifyRecommendError(apiErr);
+
+      // Lỗi validation 422 / 400 từ Backend: gắn lỗi vào từng ô input trên Form
+      if (classified.isValidation) {
+        applyApiValidationErrors(apiErr);
+        switchResultsView("error");
+        if (errorTitleEl) errorTitleEl.textContent = classified.title;
+        if (errorDescEl) errorDescEl.textContent = classified.message;
+        return;
+      }
+
+      // Các lỗi kết nối, timeout, 401, 403, 500+: hiển thị Error State kèm nút Thử lại
+      if (errorTitleEl) errorTitleEl.textContent = classified.title;
+      if (errorDescEl) errorDescEl.textContent = classified.message;
+      if (btnRetryError) {
+        btnRetryError.classList.toggle("d-none", !classified.canRetry);
+      }
+      switchResultsView("error");
+
+      const retryActionHtml = classified.canRetry
+        ? `<div class="food-status-actions">
+             <button type="button" class="dh-btn dh-btn-sm dh-btn-outline" data-action="status-retry">↻ Thử lại</button>
+             ${
+               classified.isAuthError
+                 ? `<a href="signup.html" class="dh-btn dh-btn-sm dh-btn-primary" style="text-decoration:none;">Đăng nhập lại</a>`
+                 : ""
+             }
+           </div>`
+        : "";
+
+      showStatus(
+        `<strong>${safeHtml(classified.title)}:</strong> ${safeHtml(classified.message)}${retryActionHtml}`,
+        "error",
+      );
+
+      if (typeof showToast === "function") {
+        showToast(classified.title, "error");
+      }
+    } finally {
+      if (reqSeq === uiState.requestSeq) {
+        uiState.isSubmitting = false;
+        setFormLoading(false);
+      }
+    }
   }
 
-  // ---------- GẮN SỰ KIỆN FORM ----------
-  maxBudgetInput.addEventListener("input", () => {
-    setFieldError(maxBudgetInput, maxBudgetError, "");
-    clearStatus();
-  });
+  function retryLastRequest() {
+    if (uiState.isSubmitting) return;
 
-  mealTypeSelect.addEventListener("change", () => {
-    setFieldError(mealTypeSelect, mealTypeError, "");
-    clearStatus();
-  });
+    if (uiState.lastPayload) {
+      executeRecommendation(uiState.lastPayload, { saveHistory: uiState.lastSaveHistory });
+      return;
+    }
+
+    const check = validateAllFormFields();
+    if (check.valid) {
+      executeRecommendation(check.payload, { saveHistory: true });
+    }
+  }
+
+  // ---------- GẮN SỰ KIỆN FORM & NÚT HÀNH ĐỘNG ----------
+  if (maxBudgetInput) {
+    maxBudgetInput.addEventListener("input", () => {
+      setFieldError(maxBudgetInput, maxBudgetError, "");
+      if (!uiState.isSubmitting) clearStatus();
+    });
+  }
+
+  if (mealTypeSelect) {
+    mealTypeSelect.addEventListener("change", () => {
+      setFieldError(mealTypeSelect, mealTypeError, "");
+      if (!uiState.isSubmitting) clearStatus();
+    });
+  }
 
   if (maxPrepTimeInput) {
     maxPrepTimeInput.addEventListener("input", () => {
       setFieldError(maxPrepTimeInput, maxPrepTimeError, "");
-      clearStatus();
+      if (!uiState.isSubmitting) clearStatus();
     });
   }
 
-  avoidInput.addEventListener("input", () => {
-    setFieldError(avoidInput, avoidError, "");
-    clearStatus();
-  });
+  if (avoidInput) {
+    avoidInput.addEventListener("input", () => {
+      setFieldError(avoidInput, avoidError, "");
+      if (!uiState.isSubmitting) clearStatus();
+    });
+  }
 
   if (preferredTagsInput) {
     preferredTagsInput.addEventListener("input", () => {
       setFieldError(preferredTagsInput, preferredTagsError, "");
-      clearStatus();
+      if (!uiState.isSubmitting) clearStatus();
       syncTagChips();
     });
   }
 
   if (preferredTagChips && preferredTagsInput) {
     preferredTagChips.addEventListener("click", (event) => {
+      if (uiState.isSubmitting) return;
       const btn = event.target.closest(".dh-chip[data-tag]");
-      if (!btn) return;
+      if (!btn || btn.disabled) return;
       const clickedTag = (btn.dataset.tag || "").trim();
       if (!clickedTag) return;
 
@@ -785,18 +980,45 @@
   if (limitInput) {
     limitInput.addEventListener("input", () => {
       setFieldError(limitInput, limitError, "");
-      clearStatus();
+      if (!uiState.isSubmitting) clearStatus();
     });
   }
 
+  if (statusBox) {
+    statusBox.addEventListener("click", (event) => {
+      const retryBtn = event.target.closest("[data-action='status-retry']");
+      if (retryBtn) {
+        retryLastRequest();
+      }
+    });
+  }
+
+  if (btnFocusForm) {
+    btnFocusForm.addEventListener("click", focusRecommendForm);
+  }
+  if (btnAdjustCriteria) {
+    btnAdjustCriteria.addEventListener("click", focusRecommendForm);
+  }
+  if (btnErrorAdjust) {
+    btnErrorAdjust.addEventListener("click", focusRecommendForm);
+  }
+  if (btnRetryEmpty) {
+    btnRetryEmpty.addEventListener("click", () => {
+      const check = validateAllFormFields();
+      if (check.valid) {
+        executeRecommendation(check.payload, { saveHistory: true });
+      }
+    });
+  }
+  if (btnRetryError) {
+    btnRetryError.addEventListener("click", retryLastRequest);
+  }
+
   form.addEventListener("reset", () => {
-    setFieldError(maxBudgetInput, maxBudgetError, "");
-    setFieldError(mealTypeSelect, mealTypeError, "");
-    setFieldError(maxPrepTimeInput, maxPrepTimeError, "");
-    setFieldError(avoidInput, avoidError, "");
-    setFieldError(preferredTagsInput, preferredTagsError, "");
-    setFieldError(limitInput, limitError, "");
+    if (uiState.isSubmitting) return;
+    clearAllFieldErrors();
     clearStatus();
+    switchResultsView("initial");
 
     setTimeout(() => {
       if (limitInput) limitInput.value = String(DEFAULT_LIMIT);
@@ -806,56 +1028,28 @@
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (uiState.isSubmitting) return;
+
     clearStatus();
-
-    const budgetResult = validateMaxBudget();
-    const mealResult = validateMealType();
-    const prepTimeResult = validateMaxPrepTime();
-    const avoidResult = validateCommaList(avoidInput, {
-      maxItems: MAX_LIST_ITEMS,
-      itemNoun: "nguyên liệu cần tránh",
-    });
-    const tagsResult = validateCommaList(preferredTagsInput, {
-      maxItems: MAX_LIST_ITEMS,
-      itemNoun: "khẩu vị/nhãn ưu tiên",
-    });
-    const limitResult = validateLimit();
-
-    setFieldError(maxBudgetInput, maxBudgetError, budgetResult.valid ? "" : budgetResult.message);
-    setFieldError(mealTypeSelect, mealTypeError, mealResult.valid ? "" : mealResult.message);
-    setFieldError(maxPrepTimeInput, maxPrepTimeError, prepTimeResult.valid ? "" : prepTimeResult.message);
-    setFieldError(avoidInput, avoidError, avoidResult.valid ? "" : avoidResult.message);
-    setFieldError(preferredTagsInput, preferredTagsError, tagsResult.valid ? "" : tagsResult.message);
-    setFieldError(limitInput, limitError, limitResult.valid ? "" : limitResult.message);
-
-    const orderedChecks = [
-      [budgetResult, maxBudgetInput],
-      [mealResult, mealTypeSelect],
-      [prepTimeResult, maxPrepTimeInput],
-      [avoidResult, avoidInput],
-      [tagsResult, preferredTagsInput],
-      [limitResult, limitInput],
-    ];
-    const firstFailure = orderedChecks.find(([result]) => !result.valid);
-    if (firstFailure) {
-      if (firstFailure[1]) firstFailure[1].focus();
+    const check = validateAllFormFields();
+    if (!check.valid) {
+      // Nếu người dùng chưa có kết quả thành công trước đó và form chưa nhập/chưa hợp lệ,
+      // giữ khu vực kết quả ở trạng thái hướng dẫn nhập tiêu chí (không báo nhầm là Backend rỗng).
+      if (uiState.view !== "success") {
+        switchResultsView("initial");
+      }
       return;
     }
 
-    const payload = {
-      budget_max: budgetResult.value,
-      meal_type: mealResult.value,
-      max_prep_time: prepTimeResult.value,
-      excluded_ingredients: avoidResult.value,
-      preferred_tags: tagsResult.value,
-      limit: limitResult.value,
-    };
-
-    executeRecommendation(payload);
+    executeRecommendation(check.payload, { saveHistory: true });
   });
 
   // ---------- Khởi tạo lần đầu khi nạp trang ----------
   function initPage() {
+    if (typeof DHResults !== "undefined" && typeof DHResults.initSidebar === "function") {
+      DHResults.initSidebar();
+    }
+
     const params = new URLSearchParams(window.location.search);
     const qBudget = params.get("budget_max") || params.get("max_budget") || params.get("budget");
     const qMeal = params.get("meal_type");
@@ -864,23 +1058,20 @@
     const qTags = params.get("preferred_tags") || params.get("tags");
     const qLimit = params.get("limit");
 
-    if (qBudget) {
+    if (qBudget && maxBudgetInput) {
       maxBudgetInput.value = qBudget;
-    } else if (!maxBudgetInput.value) {
-      maxBudgetInput.value = "50000";
     }
 
-    if (qMeal && Object.prototype.hasOwnProperty.call(ALLOWED_MEAL_TYPES, qMeal)) {
-      mealTypeSelect.value = qMeal;
-    } else {
-      mealTypeSelect.value = "";
+    if (mealTypeSelect) {
+      mealTypeSelect.value =
+        qMeal && Object.prototype.hasOwnProperty.call(ALLOWED_MEAL_TYPES, qMeal) ? qMeal : "";
     }
 
     if (maxPrepTimeInput && qPrepTime) {
       maxPrepTimeInput.value = qPrepTime;
     }
 
-    if (qAvoid) {
+    if (avoidInput && qAvoid) {
       avoidInput.value = qAvoid;
     }
 
@@ -897,37 +1088,31 @@
           : String(DEFAULT_LIMIT);
     }
 
-    const budgetCheck = validateMaxBudget();
-    const mealCheck = validateMealType();
-    const prepTimeCheck = validateMaxPrepTime();
-    const avoidCheck = validateCommaList(avoidInput, {
-      maxItems: MAX_LIST_ITEMS,
-      itemNoun: "nguyên liệu cần tránh",
-    });
-    const tagsCheck = validateCommaList(preferredTagsInput, {
-      maxItems: MAX_LIST_ITEMS,
-      itemNoun: "khẩu vị/nhãn ưu tiên",
-    });
-    const limitCheck = validateLimit();
-
     const hasQueryParams = Array.from(params.keys()).length > 0;
+    if (hasQueryParams) {
+      const check = validateAllFormFields();
+      if (check.valid) {
+        executeRecommendation(check.payload, { saveHistory: true });
+        return;
+      }
+    }
 
-    executeRecommendation(
-      {
-        budget_max: budgetCheck.valid ? budgetCheck.value : 50000,
-        meal_type: mealCheck.valid ? mealCheck.value : null,
-        max_prep_time: prepTimeCheck.valid ? prepTimeCheck.value : null,
-        excluded_ingredients: avoidCheck.valid ? avoidCheck.value : [],
-        preferred_tags: tagsCheck.valid ? tagsCheck.value : [],
-        limit: limitCheck.valid ? limitCheck.value : DEFAULT_LIMIT,
-      },
-      { saveHistory: hasQueryParams },
-    );
+    // Mặc định khi mở trang trực tiếp chưa submit form: hiển thị trạng thái Initial
+    switchResultsView("initial");
   }
+
+  global.DHFoodRecommend = {
+    uiState,
+    validateAllFormFields,
+    executeRecommendation,
+    retryLastRequest,
+    switchResultsView,
+    initPage,
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initPage);
   } else {
     initPage();
   }
-})();
+})(window);

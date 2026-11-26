@@ -377,6 +377,71 @@
   color: var(--dh-text);
 }
 
+/* ---------- Trạng thái Loading / Empty / Error khu vực kết quả ---------- */
+.results-page .results-state-card {
+  border: 1px solid var(--dh-border);
+}
+
+.results-page .results-error-card {
+  border-top: 3px solid var(--dh-danger);
+}
+
+.results-page .results-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dh-text);
+  margin: 0 0 6px;
+}
+
+.results-page .results-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.results-page .results-skeleton-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.results-page .results-skeleton-stat {
+  height: 76px;
+  border-radius: var(--dh-radius-md);
+}
+
+.results-page .results-skeleton-list {
+  height: 220px;
+  border-radius: var(--dh-radius-md);
+}
+
+.results-page .results-skeleton-explain {
+  height: 220px;
+  border-radius: var(--dh-radius-md);
+}
+
+.results-page .food-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 575.98px) {
+  .results-page .results-state-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .results-page .results-state-actions .dh-btn {
+    width: 100%;
+  }
+}
+
 /* ==========================================================
    Biểu đồ đóng góp điểm theo tiêu chí (CriteriaChart)
    ========================================================== */

@@ -161,14 +161,14 @@
         <!-- Trạng thái chưa có lịch sử (Empty) -->
         <section class="dh-card d-none" id="history-empty" aria-live="polite">
           <div class="dh-empty-state">
-            <div class="dh-empty-icon">📜</div>
-            <div class="dh-empty-title" id="history-empty-title">Chưa có lịch sử quyết định</div>
+            <div class="dh-empty-icon" aria-hidden="true">🍲</div>
+            <div class="dh-empty-title" id="history-empty-title">Bạn chưa có quyết định món ăn nào.</div>
             <p class="dh-empty-desc" id="history-empty-desc">
-              Bạn chưa thực hiện phiên gợi ý nào hoặc chưa có quyết định được lưu. Hãy bắt đầu nhận đề xuất thông minh ngay!
+              Hãy thử tìm món ăn phù hợp để lưu lại lịch sử quyết định của bạn.
             </p>
             <div class="d-flex flex-wrap justify-content-center gap-2">
-              <a href="food-results.html" class="dh-btn dh-btn-primary" style="text-decoration:none;">
-                🍲 Gợi ý Món ăn ngay
+              <a href="food-results.html" id="btn-history-find-food" class="dh-btn dh-btn-primary" style="text-decoration:none;">
+                🍲 Tìm món ăn ngay
               </a>
               <button type="button" class="dh-btn dh-btn-outline d-none" id="btn-reset-history-filter">
                 Xem tất cả phân hệ
