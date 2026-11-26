@@ -305,5 +305,101 @@ class TestPipelineIntegratesFiltering(unittest.TestCase):
             self.assertNotIn(forbidden, source)
 
 
+from app.modules.decision.engine.filters import filter_and_explain_candidates
+from app.modules.decision.engine.pipeline import evaluate_decision
+from app.modules.travel.adapter import adapt_travel_candidates, adapt_travel_criteria
+from app.modules.travel.models import TravelPlace, TravelRegion
+
+
+class TestTravelAdapterConstraintFiltering(unittest.TestCase):
+    """Kiểm thử Constraint Filtering sau khi ghép Travel Adapter."""
+
+    def setUp(self) -> None:
+        self.places = [
+            TravelPlace(
+                id=1,
+                name="Vịnh Hạ Long",
+                province_city="Quảng Ninh",
+                region=TravelRegion.BAC,
+                estimated_cost=650_000,
+                estimated_duration=Decimal("6.5"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="Thăm hang, Chèo kayak, Ngắm hoàng hôn",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Phố cổ Hội An",
+                province_city="Quảng Nam",
+                region=TravelRegion.TRUNG,
+                estimated_cost=450_000,
+                estimated_duration=Decimal("8.0"),
+                activity_type="Văn hóa lịch sử",
+                highlights="Đèn hoa đăng, Chùa Cầu",
+                is_active=True,
+            ),
+        ]
+
+    def test_adapted_travel_candidates_pass_through_when_no_constraints(self) -> None:
+        """Ứng viên Travel qua adapter đi qua filter và pipeline bình thường khi không có constraint."""
+        adapted = adapt_travel_candidates(self.places)
+        criteria = adapt_travel_criteria()
+
+        kept = filter_candidates(adapted, domain="travel")
+        self.assertEqual(kept, adapted)
+
+        valid, excluded = filter_and_explain_candidates(adapted, domain="travel")
+        self.assertEqual(len(valid), 2)
+        self.assertEqual(excluded, [])
+
+        result = evaluate_decision(adapted, criteria, domain="travel")
+        self.assertTrue(result["success"])
+        self.assertTrue(result["has_valid_candidates"])
+        self.assertEqual(result["total_valid"], 2)
+        self.assertEqual(result["total_excluded"], 0)
+
+    def test_travel_domain_active_constraints_currently_raise_value_error(self) -> None:
+        """Domain 'travel' chưa đăng ký trong DOMAIN_CONSTRAINT_CONFIG -> truyền constraint phải báo ValueError."""
+        adapted = adapt_travel_candidates([self.places[0]])
+
+        with self.assertRaises(ValueError) as ctx1:
+            filter_candidates(adapted, {"estimated_cost": ("<=", 1_000_000)}, domain="travel")
+        self.assertIn("travel", str(ctx1.exception))
+
+        with self.assertRaises(ValueError) as ctx2:
+            filter_and_explain_candidates(
+                adapted, {"estimated_duration": ("<=", 5.0)}, domain="travel"
+            )
+        self.assertIn("travel", str(ctx2.exception))
+
+        with self.assertRaises(ValueError) as ctx3:
+            filter_candidates(adapted, budget_max=1_000_000, domain="travel")
+        self.assertIn("travel", str(ctx3.exception))
+
+    def test_food_constraints_no_regression_alongside_travel_adapter(self) -> None:
+        """Lọc Hard Constraints cho Food vẫn phân tách hợp lệ/bị loại và giải thích đúng."""
+        food_candidates = [
+            _food(1, "Cơm tấm", price=35_000, meal_type="lunch", prep_time=10, ingredients=["sườn"]),
+            _food(2, "Lẩu hải sản", price=120_000, meal_type="lunch", prep_time=25, ingredients=["tôm"]),
+            _food(3, "Phở sáng", price=40_000, meal_type="breakfast", prep_time=15, ingredients=["thịt bò"]),
+            _food(4, "Mì hầm lâu", price=40_000, meal_type="lunch", prep_time=45, ingredients=["thịt heo"]),
+        ]
+        valid, excluded = filter_and_explain_candidates(
+            food_candidates,
+            budget_max=50_000,
+            meal_type="lunch",
+            max_prep_time=30,
+            excluded_ingredients=["tôm"],
+        )
+
+        self.assertEqual([c["id"] for c in valid], [1])
+        self.assertEqual([e["id"] for e in excluded], [2, 3, 4])
+        exc_map = {e["id"]: e for e in excluded}
+        self.assertIn("vượt quá ngân sách", exc_map[2]["exclusion_reason"].lower())
+        self.assertIn("tôm", exc_map[2]["exclusion_reason"].lower())
+        self.assertIn("không phù hợp với bữa ăn yêu cầu", exc_map[3]["exclusion_reason"].lower())
+        self.assertIn("vượt quá giới hạn tối đa", exc_map[4]["exclusion_reason"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()

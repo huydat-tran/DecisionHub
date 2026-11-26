@@ -258,5 +258,267 @@ class TestScoreCandidatesFood(unittest.TestCase):
         self.assertNotIn("score", scored[1])
 
 
+from app.modules.decision.engine.pipeline import evaluate_decision
+from app.modules.decision.models import DecisionCriterion
+from app.modules.travel.adapter import adapt_travel_candidates, adapt_travel_criteria
+from app.modules.travel.models import TravelPlace, TravelRegion
+
+
+class TestTravelAdapterNormalization(unittest.TestCase):
+    """Kiểm thử Criteria Scoring & Normalization sau khi ghép Travel Adapter."""
+
+    def test_adapted_travel_places_cost_duration_activities_normalization(self) -> None:
+        """TC-SCR-01/02/03/06: Chuẩn hóa cost(min), duration(min), activities(max) và không mutate input."""
+        places = [
+            TravelPlace(
+                id=1,
+                name="Điểm A",
+                province_city="Hà Nội",
+                region=TravelRegion.BAC,
+                estimated_cost=200_000,
+                estimated_duration=Decimal("2.0"),
+                activity_type="Văn hóa lịch sử",
+                highlights="H1",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Điểm B",
+                province_city="Đà Nẵng",
+                region=TravelRegion.TRUNG,
+                estimated_cost=600_000,
+                estimated_duration=Decimal("4.0"),
+                activity_type="Nghỉ dưỡng biển",
+                highlights="H1, H2, H3",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=3,
+                name="Điểm C",
+                province_city="Kiên Giang",
+                region=TravelRegion.TAY_NAM_BO,
+                estimated_cost=1_000_000,
+                estimated_duration=Decimal("6.0"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="H1, H2, H3, H4, H5",
+                is_active=True,
+            ),
+        ]
+
+        adapted = adapt_travel_candidates(places)
+        criteria = adapt_travel_criteria()
+        scored = score_candidates(adapted, criteria)
+
+        self.assertEqual(
+            scored[0]["criteria_scores"],
+            {"estimated_cost": 100.0, "estimated_duration": 100.0, "activities": 0.0},
+        )
+        self.assertEqual(
+            scored[1]["criteria_scores"],
+            {"estimated_cost": 50.0, "estimated_duration": 50.0, "activities": 50.0},
+        )
+        self.assertEqual(
+            scored[2]["criteria_scores"],
+            {"estimated_cost": 0.0, "estimated_duration": 0.0, "activities": 100.0},
+        )
+        for item in scored:
+            self.assertNotIn("score", item)
+        self.assertNotIn("criteria_scores", adapted[0])
+
+    def test_adapted_travel_min_equals_max_and_single_candidate(self) -> None:
+        """TC-SCR-04 & TC-EDG-03: Khi min == max (nhiều hoặc 1 ứng viên), trả về EQUAL_RANGE_SCORE (100.0)."""
+        places = [
+            TravelPlace(
+                id=1,
+                name="Điểm Đồng Giá 1",
+                province_city="Ninh Bình",
+                region=TravelRegion.BAC,
+                estimated_cost=500_000,
+                estimated_duration=Decimal("4.0"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="H1, H2",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Điểm Đồng Giá 2",
+                province_city="Quảng Ninh",
+                region=TravelRegion.BAC,
+                estimated_cost=500_000,
+                estimated_duration=Decimal("4.0"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="H3, H4",
+                is_active=True,
+            ),
+        ]
+        criteria = adapt_travel_criteria()
+
+        adapted_pair = adapt_travel_candidates(places)
+        scored_pair = score_candidates(adapted_pair, criteria)
+        for item in scored_pair:
+            self.assertEqual(
+                item["criteria_scores"],
+                {
+                    "estimated_cost": EQUAL_RANGE_SCORE,
+                    "estimated_duration": EQUAL_RANGE_SCORE,
+                    "activities": EQUAL_RANGE_SCORE,
+                },
+            )
+
+        adapted_single = adapt_travel_candidates([places[0]])
+        scored_single = score_candidates(adapted_single, criteria)
+        self.assertEqual(
+            scored_single[0]["criteria_scores"],
+            {
+                "estimated_cost": EQUAL_RANGE_SCORE,
+                "estimated_duration": EQUAL_RANGE_SCORE,
+                "activities": EQUAL_RANGE_SCORE,
+            },
+        )
+
+    def test_adapted_travel_zero_cost_and_decimal_duration(self) -> None:
+        """TC-EDG-04 & TC-EDG-05: Chi phí 0đ và thời lượng Decimal thập phân chuẩn hóa chính xác."""
+        places = [
+            TravelPlace(
+                id=1,
+                name="Công viên miễn phí",
+                province_city="TP.HCM",
+                region=TravelRegion.NAM,
+                estimated_cost=0,
+                estimated_duration=Decimal("1.5"),
+                activity_type="Văn hóa lịch sử",
+                highlights="H1, H2",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Khu du lịch có vé",
+                province_city="Lâm Đồng",
+                region=TravelRegion.TAY_NGUYEN,
+                estimated_cost=500_000,
+                estimated_duration=Decimal("4.5"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="H1",
+                is_active=True,
+            ),
+        ]
+        adapted = adapt_travel_candidates(places)
+        criteria = adapt_travel_criteria()
+        scored = score_candidates(adapted, criteria)
+
+        self.assertEqual(
+            scored[0]["criteria_scores"],
+            {"estimated_cost": 100.0, "estimated_duration": 100.0, "activities": 100.0},
+        )
+        self.assertEqual(
+            scored[1]["criteria_scores"],
+            {"estimated_cost": 0.0, "estimated_duration": 0.0, "activities": 0.0},
+        )
+
+    def test_adapted_travel_missing_highlights_and_none_criterion_value(self) -> None:
+        """TC-MAP-02 & TC-SCR-05: highlights thiếu -> 0.0; nếu dict có None thì không tự suy diễn."""
+        places = [
+            TravelPlace(
+                id=1,
+                name="Thiếu highlights None",
+                province_city="Huế",
+                region=TravelRegion.TRUNG,
+                estimated_cost=300_000,
+                estimated_duration=Decimal("3.0"),
+                activity_type="Văn hóa lịch sử",
+                highlights=None,
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Thiếu highlights rỗng",
+                province_city="Huế",
+                region=TravelRegion.TRUNG,
+                estimated_cost=600_000,
+                estimated_duration=Decimal("5.0"),
+                activity_type="Văn hóa lịch sử",
+                highlights="",
+                is_active=True,
+            ),
+        ]
+        adapted = adapt_travel_candidates(places)
+        self.assertEqual(adapted[0]["activities"], 0.0)
+        self.assertEqual(adapted[1]["activities"], 0.0)
+
+        # Nếu dict ứng viên sau adapt bị thiếu (None) giá trị tiêu chí -> giữ None trong criteria_scores
+        adapted_with_none = [dict(adapted[0], activities=None), dict(adapted[1])]
+        criteria = adapt_travel_criteria()
+        scored = score_candidates(adapted_with_none, criteria)
+        self.assertIsNone(scored[0]["criteria_scores"]["activities"])
+        self.assertEqual(scored[1]["criteria_scores"]["activities"], EQUAL_RANGE_SCORE)
+
+    def test_adapted_travel_db_criteria_and_custom_weights_pipeline(self) -> None:
+        """DecisionCriterion ORM (domain='travel') + custom_weights qua adapter -> WSM & ranking đúng."""
+        db_criteria = [
+            DecisionCriterion(
+                domain="travel",
+                name="cost",
+                direction="min",
+                weight=Decimal("0.4000"),
+            ),
+            DecisionCriterion(
+                domain="travel",
+                name="duration",
+                direction="min",
+                weight=Decimal("0.3000"),
+            ),
+            DecisionCriterion(
+                domain="travel",
+                name="activities",
+                direction="max",
+                weight=Decimal("0.3000"),
+            ),
+        ]
+        places = [
+            TravelPlace(
+                id=1,
+                name="Địa điểm tiết kiệm",
+                province_city="Ninh Bình",
+                region=TravelRegion.BAC,
+                estimated_cost=200_000,
+                estimated_duration=Decimal("6.0"),
+                activity_type="Khám phá thiên nhiên",
+                highlights="H1",
+                is_active=True,
+            ),
+            TravelPlace(
+                id=2,
+                name="Địa điểm đắt hơn nhưng nhanh",
+                province_city="Quảng Ninh",
+                region=TravelRegion.BAC,
+                estimated_cost=800_000,
+                estimated_duration=Decimal("2.0"),
+                activity_type="Nghỉ dưỡng biển",
+                highlights="H1, H2, H3",
+                is_active=True,
+            ),
+        ]
+
+        adapted_candidates = adapt_travel_candidates(places)
+        adapted_criteria = adapt_travel_criteria(
+            db_criteria,
+            custom_weights={"cost": 0.6, "duration": 0.2, "activities": 0.2},
+        )
+        result = evaluate_decision(
+            candidates=adapted_candidates,
+            criteria=adapted_criteria,
+            domain="travel",
+        )
+
+        self.assertTrue(result["has_valid_candidates"])
+        ranked = result["valid_candidates"]
+        # Điểm 1: cost=100*0.6 + duration=0*0.2 + activities=0*0.2 = 60.0
+        # Điểm 2: cost=0*0.6 + duration=100*0.2 + activities=100*0.2 = 40.0
+        self.assertEqual(ranked[0]["id"], 1)
+        self.assertEqual(ranked[0]["score"], 60.0)
+        self.assertEqual(ranked[1]["id"], 2)
+        self.assertEqual(ranked[1]["score"], 40.0)
+
+
 if __name__ == "__main__":
     unittest.main()
