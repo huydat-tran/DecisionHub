@@ -46,6 +46,24 @@
   const resultsTopNameEl = document.getElementById("results-top-name");
   const resultsTopScoreEl = document.getElementById("results-top-score");
 
+  const API_FIELD_ORDER = [
+    "budget_max",
+    "meal_type",
+    "max_prep_time",
+    "excluded_ingredients",
+    "preferred_tags",
+    "limit",
+  ];
+
+  const API_FIELD_MAP = {
+    budget_max: { input: maxBudgetInput, error: maxBudgetError },
+    meal_type: { input: mealTypeSelect, error: mealTypeError },
+    max_prep_time: { input: maxPrepTimeInput, error: maxPrepTimeError },
+    excluded_ingredients: { input: avoidInput, error: avoidError },
+    preferred_tags: { input: preferredTagsInput, error: preferredTagsError },
+    limit: { input: limitInput, error: limitError },
+  };
+
   // Helper an toàn tiền tệ
   function moneyStr(val) {
     if (typeof formatMoney === "function") return formatMoney(val);
@@ -63,6 +81,136 @@
         inputEl.classList.remove("food-input-invalid");
         inputEl.removeAttribute("aria-invalid");
       }
+    }
+  }
+
+  function clearAllFieldErrors() {
+    API_FIELD_ORDER.forEach((key) => {
+      const entry = API_FIELD_MAP[key];
+      if (entry) {
+        setFieldError(entry.input, entry.error, "");
+      }
+    });
+  }
+
+  function normalizeApiFieldName(rawField) {
+    const segments = Array.isArray(rawField)
+      ? rawField.map((part) => String(part).trim()).filter(Boolean)
+      : String(rawField || "")
+          .split(".")
+          .map((part) => part.trim())
+          .filter(Boolean);
+
+    if (
+      segments.length > 0 &&
+      ["body", "query", "path", "header", "cookie"].includes(segments[0])
+    ) {
+      segments.shift();
+    }
+
+    if (segments.length === 0) return "";
+    if (Object.prototype.hasOwnProperty.call(API_FIELD_MAP, segments[0])) {
+      return segments[0];
+    }
+    return segments.join(".");
+  }
+
+  function cleanApiErrorMessage(rawMessage) {
+    return String(rawMessage || "")
+      .trim()
+      .replace(/^(?:Value error,\s*)+/i, "");
+  }
+
+  function pushUniqueMessage(list, message) {
+    if (message && !list.includes(message)) {
+      list.push(message);
+    }
+  }
+
+  function extractApiErrors(apiErr) {
+    const data = apiErr && apiErr.data ? apiErr.data : null;
+    const fieldErrors = {};
+    const generalErrors = [];
+
+    const rawItems =
+      data && Array.isArray(data.errors)
+        ? data.errors
+        : data && Array.isArray(data.detail)
+          ? data.detail
+          : [];
+
+    rawItems.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const fieldKey = normalizeApiFieldName(item.field ?? item.loc);
+      const msg = cleanApiErrorMessage(item.message ?? item.msg);
+      if (!msg) return;
+
+      if (fieldKey && Object.prototype.hasOwnProperty.call(API_FIELD_MAP, fieldKey)) {
+        if (!fieldErrors[fieldKey]) {
+          fieldErrors[fieldKey] = [];
+        }
+        pushUniqueMessage(fieldErrors[fieldKey], msg);
+      } else {
+        pushUniqueMessage(generalErrors, msg);
+      }
+    });
+
+    const summaryMessage = cleanApiErrorMessage(
+      (data && typeof data.message === "string" && data.message) || "",
+    );
+
+    if (rawItems.length === 0) {
+      const fallbackMessage = cleanApiErrorMessage(
+        (data && typeof data.message === "string" && data.message) ||
+          (data && typeof data.detail === "string" && data.detail) ||
+          (apiErr && apiErr.message) ||
+          "",
+      );
+      pushUniqueMessage(generalErrors, fallbackMessage);
+    }
+
+    return { fieldErrors, generalErrors, summaryMessage };
+  }
+
+  function applyApiErrors(apiErr) {
+    clearAllFieldErrors();
+
+    const { fieldErrors, generalErrors, summaryMessage } = extractApiErrors(apiErr);
+    let firstInvalidInput = null;
+
+    API_FIELD_ORDER.forEach((key) => {
+      const messages = fieldErrors[key];
+      const entry = API_FIELD_MAP[key];
+      if (!entry || !messages || messages.length === 0) return;
+
+      setFieldError(entry.input, entry.error, messages.join(" "));
+      if (!firstInvalidInput && entry.input) {
+        firstInvalidInput = entry.input;
+      }
+    });
+
+    if (firstInvalidInput && typeof firstInvalidInput.focus === "function") {
+      firstInvalidInput.focus();
+    }
+
+    if (generalErrors.length > 0) {
+      showStatus(
+        generalErrors.map((msg) => escapeHtml(msg)).join("<br>"),
+        "error",
+      );
+    } else if (firstInvalidInput) {
+      showStatus(
+        escapeHtml(
+          summaryMessage ||
+            "Dữ liệu đầu vào không hợp lệ. Vui lòng kiểm tra các ô được đánh dấu.",
+        ),
+        "error",
+      );
+    } else {
+      showStatus(
+        escapeHtml("Dữ liệu đầu vào không hợp lệ. Vui lòng kiểm tra lại."),
+        "error",
+      );
     }
   }
 
@@ -416,7 +564,14 @@
   }
 
   // ---------- HÀM THỰC THI GỢI Ý MÓN ĂN CHÍNH ----------
-  async function executeRecommendation(payload) {
+  async function executeRecommendation(payload, options = { saveHistory: true }) {
+    const shouldSaveHistory = options && options.saveHistory !== false;
+    const reqOptions = { authMode: shouldSaveHistory ? "optional" : "none" };
+    const excludedBodyEl = document.getElementById("results-excluded-body");
+    const prevRankingHtml = rankingListEl ? rankingListEl.innerHTML : null;
+    const prevExplanationHtml = explanationBodyEl ? explanationBodyEl.innerHTML : null;
+    const prevExcludedHtml = excludedBodyEl ? excludedBodyEl.innerHTML : null;
+
     setLoading(true);
     clearStatus();
 
@@ -434,12 +589,7 @@
     // 1. Thử gọi API Backend trước nếu có server chạy
     if (typeof api !== "undefined" && typeof api.post === "function") {
       try {
-        let res;
-        try {
-          res = await api.post("/api/v1/decisions/recommend", payload);
-        } catch {
-          res = await api.post("/api/v1/decisions/food/recommend", payload);
-        }
+        const res = await api.post("/decisions/food/recommend", payload, reqOptions);
 
         const data = res && res.data ? res.data : res;
         if (data) {
@@ -453,6 +603,20 @@
           isFromBackend = true;
         }
       } catch (apiErr) {
+        if (apiErr && (apiErr.status === 422 || apiErr.status === 400)) {
+          if (rankingListEl && prevRankingHtml !== null) {
+            rankingListEl.innerHTML = prevRankingHtml;
+          }
+          if (explanationBodyEl && prevExplanationHtml !== null) {
+            explanationBodyEl.innerHTML = prevExplanationHtml;
+          }
+          if (excludedBodyEl && prevExcludedHtml !== null) {
+            excludedBodyEl.innerHTML = prevExcludedHtml;
+          }
+          applyApiErrors(apiErr);
+          setLoading(false);
+          return;
+        }
         console.info("Backend chưa sẵn sàng hoặc gặp lỗi, sử dụng Client-Side Decision Engine:", apiErr.message);
       }
     }
@@ -746,14 +910,19 @@
     });
     const limitCheck = validateLimit();
 
-    executeRecommendation({
-      budget_max: budgetCheck.valid ? budgetCheck.value : 50000,
-      meal_type: mealCheck.valid ? mealCheck.value : null,
-      max_prep_time: prepTimeCheck.valid ? prepTimeCheck.value : null,
-      excluded_ingredients: avoidCheck.valid ? avoidCheck.value : [],
-      preferred_tags: tagsCheck.valid ? tagsCheck.value : [],
-      limit: limitCheck.valid ? limitCheck.value : DEFAULT_LIMIT,
-    });
+    const hasQueryParams = Array.from(params.keys()).length > 0;
+
+    executeRecommendation(
+      {
+        budget_max: budgetCheck.valid ? budgetCheck.value : 50000,
+        meal_type: mealCheck.valid ? mealCheck.value : null,
+        max_prep_time: prepTimeCheck.valid ? prepTimeCheck.value : null,
+        excluded_ingredients: avoidCheck.valid ? avoidCheck.value : [],
+        preferred_tags: tagsCheck.valid ? tagsCheck.value : [],
+        limit: limitCheck.valid ? limitCheck.value : DEFAULT_LIMIT,
+      },
+      { saveHistory: hasQueryParams },
+    );
   }
 
   if (document.readyState === "loading") {

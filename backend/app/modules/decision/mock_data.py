@@ -57,6 +57,7 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
         image_url="../assets/images/foods/buncha.jpg",
         tags=["đậm đà", "truyền thống"],
         score=63.50,
+        total_score=63.50,
         criteria_scores=CriteriaScores(price=40.00, preference=100.00, prep_time=50.00),
         reasons=[
             "Đậm đà hương vị truyền thống, thịt nướng thơm lừng",
@@ -72,6 +73,7 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
         image_url="../assets/images/foods/banhmi.jpg",
         tags=["nhanh", "giòn"],
         score=58.20,
+        total_score=58.20,
         criteria_scores=CriteriaScores(price=70.00, preference=80.00, prep_time=90.00),
         reasons=[
             "Chuẩn bị siêu nhanh chỉ 5 phút, tiện lợi mang đi",
@@ -87,6 +89,7 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
         image_url="../assets/images/foods/comtam.jpg",
         tags=["chay", "thanh đạm"],
         score=52.80,
+        total_score=52.80,
         criteria_scores=CriteriaScores(price=60.00, preference=70.00, prep_time=60.00),
         reasons=[
             "Món ăn thanh đạm, lành mạnh cho sức khỏe",
@@ -102,6 +105,7 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
         image_url="../assets/images/foods/phobo.jpg",
         tags=["nước", "truyền thống"],
         score=49.83,
+        total_score=49.83,
         criteria_scores=CriteriaScores(price=50.00, preference=90.00, prep_time=50.00),
         reasons=[
             "Nước dùng ngọt thanh đậm đà từ xương",
@@ -117,6 +121,7 @@ MOCK_ITEMS: list[RecommendedFoodResponse] = [
         image_url="../assets/images/foods/laumini.jpg",
         tags=["nóng", "nhiều món"],
         score=42.17,
+        total_score=42.17,
         criteria_scores=CriteriaScores(price=30.00, preference=80.00, prep_time=40.00),
         reasons=[
             "Bữa tối ấm cúng, nhiều món ăn kèm đa dạng",

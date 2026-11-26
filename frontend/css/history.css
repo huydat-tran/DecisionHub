@@ -1,41 +1,441 @@
 /* ==========================================================
-   CSS riêng cho phân hệ History (Lịch sử hoạt động)
-   Tuân thủ UI Guidelines: Sử dụng namespace .history-page
+   CSS riêng cho phân hệ History (Lịch sử quyết định)
+   Tuân thủ UI Guidelines: Chỉ sử dụng namespace .history-page,
+   không ghi đè selector toàn cục hoặc token dùng chung.
    ========================================================== */
+
+/* ---------- Thanh công cụ & Bộ lọc ---------- */
+.history-page .history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.history-page .history-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(23, 43, 35, 0.08);
+  color: inherit;
+}
+
+.history-page .dh-chip.active .history-chip-count {
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+
+/* ---------- Badges loại quyết định ---------- */
+.history-page .history-domain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
 
 .history-page .history-badge-food {
   background: var(--dh-success-soft);
   color: var(--dh-success);
-  font-weight: 600;
-  font-size: 12px;
-  border: 1px solid rgba(22, 132, 91, 0.2);
+  border: 1px solid rgba(22, 132, 91, 0.22);
 }
 
 .history-page .history-badge-travel {
   background: var(--dh-info-soft);
   color: var(--dh-info);
-  font-weight: 600;
+  border: 1px solid rgba(40, 118, 168, 0.22);
+}
+
+/* ---------- Skeleton Loading ---------- */
+.history-page .history-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.history-page .history-skeleton-card {
+  height: 110px;
+  border-radius: var(--dh-radius-lg);
+}
+
+/* ---------- Danh sách Card quyết định ---------- */
+.history-page .history-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-page .history-decision-card {
+  transition:
+    border-color var(--dh-transition),
+    box-shadow var(--dh-transition),
+    transform var(--dh-transition);
+}
+
+.history-page .history-decision-card:hover {
+  border-color: var(--dh-border-strong);
+  box-shadow: var(--dh-shadow-md);
+  transform: translateY(-1px);
+}
+
+.history-page .history-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--dh-border);
+  background: var(--dh-surface-subtle);
+}
+
+.history-page .history-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-page .history-decision-id {
   font-size: 12px;
-  border: 1px solid rgba(40, 118, 168, 0.2);
+  font-weight: 700;
+  color: var(--dh-text-muted);
+  background: #edf2ef;
+  padding: 3px 8px;
+  border-radius: var(--dh-radius-sm);
+}
+
+.history-page .history-decision-time {
+  font-size: 13px;
+  color: var(--dh-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.history-page .history-card-body {
+  padding: 18px 20px;
+}
+
+.history-page .history-card-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Hộp kết quả nổi bật (Top 1) trên Card */
+.history-page .history-highlight-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--dh-radius-md);
+  background: var(--dh-primary-soft);
+  border: 1px solid rgba(22, 132, 91, 0.2);
+}
+
+.history-page .history-highlight-box.is-empty {
+  background: var(--dh-warning-soft);
+  border-color: rgba(183, 121, 31, 0.25);
+}
+
+.history-page .history-highlight-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dh-primary);
+  margin-bottom: 4px;
+}
+
+.history-page .history-highlight-box.is-empty .history-highlight-label {
+  color: var(--dh-warning);
+}
+
+.history-page .history-highlight-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dh-text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.history-page .history-highlight-sub {
+  font-size: 12px;
+  color: var(--dh-text-muted);
+  margin-top: 4px;
+}
+
+.history-page .history-highlight-score {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: var(--dh-radius-sm);
+  background: var(--dh-surface);
+  border: 1px solid rgba(22, 132, 91, 0.2);
+}
+
+.history-page .history-highlight-score-val {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dh-primary);
+  line-height: 1.1;
+}
+
+.history-page .history-highlight-score-unit {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dh-text-muted);
+  text-transform: uppercase;
+}
+
+/* Tóm tắt tiêu chí trên Card */
+.history-page .history-criteria-summary-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dh-text-muted);
+  margin-bottom: 8px;
+}
+
+.history-page .history-specs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-page .history-spec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--dh-radius-sm);
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+  font-size: 12px;
+  color: var(--dh-text-muted);
+}
+
+.history-page .history-spec-pill strong {
+  color: var(--dh-text);
+  font-weight: 600;
+}
+
+.history-page .history-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---------- Giao diện Xem chi tiết quyết định ---------- */
+.history-page .history-detail-header-card {
+  border-top: 3px solid var(--dh-primary);
+}
+
+.history-page .history-stat-card .dh-card-body {
+  padding: 16px 20px;
+}
+
+.history-page .history-stat-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dh-text-muted);
+  margin-bottom: 6px;
+}
+
+.history-page .history-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--dh-text);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.history-page .history-stat-hint {
+  font-size: 12px;
+  color: var(--dh-text-muted);
+  margin: 4px 0 0;
+}
+
+/* Bảng tiêu chí đầu vào */
+.history-page .history-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.history-page .history-input-item {
+  padding: 12px 14px;
+  border-radius: var(--dh-radius-md);
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+}
+
+.history-page .history-input-label {
+  display: block;
+  font-size: 12px;
+  color: var(--dh-text-muted);
+  margin-bottom: 4px;
+}
+
+.history-page .history-input-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dh-text);
+  overflow-wrap: anywhere;
+}
+
+/* Khung JSON Snapshot */
+.history-page .history-snapshot-details {
+  margin-top: 14px;
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-md);
+  background: var(--dh-surface-subtle);
+  overflow: hidden;
+}
+
+.history-page .history-snapshot-details summary {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dh-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.history-page .history-snapshot-pre {
+  margin: 0;
+  padding: 12px 14px;
+  border-top: 1px solid var(--dh-border);
+  background: #172b23;
+  color: #e8f5ef;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 280px;
+}
+
+/* Danh sách phương án xếp hạng trong Chi tiết */
+.history-page .history-ranked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-page .history-ranked-card {
+  padding: 18px 20px;
+  border-radius: var(--dh-radius-lg);
+  border: 1px solid var(--dh-border);
+  background: var(--dh-surface);
+  transition: box-shadow var(--dh-transition);
+}
+
+.history-page .history-ranked-card.is-top-rank {
+  border: 2px solid var(--dh-primary);
+  background: linear-gradient(180deg, rgba(232, 245, 239, 0.45) 0%, #ffffff 100%);
+  box-shadow: var(--dh-shadow-sm);
+}
+
+.history-page .history-ranked-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.history-page .history-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #edf2ef;
+  color: var(--dh-text-muted);
+}
+
+.history-page .history-ranked-card.is-top-rank .history-rank-badge {
+  background: var(--dh-primary);
+  color: #fff;
+}
+
+.history-page .history-ranked-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dh-text);
+  margin: 8px 0 6px;
+}
+
+/* Bảng phương án bị loại */
+.history-page .history-excluded-card {
+  border-top: 3px solid var(--dh-danger);
 }
 
 .history-page .history-table th {
-  padding: 14px 18px;
-  font-size: 13px;
+  padding: 12px 16px;
+  font-size: 12px;
   color: var(--dh-text-muted);
   font-weight: 600;
+  text-transform: uppercase;
   background: var(--dh-surface-subtle);
   border-bottom: 1px solid var(--dh-border);
 }
 
 .history-page .history-table td {
-  padding: 14px 18px;
+  padding: 12px 16px;
   font-size: 13px;
   vertical-align: middle;
   border-bottom: 1px solid var(--dh-border);
 }
 
-.history-page .history-table tr:hover {
-  background: var(--dh-surface-subtle);
+/* ---------- Responsive ---------- */
+@media (max-width: 991.98px) {
+  .history-page .history-card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .history-page .history-card-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px dashed var(--dh-border);
+  }
 }
 
+@media (max-width: 575.98px) {
+  .history-page .history-card-top,
+  .history-page .history-card-body,
+  .history-page .history-ranked-card {
+    padding: 14px 16px;
+  }
+
+  .history-page .history-highlight-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .history-page .history-card-actions .dh-btn {
+    width: 100%;
+  }
+}

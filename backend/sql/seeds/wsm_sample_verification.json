@@ -1,0 +1,164 @@
+{
+  "metadata": {
+    "name": "DecisionHub - Bộ dữ liệu mẫu kiểm chứng WSM Engine",
+    "description": "Bộ dữ liệu mẫu gồm 4 phương án (3 hợp lệ, 1 bị loại) và 3 tiêu chí (1 Benefit, 2 Cost) với kết quả tính toán bằng tay để đối chiếu WSM Engine",
+    "domain": "food",
+    "version": "1.0"
+  },
+  "criteria": [
+    {
+      "name": "Giá",
+      "field_name": "price",
+      "direction": "min",
+      "kind": "cost",
+      "weight": 0.40,
+      "description": "Tiêu chí Chi phí (Cost): Giá càng thấp điểm chuẩn hóa càng cao"
+    },
+    {
+      "name": "Mức phù hợp nhu cầu/khẩu vị",
+      "field_name": "preference",
+      "direction": "max",
+      "kind": "benefit",
+      "weight": 0.35,
+      "description": "Tiêu chí Lợi ích (Benefit): Điểm đánh giá càng cao điểm chuẩn hóa càng cao"
+    },
+    {
+      "name": "Thời gian chuẩn bị",
+      "field_name": "prep_time",
+      "direction": "min",
+      "kind": "cost",
+      "weight": 0.25,
+      "description": "Tiêu chí Chi phí (Cost): Thời gian càng ngắn điểm chuẩn hóa càng cao"
+    }
+  ],
+  "constraints": {
+    "price": {
+      "operator": "<=",
+      "value": 60000,
+      "description": "Ngân sách tối đa 60.000 VNĐ"
+    },
+    "prep_time": {
+      "operator": "<=",
+      "value": 30,
+      "description": "Thời gian chuẩn bị tối đa 30 phút"
+    },
+    "ingredients": {
+      "operator": "not_in",
+      "value": ["hành"],
+      "description": "Nguyên liệu cần tránh: hành"
+    }
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "name": "Phương án A (Phở Bò Tái)",
+      "price": 30000,
+      "preference": 80,
+      "prep_time": 15,
+      "meal_type": "breakfast",
+      "ingredients": ["thịt bò", "bánh phở", "rau thơm"]
+    },
+    {
+      "id": 2,
+      "name": "Phương án B (Cơm Sườn Nướng)",
+      "price": 50000,
+      "preference": 90,
+      "prep_time": 25,
+      "meal_type": "breakfast",
+      "ingredients": ["sườn", "cơm", "dưa leo"]
+    },
+    {
+      "id": 3,
+      "name": "Phương án C (Bún Chả Hà Nội)",
+      "price": 40000,
+      "preference": 70,
+      "prep_time": 10,
+      "meal_type": "breakfast",
+      "ingredients": ["thịt heo", "bún", "đu đủ"]
+    },
+    {
+      "id": 4,
+      "name": "Phương án D (Mì Xào Bò Đặc Biệt)",
+      "price": 75000,
+      "preference": 95,
+      "prep_time": 20,
+      "meal_type": "breakfast",
+      "ingredients": ["mì", "thịt bò", "hành"]
+    }
+  ],
+  "hand_calculation_results": {
+    "step_1_filtering": {
+      "valid_candidate_ids": [1, 2, 3],
+      "excluded_candidates": [
+        {
+          "id": 4,
+          "name": "Phương án D (Mì Xào Bò Đặc Biệt)",
+          "status": "excluded",
+          "reasons": [
+            "Giá (75,000đ) vượt quá ngân sách tối đa (60,000đ).",
+            "Chứa nguyên liệu cần tránh: hành."
+          ]
+        }
+      ]
+    },
+    "step_2_min_max_values": {
+      "price": { "min": 30000, "max": 50000, "range": 20000, "direction": "min" },
+      "preference": { "min": 70, "max": 90, "range": 20, "direction": "max" },
+      "prep_time": { "min": 10, "max": 25, "range": 15, "direction": "min" }
+    },
+    "step_3_normalized_scores": {
+      "candidate_A": {
+        "price": 100.0,
+        "preference": 50.0,
+        "prep_time": 66.67
+      },
+      "candidate_B": {
+        "price": 0.0,
+        "preference": 100.0,
+        "prep_time": 0.0
+      },
+      "candidate_C": {
+        "price": 50.0,
+        "preference": 0.0,
+        "prep_time": 100.0
+      }
+    },
+    "step_4_contributions": {
+      "candidate_A": {
+        "price": 40.0,
+        "preference": 17.5,
+        "prep_time": 16.6675
+      },
+      "candidate_B": {
+        "price": 0.0,
+        "preference": 35.0,
+        "prep_time": 0.0
+      },
+      "candidate_C": {
+        "price": 20.0,
+        "preference": 0.0,
+        "prep_time": 25.0
+      }
+    },
+    "step_5_total_scores_and_ranking": [
+      {
+        "rank": 1,
+        "id": 1,
+        "name": "Phương án A (Phở Bò Tái)",
+        "total_score": 74.17
+      },
+      {
+        "rank": 2,
+        "id": 3,
+        "name": "Phương án C (Bún Chả Hà Nội)",
+        "total_score": 45.00
+      },
+      {
+        "rank": 3,
+        "id": 2,
+        "name": "Phương án B (Cơm Sườn Nướng)",
+        "total_score": 35.00
+      }
+    ]
+  }
+}

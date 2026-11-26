@@ -6,6 +6,7 @@ Không chứa logic truy vấn DB và không chứa logic tính điểm trực t
 """
 
 import logging
+from enum import Enum
 from typing import Any
 
 from fastapi import status
@@ -282,9 +283,11 @@ def recommend_food_decisions(
     Raises:
         DecisionHubException: Khi cấu hình tiêu chí/ràng buộc sai hoặc gặp lỗi truy vấn.
     """
+    # meal_type là Literal[str] nên đã là str; giữ .value cho trường hợp
+    # truyền Enum vào (Enum(str) cũng có .value).
     meal_type_val = (
         payload.meal_type.value
-        if hasattr(payload.meal_type, "value")
+        if isinstance(payload.meal_type, Enum)
         else payload.meal_type
     )
 

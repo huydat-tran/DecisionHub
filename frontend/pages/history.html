@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lịch sử hoạt động (History) – DecisionHub</title>
+  <title>Lịch sử quyết định (Decision History) – DecisionHub</title>
   <link rel="icon" href="../assets/images/logo.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="../css/variables.css">
@@ -75,53 +75,182 @@
   <!-- Main Content -->
   <main class="dh-main">
     <div class="dh-page">
+      <!-- Tiêu đề trang -->
       <div class="dh-page-heading">
         <div>
-          <p class="dh-eyebrow">Phân hệ P2 · History</p>
-          <h1 class="dh-page-title">Lịch sử hoạt động (History)</h1>
-          <p class="dh-page-description">Xem lại các lần tìm kiếm và gợi ý món ăn, địa điểm du lịch gần đây theo Mục 6.1 của DecisionHub.md.</p>
+          <p class="dh-eyebrow">Phân hệ P2 · Decision History</p>
+          <h1 class="dh-page-title" id="history-page-title">Lịch sử quyết định</h1>
+          <p class="dh-page-description" id="history-page-desc">
+            Xem lại danh sách các phiên gợi ý đã lưu của tài khoản đang đăng nhập, tiêu chí đầu vào và bảng xếp hạng chi tiết.
+          </p>
         </div>
-        <div class="d-flex gap-2">
-          <button class="dh-btn dh-btn-danger dh-btn-sm" id="btn-clear-history">Xóa lịch sử</button>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="dh-btn dh-btn-outline dh-btn-sm d-none" id="btn-back-to-list">
+            ⬅ Quay lại danh sách
+          </button>
+          <button type="button" class="dh-btn dh-btn-outline dh-btn-sm" id="btn-reload-history">
+            ↻ Tải lại dữ liệu
+          </button>
         </div>
       </div>
 
-      <!-- Filter chips cho History -->
-      <div class="dh-chip-group mb-3" id="history-filter-chips">
-        <span class="dh-chip active" data-type="all">Tất cả hoạt động</span>
-        <span class="dh-chip" data-type="food">🍲 Chỉ Món ăn (Food)</span>
-        <span class="dh-chip" data-type="travel">✈️ Chỉ Du lịch (Travel)</span>
-      </div>
-
-      <!-- Bảng lịch sử -->
-      <section class="dh-card">
-        <div class="dh-card-header">
-          <h2 class="dh-section-title mb-0" style="font-size:16px;">Nhật ký tìm kiếm & gợi ý gần đây</h2>
-          <span class="dh-muted dh-small">Lưu theo phiên làm việc</span>
-        </div>
-        <div class="dh-card-body p-0">
-          <div id="history-empty" class="dh-empty-state d-none py-4">
-            <div class="dh-empty-icon">📜</div>
-            <div class="dh-empty-title">Chưa có lịch sử hoạt động</div>
-            <p class="dh-empty-desc">Bạn chưa thực hiện tìm kiếm hoặc nhận gợi ý nào gần đây.</p>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table mb-0 history-table">
-              <thead>
-                <tr>
-                  <th style="width: 160px;">Thời điểm</th>
-                  <th style="width: 140px;">Phân hệ</th>
-                  <th>Từ khóa / Tiêu chí đã chọn</th>
-                  <th>Kết quả tham chiếu</th>
-                  <th style="width: 80px; text-align: right;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="history-table-body"></tbody>
-            </table>
-          </div>
+      <!-- Trạng thái chưa đăng nhập (401) -->
+      <section class="dh-card d-none" id="history-auth-required" aria-live="polite">
+        <div class="dh-empty-state">
+          <div class="dh-empty-icon">🔒</div>
+          <div class="dh-empty-title">Vui lòng đăng nhập để xem lịch sử quyết định</div>
+          <p class="dh-empty-desc">
+            Lịch sử quyết định được bảo mật riêng cho từng tài khoản. Hãy đăng nhập để xem lại các kết quả gợi ý của bạn.
+          </p>
+          <a class="dh-btn dh-btn-primary" href="signup.html" id="btn-history-login">Đăng nhập ngay</a>
         </div>
       </section>
+
+      <!-- ================================================================
+           VIEW 1: DANH SÁCH LỊCH SỬ QUYẾT ĐỊNH
+           ================================================================ -->
+      <div id="history-list-view">
+        <!-- Thanh công cụ: Bộ lọc loại quyết định & Thông tin tổng số -->
+        <div class="history-toolbar mb-3" id="history-toolbar">
+          <div class="dh-chip-group mb-0" id="history-filter-chips" role="group" aria-label="Lọc theo loại quyết định">
+            <button type="button" class="dh-chip active" data-type="all" aria-pressed="true">
+              Tất cả <span class="history-chip-count" id="count-filter-all">0</span>
+            </button>
+            <button type="button" class="dh-chip" data-type="food" aria-pressed="false">
+              🍲 Món ăn (Food) <span class="history-chip-count" id="count-filter-food">0</span>
+            </button>
+            <button type="button" class="dh-chip" data-type="travel" aria-pressed="false">
+              ✈️ Du lịch (Travel) <span class="history-chip-count" id="count-filter-travel">0</span>
+            </button>
+          </div>
+          <div class="history-toolbar-meta dh-muted dh-small" id="history-summary-counter">
+            Đang tải lịch sử...
+          </div>
+        </div>
+
+        <!-- Trạng thái đang tải danh sách (Loading) -->
+        <section class="dh-card d-none" id="history-loading" aria-live="polite" aria-busy="true">
+          <div class="dh-card-body">
+            <div class="history-loading-box text-center py-4">
+              <div class="spinner-border text-success mb-3" role="status" aria-hidden="true"></div>
+              <div class="fw-bold">Đang tải lịch sử quyết định...</div>
+              <p class="dh-muted dh-small mb-3">Hệ thống đang đồng bộ dữ liệu từ máy chủ DecisionHub.</p>
+              <div class="history-skeleton-list">
+                <div class="dh-skeleton history-skeleton-card"></div>
+                <div class="dh-skeleton history-skeleton-card"></div>
+                <div class="dh-skeleton history-skeleton-card"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Trạng thái lỗi tải danh sách (Error) -->
+        <section class="dh-card d-none" id="history-error" role="alert">
+          <div class="dh-empty-state">
+            <div class="dh-empty-icon">⚠️</div>
+            <div class="dh-empty-title">Không thể tải lịch sử quyết định</div>
+            <p class="dh-empty-desc" id="history-error-message">
+              Đã xảy ra lỗi khi kết nối với máy chủ. Vui lòng kiểm tra kết nối và thử lại.
+            </p>
+            <button type="button" class="dh-btn dh-btn-primary" id="btn-retry-history">
+              ↻ Thử lại
+            </button>
+          </div>
+        </section>
+
+        <!-- Trạng thái chưa có lịch sử (Empty) -->
+        <section class="dh-card d-none" id="history-empty" aria-live="polite">
+          <div class="dh-empty-state">
+            <div class="dh-empty-icon">📜</div>
+            <div class="dh-empty-title" id="history-empty-title">Chưa có lịch sử quyết định</div>
+            <p class="dh-empty-desc" id="history-empty-desc">
+              Bạn chưa thực hiện phiên gợi ý nào hoặc chưa có quyết định được lưu. Hãy bắt đầu nhận đề xuất thông minh ngay!
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              <a href="food-results.html" class="dh-btn dh-btn-primary" style="text-decoration:none;">
+                🍲 Gợi ý Món ăn ngay
+              </a>
+              <button type="button" class="dh-btn dh-btn-outline d-none" id="btn-reset-history-filter">
+                Xem tất cả phân hệ
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Danh sách Card quyết định -->
+        <div id="history-cards-container" class="history-cards-grid d-none" aria-live="polite"></div>
+
+        <!-- Phân trang -->
+        <nav
+          id="history-pagination"
+          class="dh-card history-pagination-bar mt-3 d-none"
+          aria-label="Phân trang lịch sử quyết định"
+        >
+          <div class="dh-card-body d-flex flex-wrap align-items-center justify-content-between gap-2 py-3 px-3">
+            <div class="dh-small dh-muted" id="history-page-info">
+              Trang 1 / 1
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="dh-btn dh-btn-outline dh-btn-sm" id="btn-prev-page" disabled>
+                ⬅ Trang trước
+              </button>
+              <button type="button" class="dh-btn dh-btn-outline dh-btn-sm" id="btn-next-page" disabled>
+                Trang sau ➡
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <!-- ================================================================
+           VIEW 2: CHI TIẾT MỘT QUYẾT ĐỊNH
+           ================================================================ -->
+      <div id="history-detail-view" class="d-none">
+        <!-- Đang tải chi tiết -->
+        <section class="dh-card d-none" id="history-detail-loading" aria-live="polite" aria-busy="true">
+          <div class="dh-card-body text-center py-5">
+            <div class="spinner-border text-success mb-3" role="status" aria-hidden="true"></div>
+            <div class="fw-bold">Đang tải chi tiết quyết định...</div>
+            <p class="dh-muted dh-small mb-0">Đang truy xuất snapshot tiêu chí đầu vào và bảng xếp hạng WSM.</p>
+          </div>
+        </section>
+
+        <!-- Không tìm thấy quyết định (404) -->
+        <section class="dh-card d-none" id="history-detail-not-found" role="alert">
+          <div class="dh-empty-state">
+            <div class="dh-empty-icon">🔍</div>
+            <div class="dh-empty-title">Không tìm thấy quyết định</div>
+            <p class="dh-empty-desc" id="history-detail-not-found-text">
+              Quyết định này không tồn tại hoặc không thuộc quyền truy cập của tài khoản hiện tại.
+            </p>
+            <button type="button" class="dh-btn dh-btn-primary" id="btn-not-found-back">
+              ⬅ Quay lại danh sách lịch sử
+            </button>
+          </div>
+        </section>
+
+        <!-- Lỗi khi tải chi tiết -->
+        <section class="dh-card d-none" id="history-detail-error" role="alert">
+          <div class="dh-empty-state">
+            <div class="dh-empty-icon">⚠️</div>
+            <div class="dh-empty-title">Không thể tải chi tiết quyết định</div>
+            <p class="dh-empty-desc" id="history-detail-error-text">
+              Đã xảy ra lỗi khi tải thông tin quyết định. Vui lòng thử lại.
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              <button type="button" class="dh-btn dh-btn-primary" id="btn-retry-detail">
+                ↻ Thử lại
+              </button>
+              <button type="button" class="dh-btn dh-btn-outline" id="btn-error-back">
+                ⬅ Quay lại danh sách
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Nội dung chi tiết quyết định -->
+        <div id="history-detail-content" class="d-none"></div>
+      </div>
     </div>
   </main>
 </div>
@@ -134,4 +263,3 @@
 <script src="../js/pages/history.js"></script>
 </body>
 </html>
-

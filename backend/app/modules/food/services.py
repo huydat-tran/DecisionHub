@@ -43,28 +43,28 @@ MEAL_TYPE_LABELS = {
 }
 
 
-def _build_food_stmt(
-    meal_type: MealType | None,
-    max_price: int | None,
-    max_prep_time: int | None,
-    *,
-    require_prep_time: bool = False,
-) -> Select[tuple[Food]]:
-    """Tạo truy vấn lấy các món ăn đang hoạt động thỏa điều kiện SQL cơ bản."""
-    stmt = (
-        select(Food)
-        .options(selectinload(Food.ingredients))
-        .where(Food.is_active.is_(True), Food.price >= 0)
-    )
-    if meal_type is not None:
-        stmt = stmt.where(func.lower(Food.meal_type) == meal_type.value)
-    if max_price is not None:
-        stmt = stmt.where(Food.price <= max_price)
-    if require_prep_time:
-        stmt = stmt.where(Food.prep_time.is_not(None), Food.prep_time >= 0)
-    if max_prep_time is not None:
-        stmt = stmt.where(Food.prep_time.is_not(None), Food.prep_time <= max_prep_time)
-    return stmt
+# def _build_food_stmt(
+#     meal_type: MealType | None,
+#     max_price: int | None,
+#     max_prep_time: int | None,
+#     *,
+#     require_prep_time: bool = False,
+# ) -> Select[tuple[Food]]:
+#     """Tạo truy vấn lấy các món ăn đang hoạt động thỏa điều kiện SQL cơ bản."""
+#     stmt = (
+#         select(Food)
+#         .options(selectinload(Food.ingredients))
+#         .where(Food.is_active.is_(True), Food.price >= 0)
+#     )
+#     if meal_type is not None:
+#         stmt = stmt.where(func.lower(Food.meal_type) == meal_type.value)
+#     if max_price is not None:
+#         stmt = stmt.where(Food.price <= max_price)
+#     if require_prep_time:
+#         stmt = stmt.where(Food.prep_time.is_not(None), Food.prep_time >= 0)
+#     if max_prep_time is not None:
+#         stmt = stmt.where(Food.prep_time.is_not(None), Food.prep_time <= max_prep_time)
+#     return stmt
 #     meal_type: MealType | None,
 #     max_price: int | None,
 #     max_prep_time: int | None,
@@ -88,12 +88,12 @@ def _build_food_stmt(
 #     return stmt
 
 
-def _has_excluded_ingredient(food: Food, excluded_lower: list[str]) -> bool:
-    """Kiểm tra nếu món ăn chứa bất kỳ nguyên liệu bị loại trừ nào."""
-    if not excluded_lower:
-        return False
-    ing_names = [ing.name.lower() for ing in food.ingredients]
-    return any(excl in ing_name for excl in excluded_lower for ing_name in ing_names)
+# def _has_excluded_ingredient(food: Food, excluded_lower: list[str]) -> bool:
+#     """Kiểm tra nếu món ăn chứa bất kỳ nguyên liệu bị loại trừ nào."""
+#     if not excluded_lower:
+#         return False
+#     ing_names = [ing.name.lower() for ing in food.ingredients]
+#     return any(excl in ing_name for excl in excluded_lower for ing_name in ing_names)
 #     if not excluded_lower:
 #         return False
 #     ing_names = [ing.name.lower() for ing in food.ingredients]
@@ -223,137 +223,137 @@ def get_food_detail(db: Session, food_id: int) -> FoodOut:
     return FoodOut.model_validate(food)
 
 
-def _build_reasons(
-    price_int: int,
-    budget_max: int,
-    prep_time: int,
-    max_prep_time: int | None,
-    meal_type: MealType | None,
-    matched_tags: list[str],
-) -> list[str]:
-    """Sinh 1-3 lý do dựa trên dữ liệu thực tế và điều kiện đầu vào."""
-    reasons: list[str] = []
-    if price_int == 0:
-        reasons.append("Chi phí 0đ, tối ưu ngân sách")
-    else:
-        reasons.append(
-            f"Giá {_format_vnd(price_int)} nằm trong ngân sách tối đa {_format_vnd(budget_max)}"
-        )
+# def _build_reasons(
+#     price_int: int,
+#     budget_max: int,
+#     prep_time: int,
+#     max_prep_time: int | None,
+#     meal_type: MealType | None,
+#     matched_tags: list[str],
+# ) -> list[str]:
+#     """Sinh 1-3 lý do dựa trên dữ liệu thực tế và điều kiện đầu vào."""
+#     reasons: list[str] = []
+#     if price_int == 0:
+#         reasons.append("Chi phí 0đ, tối ưu ngân sách")
+#     else:
+#         reasons.append(
+#             f"Giá {_format_vnd(price_int)} nằm trong ngân sách tối đa {_format_vnd(budget_max)}"
+#         )
 
-    if matched_tags:
-        reasons.append(f"Phù hợp khẩu vị ưu tiên: {', '.join(matched_tags)}")
-    elif meal_type is not None:
-        reasons.append(f"Phù hợp cho bữa {MEAL_TYPE_LABELS[meal_type.value]}")
+#     if matched_tags:
+#         reasons.append(f"Phù hợp khẩu vị ưu tiên: {', '.join(matched_tags)}")
+#     elif meal_type is not None:
+#         reasons.append(f"Phù hợp cho bữa {MEAL_TYPE_LABELS[meal_type.value]}")
 
-    if max_prep_time is not None:
-        reasons.append(
-            f"Thời gian chuẩn bị {prep_time} phút (đạt giới hạn ≤ {max_prep_time} phút)"
-        )
-    else:
-        reasons.append(f"Thời gian chuẩn bị khoảng {prep_time} phút")
+#     if max_prep_time is not None:
+#         reasons.append(
+#             f"Thời gian chuẩn bị {prep_time} phút (đạt giới hạn ≤ {max_prep_time} phút)"
+#         )
+#     else:
+#         reasons.append(f"Thời gian chuẩn bị khoảng {prep_time} phút")
 
-    return reasons[:3]
+#     return reasons[:3]
 
 
-def recommend_foods(
-    db: Session,
-    payload: FoodRecommendRequest,
-) -> tuple[DecisionResponse, str]:
-    """Lọc điều kiện bắt buộc, chấm điểm WSM và xếp hạng gợi ý món ăn."""
-    # Xây dựng câu truy vấn cơ bản
-    stmt = _build_food_stmt(
-        meal_type=payload.meal_type,
-        max_price=payload.budget_max,
-        max_prep_time=payload.max_prep_time,
-        require_prep_time=True,
-    )
-    candidates = list(db.scalars(stmt).all())
+# def recommend_foods(
+#     db: Session,
+#     payload: FoodRecommendRequest,
+# ) -> tuple[DecisionResponse, str]:
+#     """Lọc điều kiện bắt buộc, chấm điểm WSM và xếp hạng gợi ý món ăn."""
+#     # Xây dựng câu truy vấn cơ bản
+#     stmt = _build_food_stmt(
+#         meal_type=payload.meal_type,
+#         max_price=payload.budget_max,
+#         max_prep_time=payload.max_prep_time,
+#         require_prep_time=True,
+#     )
+#     candidates = list(db.scalars(stmt).all())
 
-    excluded_lower = [item.lower() for item in payload.excluded_ingredients]
-    pref_lower = [item.lower() for item in payload.preferred_tags]
+#     excluded_lower = [item.lower() for item in payload.excluded_ingredients]
+#     pref_lower = [item.lower() for item in payload.preferred_tags]
 
-    scored: list[tuple[float, int, int, str, int, RecommendedFoodResponse]] = []
+#     scored: list[tuple[float, int, int, str, int, RecommendedFoodResponse]] = []
 
-    for food in candidates:
-        if _has_excluded_ingredient(food, excluded_lower):
-            continue
-        if food.prep_time is None:
-            continue
-        price_int = int(round(food.price))
-        prep_time = food.prep_time
-        food_tags = normalize_tags(food.tags)
+#     for food in candidates:
+#         if _has_excluded_ingredient(food, excluded_lower):
+#             continue
+#         if food.prep_time is None:
+#             continue
+#         price_int = int(round(food.price))
+#         prep_time = food.prep_time
+#         food_tags = normalize_tags(food.tags)
 
-        # Tính điểm WSM bằng engine
-        wsm_result = calculate_food_wsm(
-            price=price_int,
-            prep_time=prep_time,
-            food_tags=food_tags,
-            budget_max=payload.budget_max,
-            max_prep_time=payload.max_prep_time,
-            preferred_tags=pref_lower,
-            weights=None,
-        )
+#         # Tính điểm WSM bằng engine
+#         wsm_result = calculate_food_wsm(
+#             price=price_int,
+#             prep_time=prep_time,
+#             food_tags=food_tags,
+#             budget_max=payload.budget_max,
+#             max_prep_time=payload.max_prep_time,
+#             preferred_tags=pref_lower,
+#             weights=None,
+#         )
 
-        matched_tags = [tag for tag in food_tags if tag.lower() in pref_lower]
+#         matched_tags = [tag for tag in food_tags if tag.lower() in pref_lower]
 
-        item = RecommendedFoodResponse(
-            food_id=food.id,
-            name=food.name,
-            price=price_int,
-            meal_type=food.meal_type,
-            prep_time=prep_time,
-            image_url=food.image_url,
-            tags=food_tags,
-            score=round(wsm_result.score, 2),
-            criteria_scores=CriteriaScores(
-                price=round(wsm_result.criteria_scores.price, 2),
-                preference=round(wsm_result.criteria_scores.preference, 2),
-                prep_time=round(wsm_result.criteria_scores.prep_time, 2),
-            ),
-            reasons=_build_reasons(
-                price_int=price_int,
-                budget_max=payload.budget_max,
-                prep_time=prep_time,
-                max_prep_time=payload.max_prep_time,
-                meal_type=payload.meal_type,
-                matched_tags=matched_tags,
-            ),
-        )
-        scored.append((wsm_result.score, price_int, prep_time, food.name.lower(), food.id, item))
+#         item = RecommendedFoodResponse(
+#             food_id=food.id,
+#             name=food.name,
+#             price=price_int,
+#             meal_type=food.meal_type,
+#             prep_time=prep_time,
+#             image_url=food.image_url,
+#             tags=food_tags,
+#             score=round(wsm_result.score, 2),
+#             criteria_scores=CriteriaScores(
+#                 price=round(wsm_result.criteria_scores.price, 2),
+#                 preference=round(wsm_result.criteria_scores.preference, 2),
+#                 prep_time=round(wsm_result.criteria_scores.prep_time, 2),
+#             ),
+#             reasons=_build_reasons(
+#                 price_int=price_int,
+#                 budget_max=payload.budget_max,
+#                 prep_time=prep_time,
+#                 max_prep_time=payload.max_prep_time,
+#                 meal_type=payload.meal_type,
+#                 matched_tags=matched_tags,
+#             ),
+#         )
+#         scored.append((wsm_result.score, price_int, prep_time, food.name.lower(), food.id, item))
 
-    scored.sort(key=lambda row: (-row[0], row[1], row[2], row[3], row[4]))
-    top_items = [row[5] for row in scored[: payload.limit]]
+#     scored.sort(key=lambda row: (-row[0], row[1], row[2], row[3], row[4]))
+#     top_items = [row[5] for row in scored[: payload.limit]]
 
-    decision_data = DecisionResponse(
-        items=top_items,
-        total=len(scored),
-        limit=payload.limit,
-        applied_filters=AppliedFilters(
-            budget_max=payload.budget_max,
-            meal_type=payload.meal_type.value if payload.meal_type is not None else None,
-            max_prep_time=payload.max_prep_time,
-            excluded_ingredients=payload.excluded_ingredients,
-            preferred_tags=payload.preferred_tags,
-        ),
-        scoring=ScoringResponse(
-            method="WSM",
-            weights=ScoringWeights(
-                price=WEIGHT_PRICE,
-                preference=WEIGHT_PREFERENCE,
-                prep_time=WEIGHT_PREP_TIME,
-            ),
-        ),
-    )
+#     decision_data = DecisionResponse(
+#         items=top_items,
+#         total=len(scored),
+#         limit=payload.limit,
+#         applied_filters=AppliedFilters(
+#             budget_max=payload.budget_max,
+#             meal_type=payload.meal_type.value if payload.meal_type is not None else None,
+#             max_prep_time=payload.max_prep_time,
+#             excluded_ingredients=payload.excluded_ingredients,
+#             preferred_tags=payload.preferred_tags,
+#         ),
+#         scoring=ScoringResponse(
+#             method="WSM",
+#             weights=ScoringWeights(
+#                 price=WEIGHT_PRICE,
+#                 preference=WEIGHT_PREFERENCE,
+#                 prep_time=WEIGHT_PREP_TIME,
+#             ),
+#         ),
+#     )
 
-    if not top_items:
-        message = (
-            "Không có món ăn nào thỏa mãn toàn bộ điều kiện. "
-            "Hãy thử tăng ngân sách tối đa, nới thời gian chuẩn bị hoặc giảm nguyên liệu cần tránh."
-        )
-    else:
-        message = f"Đề xuất {len(top_items)} món ăn phù hợp nhất."
+#     if not top_items:
+#         message = (
+#             "Không có món ăn nào thỏa mãn toàn bộ điều kiện. "
+#             "Hãy thử tăng ngân sách tối đa, nới thời gian chuẩn bị hoặc giảm nguyên liệu cần tránh."
+#         )
+#     else:
+#         message = f"Đề xuất {len(top_items)} món ăn phù hợp nhất."
 
-    return decision_data, message
+#     return decision_data, message
 
 # Legacy scoring implementation removed – using engine.calculate_food_wsm
 #     pref_lower = [item.lower() for item in payload.preferred_tags]
