@@ -378,7 +378,7 @@
         const y = getY(tickVal);
         gridHtml += `
           <g class="criteria-chart-grid-line">
-            <line x1="${padLeft}" y1="${y}" x2="${chartWidth - padRight}" y2="${y}" stroke="#E3EBE6" stroke-dasharray="${tickVal === 0 ? "none" : "3,3"}" stroke-width="${tickVal === 0 ? "1.5" : "1"}"/>
+            <line x1="${padLeft}" y1="${y}" x2="${chartWidth - padRight}" y2="${y}" stroke="${tickVal === 0 ? "#E0E8E3" : "#EDF3EF"}" stroke-dasharray="${tickVal === 0 ? "none" : "3,3"}" stroke-width="${tickVal === 0 ? "1" : "0.75"}"/>
             <text x="${padLeft - 8}" y="${y + 4}" text-anchor="end" fill="#66776F" font-size="11" font-family="Roboto, sans-serif">${tickVal}</text>
           </g>
         `;
@@ -436,7 +436,8 @@
             <g class="criteria-chart-bar-group" data-option-id="${s.id}" data-crit-key="${crit.key}">
               <rect class="${barClass}"
                     x="${barX}" y="${barY}" width="${barWidth}" height="${barH}"
-                    rx="4" fill="${s.color}"
+                    rx="4" fill="${s.color}" fill-opacity="0.78"
+                    stroke="${s.color}" stroke-width="1" stroke-opacity="0.85"
                     data-option-id="${s.id}"
                     data-option-name="${safe(s.name)}"
                     data-crit-key="${crit.key}"
