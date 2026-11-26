@@ -8,7 +8,14 @@
 // nhận được từ Decision Engine Backend.
 
 (function (global) {
-  const state = { results: [], criteria: [], excluded: [], els: null, message: "" };
+  const state = {
+    results: [],
+    criteria: [],
+    excluded: [],
+    els: null,
+    message: "",
+    chartMode: "compare", // 'compare' | 'single'
+  };
 
   // Helper escape HTML chống XSS
   function safeHtml(str) {
@@ -228,9 +235,26 @@
       </div>
     </div>
 
-    <!-- Thanh tiến trình từng tiêu chí -->
-    <h4 class="results-subtitle mt-3">Mức độ đáp ứng tiêu chí</h4>
-    <div class="dh-criteria-group">${renderCriteriaBars(option, criteria)}</div>
+    <!-- Biểu đồ cột đóng góp điểm theo tiêu chí (Thay thế thanh tiến trình cũ) -->
+    <div class="results-chart-section mt-4 mb-3" id="results-chart-section">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <div>
+          <h4 class="results-subtitle mb-0" id="results-chart-title">Biểu đồ đóng góp điểm theo tiêu chí</h4>
+          <span class="dh-muted dh-small">
+            Mức đóng góp điểm (<code class="dh-code-inline">contribution = weight × normalized_score</code>) của từng tiêu chí vào tổng điểm WSM
+          </span>
+        </div>
+        <div class="results-chart-view-toggle btn-group btn-group-sm" role="group" aria-label="Chế độ hiển thị biểu đồ">
+          <button type="button" class="dh-btn dh-btn-xs dh-btn-outline${state.chartMode === "compare" ? " is-active" : ""}" data-chart-mode="compare" id="btn-chart-mode-compare" aria-pressed="${state.chartMode === "compare"}">
+            So sánh các phương án
+          </button>
+          <button type="button" class="dh-btn dh-btn-xs dh-btn-outline${state.chartMode === "single" ? " is-active" : ""}" data-chart-mode="single" id="btn-chart-mode-single" aria-pressed="${state.chartMode === "single"}">
+            Chỉ phương án này
+          </button>
+        </div>
+      </div>
+      <div id="criteria-chart-container" class="criteria-chart-container" aria-labelledby="results-chart-title"></div>
+    </div>
 
     <h4 class="results-subtitle">Vì sao phương án này đạt hạng ${rank}?</h4>
     <p class="results-reason-text">${safeHtml(option.explanation || "")}</p>
@@ -250,6 +274,69 @@
         <ul class="dh-reason-list">${renderReasonItems(option.disadvantages || ["Điểm tổng hợp phụ thuộc vào mức ngân sách và điều kiện lọc đã chọn"], "!")}</ul>
       </div>
     </div>`;
+
+    // Render biểu đồ đóng góp điểm theo tiêu chí (CriteriaChart)
+    const chartContainer = el.explanationBody.querySelector("#criteria-chart-container");
+    if (chartContainer && typeof CriteriaChart !== "undefined" && typeof CriteriaChart.render === "function") {
+      CriteriaChart.render({
+        container: chartContainer,
+        results: state.results,
+        criteria: state.criteria,
+        selectedId: option.id,
+        mode: state.chartMode,
+        onSelectOption: (newOptId) => {
+          selectOption(newOptId, state.results, state.criteria);
+        },
+      });
+
+      // Gắn sự kiện chuyển đổi chế độ biểu đồ
+      const btnCompare = el.explanationBody.querySelector("#btn-chart-mode-compare");
+      const btnSingle = el.explanationBody.querySelector("#btn-chart-mode-single");
+
+      if (btnCompare) {
+        btnCompare.addEventListener("click", () => {
+          state.chartMode = "compare";
+          btnCompare.classList.add("is-active");
+          btnCompare.setAttribute("aria-pressed", "true");
+          if (btnSingle) {
+            btnSingle.classList.remove("is-active");
+            btnSingle.setAttribute("aria-pressed", "false");
+          }
+          CriteriaChart.render({
+            container: chartContainer,
+            results: state.results,
+            criteria: state.criteria,
+            selectedId: option.id,
+            mode: "compare",
+            onSelectOption: (newOptId) => {
+              selectOption(newOptId, state.results, state.criteria);
+            },
+          });
+        });
+      }
+
+      if (btnSingle) {
+        btnSingle.addEventListener("click", () => {
+          state.chartMode = "single";
+          btnSingle.classList.add("is-active");
+          btnSingle.setAttribute("aria-pressed", "true");
+          if (btnCompare) {
+            btnCompare.classList.remove("is-active");
+            btnCompare.setAttribute("aria-pressed", "false");
+          }
+          CriteriaChart.render({
+            container: chartContainer,
+            results: state.results,
+            criteria: state.criteria,
+            selectedId: option.id,
+            mode: "single",
+            onSelectOption: (newOptId) => {
+              selectOption(newOptId, state.results, state.criteria);
+            },
+          });
+        });
+      }
+    }
   }
 
   // Hiển thị danh sách các phương án bị loại (Excluded Candidates)
@@ -366,8 +453,13 @@
       </li>`;
     }
     if (el.explanationBody) {
-      el.explanationBody.innerHTML =
-        '<p class="dh-muted mb-0">Chưa có phương án nào để giải thích.</p>';
+      el.explanationBody.innerHTML = `
+        <div class="criteria-chart-state criteria-chart-empty py-4 text-center">
+          <div class="dh-empty-icon mb-2" aria-hidden="true">📊</div>
+          <div class="criteria-chart-empty-title fw-semibold text-muted mb-1">Chưa có dữ liệu để hiển thị biểu đồ</div>
+          <p class="dh-muted dh-small mb-0">${safeHtml(message || "Chưa có phương án nào để hiển thị biểu đồ và giải thích kết quả.")}</p>
+        </div>
+      `;
     }
   }
 

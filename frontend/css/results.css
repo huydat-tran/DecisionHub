@@ -376,3 +376,233 @@
 .results-page .results-spec-chip strong {
   color: var(--dh-text);
 }
+
+/* ==========================================================
+   Biểu đồ đóng góp điểm theo tiêu chí (CriteriaChart)
+   ========================================================== */
+
+.results-page .results-chart-section {
+  padding: 16px;
+  background: var(--dh-surface-subtle, #f5f8f6);
+  border: 1px solid var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius-md, 12px);
+}
+
+.results-page .dh-code-inline {
+  background: var(--dh-primary-soft, #E8F5EF);
+  color: var(--dh-primary, #16845B);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.results-page .results-chart-view-toggle .dh-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  min-height: 28px;
+  background: #ffffff;
+  border-color: var(--dh-border, #E3EBE6);
+  color: var(--dh-text-muted, #66776F);
+}
+
+.results-page .results-chart-view-toggle .dh-btn:hover {
+  background: var(--dh-surface-subtle, #f5f8f6);
+  color: var(--dh-text, #172B23);
+  border-color: var(--dh-border-strong, #C5D6CC);
+}
+
+.results-page .results-chart-view-toggle .dh-btn.is-active {
+  background: var(--dh-primary-soft, #E8F5EF);
+  color: var(--dh-primary, #16845B);
+  border-color: var(--dh-primary, #16845B);
+  font-weight: 600;
+}
+
+.results-page .criteria-chart-container {
+  position: relative;
+  min-height: 240px;
+}
+
+.results-page .criteria-chart-wrapper {
+  position: relative;
+}
+
+.results-page .criteria-chart-scroll-box {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  border: 1px solid #EBF1ED;
+  border-radius: var(--dh-radius-md, 10px);
+  padding: 10px 4px;
+}
+
+.results-page .criteria-chart-svg {
+  display: block;
+  min-width: 100%;
+}
+
+.results-page .criteria-chart-bar {
+  cursor: pointer;
+  fill-opacity: 0.78;
+  stroke-width: 1px;
+  stroke-opacity: 0.85;
+  transition: transform 0.15s ease, filter 0.15s ease, fill-opacity 0.15s ease, stroke-width 0.15s ease;
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+
+.results-page .criteria-chart-bar:hover,
+.results-page .criteria-chart-bar:focus {
+  fill-opacity: 0.95;
+  filter: brightness(1.06);
+  outline: none;
+}
+
+.results-page .criteria-chart-bar.is-selected {
+  stroke: var(--dh-primary, #16845B);
+  stroke-width: 1.5px;
+  stroke-opacity: 1;
+  fill-opacity: 0.9;
+  filter: drop-shadow(0 2px 4px rgba(22, 132, 91, 0.2));
+}
+
+.results-page .criteria-chart-bar-val {
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--dh-text, #172B23);
+}
+
+.results-page .criteria-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius, 8px);
+}
+
+.results-page .criteria-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--dh-surface-subtle, #f5f8f6);
+  border: 1px solid var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius-sm, 6px);
+  font-size: 12px;
+  color: var(--dh-text, #172B23);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.results-page .criteria-chart-legend-item:hover {
+  background: var(--dh-primary-soft, #E8F5EF);
+  border-color: var(--dh-primary, #16845B);
+}
+
+.results-page .criteria-chart-legend-item.is-active {
+  background: var(--dh-primary-soft, #E8F5EF);
+  border-color: var(--dh-primary, #16845B);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(22, 132, 91, 0.15);
+}
+
+.results-page .criteria-chart-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.results-page .criteria-chart-single-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius, 8px);
+  font-size: 13px;
+}
+
+/* Tooltip hiển thị khi hover vào cột */
+.results-page .criteria-chart-tooltip {
+  position: absolute;
+  z-index: 50;
+  width: 270px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1.5px solid var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius-md, 10px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 12px 14px;
+  pointer-events: none;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.results-page .criteria-chart-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dh-text, #172B23);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--dh-border, #E3EBE6);
+}
+
+.results-page .criteria-chart-tooltip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.results-page .criteria-chart-tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.results-page .criteria-chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dh-text, #172B23);
+}
+
+.results-page .criteria-chart-tooltip-label {
+  color: var(--dh-text-muted, #66776F);
+}
+
+.results-page .criteria-chart-tooltip-val {
+  text-align: right;
+  word-break: break-word;
+}
+
+.results-page .criteria-chart-tooltip-highlight {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--dh-border, #E3EBE6);
+  color: var(--dh-primary, #16845B);
+  font-size: 13px;
+}
+
+.results-page .criteria-chart-state {
+  background: #ffffff;
+  border: 1px dashed var(--dh-border, #E3EBE6);
+  border-radius: var(--dh-radius-md, 10px);
+}
+
