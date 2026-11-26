@@ -14,9 +14,8 @@ from app.modules.travel.adapter import (
     adapt_travel_candidates,
     adapt_travel_criteria,
 )
+from app.modules.travel.mock_data import RAW_MOCK_TRAVEL_CANDIDATES
 from app.modules.travel.models import TravelPlace
-
-logger = logging.getLogger(__name__)
 from app.modules.travel.schemas import (
     RecommendedTravelResponse,
     TravelAppliedFilters,
@@ -26,85 +25,7 @@ from app.modules.travel.schemas import (
     TravelScoringResponse,
 )
 
-RAW_MOCK_TRAVEL_CANDIDATES: list[dict[str, Any]] = [
-    {
-        "id": 1,
-        "destination_id": 1,
-        "name": "Phố cổ Hội An",
-        "province_city": "Quảng Nam",
-        "region": "Trung",
-        "estimated_cost": 500000,
-        "estimated_duration": 8.0,
-        "activity_type": "Văn hóa lịch sử",
-        "highlights": [
-            "Thả đèn hoa đăng trên sông Hoài",
-            "Thưởng thức cao lầu",
-            "Check-in Chùa Cầu",
-            "Đạp xe tham quan làng gốm",
-        ],
-        "description": "Đô thị cổ được UNESCO công nhận là Di sản Thế giới.",
-        "image_url": "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b",
-        "rating": 4.8,
-        "is_active": True,
-    },
-    {
-        "id": 2,
-        "destination_id": 2,
-        "name": "Vịnh Hạ Long",
-        "province_city": "Quảng Ninh",
-        "region": "Bắc",
-        "estimated_cost": 650000,
-        "estimated_duration": 6.5,
-        "activity_type": "Khám phá thiên nhiên",
-        "highlights": [
-            "Thăm hang Sửng Sốt",
-            "Chèo thuyền kayak",
-            "Ngắm hoàng hôn trên vịnh",
-        ],
-        "description": "Di sản thiên nhiên thế giới với hàng nghìn đảo đá vôi kỳ vĩ.",
-        "image_url": "https://images.unsplash.com/photo-1528127269322-539801943592",
-        "rating": 4.9,
-        "is_active": True,
-    },
-    {
-        "id": 3,
-        "destination_id": 3,
-        "name": "Quần thể danh thắng Tràng An",
-        "province_city": "Ninh Bình",
-        "region": "Bắc",
-        "estimated_cost": 450000,
-        "estimated_duration": 6.0,
-        "activity_type": "Khám phá thiên nhiên",
-        "highlights": [
-            "Đi thuyền nan ngắm hang động",
-            "Viếng đền Trình",
-            "Leo núi ngắm thung lũng",
-        ],
-        "description": "Di sản thế giới kép đầu tiên tại Đông Nam Á.",
-        "image_url": "https://images.unsplash.com/photo-1528127269322-539801943592",
-        "rating": 4.8,
-        "is_active": True,
-    },
-    {
-        "id": 4,
-        "destination_id": 4,
-        "name": "Chợ nổi Cái Răng",
-        "province_city": "Cần Thơ",
-        "region": "Tây Nam Bộ",
-        "estimated_cost": 250000,
-        "estimated_duration": 4.0,
-        "activity_type": "Sinh thái sông nước",
-        "highlights": [
-            "Ăn hủ tiếu trên sông",
-            "Ghé thăm vườn trái cây",
-            "Tham quan lò hủ tiếu truyền thống",
-        ],
-        "description": "Chợ nổi đặc trưng của miền Tây sông nước.",
-        "image_url": None,
-        "rating": 4.6,
-        "is_active": True,
-    },
-]
+logger = logging.getLogger(__name__)
 
 
 def _format_vnd(amount: int) -> str:
