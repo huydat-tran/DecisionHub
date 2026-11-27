@@ -203,53 +203,104 @@
       </div>
 
       <!-- ================================================================
-           VIEW 2: CHI TIẾT MỘT QUYẾT ĐỊNH
+           MODAL: XEM LẠI CHI TIẾT QUYẾT ĐỊNH (Light Theme · Căn giữa màn hình)
            ================================================================ -->
-      <div id="history-detail-view" class="d-none">
-        <!-- Đang tải chi tiết -->
-        <section class="dh-card d-none" id="history-detail-loading" aria-live="polite" aria-busy="true">
-          <div class="dh-card-body text-center py-5">
-            <div class="spinner-border text-success mb-3" role="status" aria-hidden="true"></div>
-            <div class="fw-bold">Đang tải chi tiết quyết định...</div>
-            <p class="dh-muted dh-small mb-0">Đang truy xuất snapshot tiêu chí đầu vào và bảng xếp hạng WSM.</p>
-          </div>
-        </section>
-
-        <!-- Không tìm thấy quyết định (404) -->
-        <section class="dh-card d-none" id="history-detail-not-found" role="alert">
-          <div class="dh-empty-state">
-            <div class="dh-empty-icon">🔍</div>
-            <div class="dh-empty-title">Không tìm thấy quyết định</div>
-            <p class="dh-empty-desc" id="history-detail-not-found-text">
-              Quyết định này không tồn tại hoặc không thuộc quyền truy cập của tài khoản hiện tại.
-            </p>
-            <button type="button" class="dh-btn dh-btn-primary" id="btn-not-found-back">
-              ⬅ Quay lại danh sách lịch sử
+      <div
+        id="history-detail-modal"
+        class="history-modal-backdrop d-none"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-modal-title"
+        aria-hidden="true"
+      >
+        <div class="history-modal-dialog" id="history-detail-view" role="document">
+          <!-- Header cố định khi cuộn -->
+          <header class="history-modal-header">
+            <div class="history-modal-header-left">
+              <span class="dh-brand-mark history-modal-brand-icon" aria-hidden="true">D</span>
+              <div class="history-modal-heading-text">
+                <h2 class="history-modal-title" id="history-modal-title">Chi tiết quyết định</h2>
+                <p class="history-modal-subtitle" id="history-modal-subtitle">
+                  Xem lại thông tin đề xuất, tiêu chí đầu vào và danh sách xếp hạng
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="history-modal-close-btn"
+              id="btn-close-detail-modal"
+              aria-label="Đóng cửa sổ chi tiết quyết định"
+              title="Đóng (ESC)"
+            >
+              ✕
             </button>
-          </div>
-        </section>
+          </header>
 
-        <!-- Lỗi khi tải chi tiết -->
-        <section class="dh-card d-none" id="history-detail-error" role="alert">
-          <div class="dh-empty-state">
-            <div class="dh-empty-icon">⚠️</div>
-            <div class="dh-empty-title">Không thể tải chi tiết quyết định</div>
-            <p class="dh-empty-desc" id="history-detail-error-text">
-              Đã xảy ra lỗi khi tải thông tin quyết định. Vui lòng thử lại.
-            </p>
-            <div class="d-flex flex-wrap justify-content-center gap-2">
-              <button type="button" class="dh-btn dh-btn-primary" id="btn-retry-detail">
-                ↻ Thử lại
-              </button>
-              <button type="button" class="dh-btn dh-btn-outline" id="btn-error-back">
-                ⬅ Quay lại danh sách
+          <!-- Khu vực nội dung cuộn dọc độc lập -->
+          <div class="history-modal-body" id="history-modal-body" tabindex="-1">
+            <!-- Đang tải chi tiết -->
+            <section class="history-modal-state d-none" id="history-detail-loading" aria-live="polite" aria-busy="true">
+              <div class="text-center py-5">
+                <div class="spinner-border text-success mb-3" role="status" aria-hidden="true"></div>
+                <div class="fw-bold">Đang tải chi tiết quyết định...</div>
+                <p class="dh-muted dh-small mb-3">Đang truy xuất dữ liệu đề xuất, tiêu chí đầu vào và bảng xếp hạng đã lưu.</p>
+                <div class="history-modal-skeleton-group">
+                  <div class="dh-skeleton history-modal-skeleton-hero"></div>
+                  <div class="dh-skeleton history-modal-skeleton-row"></div>
+                  <div class="dh-skeleton history-modal-skeleton-row"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Không tìm thấy quyết định (404) -->
+            <section class="history-modal-state d-none" id="history-detail-not-found" role="alert">
+              <div class="dh-empty-state py-4">
+                <div class="dh-empty-icon">🔍</div>
+                <div class="dh-empty-title">Không tìm thấy quyết định</div>
+                <p class="dh-empty-desc" id="history-detail-not-found-text">
+                  Quyết định này không tồn tại hoặc không thuộc quyền truy cập của tài khoản hiện tại.
+                </p>
+                <button type="button" class="dh-btn dh-btn-primary" id="btn-not-found-back">
+                  Đóng cửa sổ
+                </button>
+              </div>
+            </section>
+
+            <!-- Lỗi khi tải chi tiết -->
+            <section class="history-modal-state d-none" id="history-detail-error" role="alert">
+              <div class="dh-empty-state py-4">
+                <div class="dh-empty-icon">⚠️</div>
+                <div class="dh-empty-title">Không thể tải chi tiết quyết định</div>
+                <p class="dh-empty-desc" id="history-detail-error-text">
+                  Đã xảy ra lỗi khi tải thông tin quyết định. Vui lòng thử lại.
+                </p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                  <button type="button" class="dh-btn dh-btn-primary" id="btn-retry-detail">
+                    ↻ Thử lại
+                  </button>
+                  <button type="button" class="dh-btn dh-btn-outline" id="btn-error-back">
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Nội dung chi tiết quyết định -->
+            <div id="history-detail-content" class="d-none"></div>
+          </div>
+
+          <!-- Footer cố định -->
+          <footer class="history-modal-footer">
+            <div class="history-modal-footer-hint dh-muted dh-small" id="history-modal-footer-meta">
+              Nhấn <kbd class="history-kbd">ESC</kbd> hoặc bấm ra ngoài khung để đóng
+            </div>
+            <div class="history-modal-footer-actions">
+              <button type="button" class="dh-btn dh-btn-secondary dh-btn-sm" id="btn-footer-close-modal">
+                Đóng
               </button>
             </div>
-          </div>
-        </section>
-
-        <!-- Nội dung chi tiết quyết định -->
-        <div id="history-detail-content" class="d-none"></div>
+          </footer>
+        </div>
       </div>
     </div>
   </main>

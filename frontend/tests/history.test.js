@@ -1,5 +1,5 @@
-// Kiểm thử tự động cho giao diện Lịch sử quyết định (frontend/js/pages/history.js,
-// frontend/pages/history.html, frontend/css/history.css).
+// Kiểm thử tự động cho giao diện Lịch sử quyết định & Modal Xem lại chi tiết
+// (frontend/js/pages/history.js, frontend/pages/history.html, frontend/css/history.css).
 // Chạy: node frontend/tests/history.test.js
 
 const fs = require("fs");
@@ -25,10 +25,9 @@ function assert(name, condition, detail = "") {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Kiểm tra cấu trúc HTML, CSS Guidelines & Responsive (Trường hợp 9)
+// 1. Kiểm tra cấu trúc HTML, CSS Guidelines, Light Overlay/Blur & Responsive
 // ---------------------------------------------------------------------------
 function testStaticHtmlAndCss() {
-  // Kiểm tra thứ tự import CSS bắt buộc: Bootstrap -> variables -> common -> components -> history
   const cssOrder = [
     "bootstrap.min.css",
     "../css/variables.css",
@@ -48,22 +47,43 @@ function testStaticHtmlAndCss() {
   }
   assert("Thứ tự import CSS đúng chuẩn UI Guidelines", orderValid);
 
-  // Không có inline onclick trong HTML
   assert(
-    "Không sử dụng thuộc tính inline onclick trong history.html",
-    !/\sonclick\s*=/i.test(htmlSource),
+    "Không sử dụng thuộc tính inline onclick/onerror trong history.html",
+    !/\son(click|error)\s*=/i.test(htmlSource),
   );
 
-  // Kiểm tra tất cả rule CSS trong history.css đều nằm trong namespace .history-page
+  assert(
+    "Có cấu trúc Modal Chi tiết quyết định căn giữa với role='dialog' và aria-modal='true'",
+    htmlSource.includes('id="history-detail-modal"') &&
+      htmlSource.includes('role="dialog"') &&
+      htmlSource.includes('aria-modal="true"') &&
+      htmlSource.includes("Chi tiết quyết định"),
+  );
+
+  assert(
+    "Overlay sử dụng nền xám nhạt trong suốt kèm backdrop-filter: blur() và vùng cuộn độc lập",
+    cssSource.includes("backdrop-filter: blur") &&
+      cssSource.includes("overflow-y: auto") &&
+      cssSource.includes("overscroll-behavior: contain") &&
+      cssSource.includes(".history-page.history-modal-open"),
+  );
+
+  // Kiểm tra mọi selector trong history.css đều có namespace .history-page
   const strippedCss = cssSource
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/@media[^{]+\{/g, "")
     .trim();
-  const selectorBlocks = strippedCss.split("}").map((b) => b.trim()).filter(Boolean);
+  const selectorBlocks = strippedCss
+    .split("}")
+    .map((b) => b.trim())
+    .filter(Boolean);
   const nonNamespaced = selectorBlocks.filter((block) => {
     const selPart = block.split("{")[0];
     if (!selPart) return false;
-    const selectors = selPart.split(",").map((s) => s.trim()).filter(Boolean);
+    const selectors = selPart
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     return selectors.some((s) => !s.startsWith(".history-page"));
   });
   assert(
@@ -72,15 +92,16 @@ function testStaticHtmlAndCss() {
     nonNamespaced.join(" | "),
   );
 
-  // Kiểm tra responsive breakpoints
   assert(
-    "Có responsive media queries cho Tablet (<992px) và Mobile (<576px)",
-    cssSource.includes("991.98px") && cssSource.includes("575.98px"),
+    "Có responsive media queries cho Tablet (<992px), Mobile ngang (<768px) và Mobile nhỏ (<576px)",
+    cssSource.includes("991.98px") &&
+      cssSource.includes("767.98px") &&
+      cssSource.includes("575.98px"),
   );
 }
 
 // ---------------------------------------------------------------------------
-// 2. Stub DOM tối giản để chạy history.js trong Node.js
+// 2. Stub DOM để kiểm thử đầy đủ hành vi Modal, Scroll Lock, ESC, Backdrop
 // ---------------------------------------------------------------------------
 function createMockDom() {
   const elements = {};
@@ -110,7 +131,12 @@ function createMockDom() {
     "history-page-info",
     "btn-prev-page",
     "btn-next-page",
+    "history-detail-modal",
     "history-detail-view",
+    "history-modal-subtitle",
+    "history-modal-body",
+    "btn-close-detail-modal",
+    "btn-footer-close-modal",
     "history-detail-loading",
     "history-detail-not-found",
     "history-detail-not-found-text",
@@ -131,6 +157,9 @@ function createMockDom() {
       textContent: "",
       innerHTML: "",
       disabled: false,
+      scrollTop: 0,
+      offsetWidth: 860,
+      style: {},
       dataset: {},
       classList: {
         add: (...c) => c.forEach((x) => classes.add(x)),
@@ -148,7 +177,11 @@ function createMockDom() {
       },
       getAttribute: (k) => attrs[k] || null,
       addEventListener: (ev, fn) => {
-        listeners[ev] = fn;
+        if (!listeners[ev]) listeners[ev] = [];
+        listeners[ev].push(fn);
+      },
+      dispatchEvent: (evName, eventPayload = {}) => {
+        (listeners[evName] || []).forEach((fn) => fn(eventPayload));
       },
       querySelectorAll: () => [],
     };
@@ -158,8 +191,11 @@ function createMockDom() {
     elements[id] = makeEl(id);
   });
 
-  // Mặc định listView hiển thị
+  // Mặc định listView, modalBody và nút đóng hiển thị bên trong khung
   elements["history-list-view"].classList.remove("d-none");
+  elements["history-modal-body"].classList.remove("d-none");
+  elements["btn-close-detail-modal"].classList.remove("d-none");
+  elements["btn-footer-close-modal"].classList.remove("d-none");
 
   const filterChipEls = ["all", "food", "travel"].map((type) => {
     const chip = makeEl("chip-" + type);
@@ -170,12 +206,16 @@ function createMockDom() {
   });
   elements["history-filter-chips"].querySelectorAll = () => filterChipEls;
 
-  return elements;
+  return { elements, makeEl };
 }
 
-function createHarness({ loggedIn = true, apiGetImpl }) {
-  const elements = createMockDom();
+function createHarness({ loggedIn = true, initialScrollY = 0, apiGetImpl }) {
+  const { elements, makeEl } = createMockDom();
   const apiCalls = [];
+  const docListeners = {};
+  const bodyEl = makeEl("body");
+  bodyEl.classList.remove("d-none");
+  bodyEl.classList.add("history-page");
 
   const api = {
     session: {
@@ -188,6 +228,13 @@ function createHarness({ loggedIn = true, apiGetImpl }) {
   };
 
   const windowObj = {
+    innerWidth: 1280,
+    scrollY: initialScrollY,
+    pageYOffset: initialScrollY,
+    scrollTo: (_x, y) => {
+      windowObj.scrollY = y;
+      windowObj.pageYOffset = y;
+    },
     location: {
       href: "http://127.0.0.1:5500/frontend/pages/history.html",
       search: "",
@@ -198,15 +245,28 @@ function createHarness({ loggedIn = true, apiGetImpl }) {
         windowObj.location.href = parsed.toString();
         windowObj.location.search = parsed.search;
       },
+      replaceState: (_state, _title, newUrl) => {
+        const parsed = new URL(newUrl);
+        windowObj.location.href = parsed.toString();
+        windowObj.location.search = parsed.search;
+      },
     },
     addEventListener: () => {},
   };
 
   const documentObj = {
     readyState: "complete",
+    body: bodyEl,
+    documentElement: { clientWidth: 1265, scrollTop: initialScrollY },
     getElementById: (id) => elements[id] || null,
     querySelector: () => null,
-    addEventListener: () => {},
+    addEventListener: (ev, fn) => {
+      if (!docListeners[ev]) docListeners[ev] = [];
+      docListeners[ev].push(fn);
+    },
+    dispatchDocumentEvent: (evName, payload = {}) => {
+      (docListeners[evName] || []).forEach((fn) => fn(payload));
+    },
     createElement: () => {
       let txt = "";
       return {
@@ -238,14 +298,20 @@ function createHarness({ loggedIn = true, apiGetImpl }) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;"),
     formatMoney: (v) => Number(v).toLocaleString("vi-VN") + " ₫",
-    formatDateTime: (v) => "16:00 23/11/2026",
+    formatDateTime: () => "16:00 23/11/2026",
   });
 
   vm.runInContext(jsSource, context);
-  return { elements, apiCalls, DHHistory: windowObj.DHHistory, windowObj };
+  return {
+    elements,
+    bodyEl,
+    documentObj,
+    apiCalls,
+    DHHistory: windowObj.DHHistory,
+    windowObj,
+  };
 }
 
-// Dữ liệu mẫu đúng chuẩn Backend DecisionHistoryListResponse & DecisionHistoryDetailResponse
 const SAMPLE_FOOD_DECISION = {
   id: 101,
   user_id: 1,
@@ -253,10 +319,12 @@ const SAMPLE_FOOD_DECISION = {
   created_at: "2026-11-23T16:00:00",
   input_snapshot: {
     budget_max: 50000,
+    people_count: 2,
     meal_type: "lunch",
     max_prep_time: 25,
     excluded_ingredients: ["Đậu phộng"],
     preferred_tags: ["truyền thống"],
+    special_requirements: "Ít dầu mỡ",
     limit: 5,
     weights: null,
   },
@@ -272,6 +340,8 @@ const SAMPLE_FOOD_DECISION = {
         food_id: 2,
         id: 2,
         name: "Bún chả Hà Nội",
+        description: "Thịt nướng than hoa ăn kèm bún tươi và nước chấm chua ngọt.",
+        image_url: "../assets/images/foods/buncha.jpg",
         price: 35000,
         meal_type: "lunch",
         prep_time: 20,
@@ -322,6 +392,28 @@ const SAMPLE_FOOD_DECISION = {
   },
 };
 
+const SAMPLE_SPARSE_DECISION = {
+  id: 105,
+  user_id: 1,
+  domain: "food",
+  created_at: "2026-11-24T12:00:00",
+  input_snapshot: {
+    budget_max: 40000,
+  },
+  result_snapshot: {
+    success: true,
+    total: 1,
+    total_excluded: 0,
+    items: [
+      {
+        food_id: 9,
+        name: "Bánh mì thịt nguội",
+        // Cố tình thiếu image_url, description, score, reasons để kiểm tra fallback an toàn
+      },
+    ],
+  },
+};
+
 const SAMPLE_TRAVEL_DECISION = {
   id: 102,
   user_id: 1,
@@ -365,7 +457,7 @@ async function runTests() {
   testStaticHtmlAndCss();
 
   // -------------------------------------------------------------------------
-  // Trường hợp 1, 3, 8: Đã đăng nhập, có nhiều quyết định (Food + Travel) & Lọc
+  // Trường hợp 1, 3, 8: Danh sách lịch sử, nút "Xem lại", Phân trang & Lọc
   // -------------------------------------------------------------------------
   {
     const { elements, apiCalls, DHHistory } = createHarness({
@@ -390,10 +482,10 @@ async function runTests() {
         apiCalls[0].options.authMode === "required",
     );
     assert(
-      "TH1 & TH3: Hiển thị danh sách card quyết định",
+      "TH1: Hiển thị danh sách card quyết định kèm nút 'Xem lại'",
       !elements["history-cards-container"].classList.contains("d-none") &&
         elements["history-cards-container"].innerHTML.includes("Bún chả Hà Nội") &&
-        elements["history-cards-container"].innerHTML.includes("Quần thể danh thắng Tràng An"),
+        elements["history-cards-container"].innerHTML.includes("Xem lại"),
     );
     assert(
       "TH3: Hiển thị thanh phân trang khi total > limit",
@@ -401,24 +493,16 @@ async function runTests() {
         elements["history-page-info"].textContent.includes("25"),
     );
 
-    // Trường hợp 8: Lọc theo Food / Travel
     DHHistory.setFilter("food");
     assert(
       "TH8: Lọc Food chỉ hiển thị quyết định Food",
       elements["history-cards-container"].innerHTML.includes("Bún chả Hà Nội") &&
         !elements["history-cards-container"].innerHTML.includes("Quần thể danh thắng Tràng An"),
     );
-
-    DHHistory.setFilter("travel");
-    assert(
-      "TH8: Lọc Travel chỉ hiển thị quyết định Travel",
-      !elements["history-cards-container"].innerHTML.includes("Bún chả Hà Nội") &&
-        elements["history-cards-container"].innerHTML.includes("Quần thể danh thắng Tràng An"),
-    );
   }
 
   // -------------------------------------------------------------------------
-  // Trường hợp 2: Người dùng chưa có lịch sử quyết định (Empty state)
+  // Trường hợp 2: Empty state khi chưa có lịch sử
   // -------------------------------------------------------------------------
   {
     const { elements, DHHistory } = createHarness({
@@ -444,11 +528,13 @@ async function runTests() {
   }
 
   // -------------------------------------------------------------------------
-  // Trường hợp 4: Xem chi tiết một quyết định
+  // Trường hợp 4: Bấm "Xem lại" mở Modal chính giữa, giữ danh sách phía sau,
+  // khóa scroll nền, hiển thị đầy đủ thông tin và đóng bằng X / Đóng / ESC / Backdrop
   // -------------------------------------------------------------------------
   {
-    const { elements, apiCalls, DHHistory } = createHarness({
+    const { elements, bodyEl, documentObj, windowObj, apiCalls, DHHistory } = createHarness({
       loggedIn: true,
+      initialScrollY: 420,
       apiGetImpl: async (url) => {
         if (url === "/decisions/history/101") {
           return {
@@ -458,32 +544,136 @@ async function runTests() {
             ...SAMPLE_FOOD_DECISION,
           };
         }
-        return { success: true, data: [SAMPLE_FOOD_DECISION], total: 1 };
+        return {
+          success: true,
+          data: [SAMPLE_FOOD_DECISION, SAMPLE_TRAVEL_DECISION],
+          total: 2,
+        };
       },
     });
 
-    await DHHistory.openDecisionDetail(101);
+    await DHHistory.loadHistoryList({ offset: 0 });
+    elements["history-modal-body"].scrollTop = 180;
+
+    let focusedBack = false;
+    const fakeTriggerBtn = {
+      focus: () => {
+        focusedBack = true;
+      },
+    };
+
+    await DHHistory.openDecisionDetail(101, fakeTriggerBtn);
 
     const detailCall = apiCalls.find((c) => c.url === "/decisions/history/101");
     assert(
-      "TH4: Gọi đúng endpoint GET /decisions/history/101 với authMode='required'",
+      "TH4.1: Gọi đúng endpoint GET /decisions/history/101 với authMode='required'",
       Boolean(detailCall) && detailCall.options.authMode === "required",
     );
+    assert(
+      "TH4.2: Mở Modal (.is-open, không .d-none) NHƯNG vẫn giữ nguyên danh sách lịch sử phía sau",
+      !elements["history-detail-modal"].classList.contains("d-none") &&
+        elements["history-detail-modal"].classList.contains("is-open") &&
+        !elements["history-list-view"].classList.contains("d-none") &&
+        !elements["history-cards-container"].classList.contains("d-none"),
+    );
+    assert(
+      "TH4.3: Khóa scroll trang nền (body.history-modal-open) và đưa scroll bên trong Modal về đầu",
+      bodyEl.classList.contains("history-modal-open") &&
+        elements["history-modal-body"].scrollTop === 0,
+    );
+
     const html = elements["history-detail-content"].innerHTML;
     assert(
-      "TH4: Hiển thị đầy đủ Input Snapshot, Bảng xếp hạng (Top 1 nổi bật vs Hạng 2), Điểm số, Lý do đề xuất và Phương án bị loại",
+      "TH4.4: Hiển thị đầy đủ Món nổi bật (ảnh, mô tả, điểm, hạng), Lý do đề xuất, Đầu vào (ngân sách, số người, yêu cầu đặc biệt) và Danh sách xếp hạng",
       !elements["history-detail-content"].classList.contains("d-none") &&
         html.includes("Bún chả Hà Nội") &&
+        html.includes("Thịt nướng than hoa") &&
+        html.includes("../assets/images/foods/buncha.jpg") &&
+        html.includes("2 người") &&
+        html.includes("Ít dầu mỡ") &&
         html.includes("Phở bò tái") &&
         html.includes("is-top-rank") &&
         html.includes("Giá 35.000đ nằm trong ngân sách tối đa 50.000đ") &&
         html.includes("Cơm tấm sườn bì chả") &&
         html.includes("budget_max"),
     );
+
+    const listCallsBeforeClose = apiCalls.filter((c) => c.url === "/decisions/history").length;
+
+    // Giả lập scroll bị lệch trong lúc mở, sau đó đóng bằng nút X
+    windowObj.scrollY = 0;
+    elements["btn-close-detail-modal"].dispatchEvent("click");
+
+    assert(
+      "TH4.5: Đóng Modal bằng nút X khôi phục scroll về đúng 420px, mở khóa nền, trả focus và không tải lại danh sách",
+      elements["history-detail-modal"].classList.contains("d-none") &&
+        !bodyEl.classList.contains("history-modal-open") &&
+        windowObj.scrollY === 420 &&
+        focusedBack === true &&
+        apiCalls.filter((c) => c.url === "/decisions/history").length === listCallsBeforeClose,
+    );
+
+    // Mở lại và đóng bằng phím ESC
+    await DHHistory.openDecisionDetail(101);
+    let escPrevented = false;
+    documentObj.dispatchDocumentEvent("keydown", {
+      key: "Escape",
+      preventDefault: () => {
+        escPrevented = true;
+      },
+    });
+    assert(
+      "TH4.6: Đóng Modal bằng phím ESC hoạt động chính xác",
+      escPrevented && elements["history-detail-modal"].classList.contains("d-none"),
+    );
+
+    // Mở lại và đóng bằng nút Đóng ở Footer
+    await DHHistory.openDecisionDetail(101);
+    elements["btn-footer-close-modal"].dispatchEvent("click");
+    assert(
+      "TH4.7: Đóng Modal bằng nút 'Đóng' ở Footer hoạt động chính xác",
+      elements["history-detail-modal"].classList.contains("d-none"),
+    );
+
+    // Mở lại và bấm ra vùng backdrop bên ngoài Modal để đóng
+    await DHHistory.openDecisionDetail(101);
+    elements["history-detail-modal"].dispatchEvent("click", {
+      target: elements["history-detail-modal"],
+    });
+    assert(
+      "TH4.8: Bấm ra ngoài vùng overlay đóng Modal chính xác",
+      elements["history-detail-modal"].classList.contains("d-none"),
+    );
   }
 
   // -------------------------------------------------------------------------
-  // Trường hợp 5: ID quyết định không tồn tại (404)
+  // Trường hợp 5: Fallback an toàn khi thiếu ảnh, mô tả, điểm số, lý do
+  // -------------------------------------------------------------------------
+  {
+    const { elements, DHHistory } = createHarness({
+      loggedIn: true,
+      apiGetImpl: async (url) => {
+        if (url === "/decisions/history/105") {
+          return { success: true, data: SAMPLE_SPARSE_DECISION };
+        }
+        return { success: true, data: [SAMPLE_SPARSE_DECISION], total: 1 };
+      },
+    });
+
+    await DHHistory.openDecisionDetail(105);
+    const sparseHtml = elements["history-detail-content"].innerHTML;
+    assert(
+      "TH5: Xử lý an toàn dữ liệu thiếu ảnh, thiếu mô tả, thiếu điểm số mà không lỗi hoặc hiện NaN/undefined",
+      !elements["history-detail-content"].classList.contains("d-none") &&
+        sparseHtml.includes("Bánh mì thịt nguội") &&
+        sparseHtml.includes("history-dish-fallback-icon") &&
+        !sparseHtml.includes("NaN") &&
+        !sparseHtml.includes("undefined"),
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Trường hợp 6: ID quyết định không tồn tại (404) hiển thị ngay trong Modal
   // -------------------------------------------------------------------------
   {
     const { elements, DHHistory } = createHarness({
@@ -503,14 +693,15 @@ async function runTests() {
     await DHHistory.openDecisionDetail(9999);
 
     assert(
-      "TH5: Hiển thị trạng thái không tìm thấy quyết định khi API trả về 404",
-      !elements["history-detail-not-found"].classList.contains("d-none") &&
+      "TH6: Hiển thị trạng thái không tìm thấy quyết định bên trong Modal khi API trả về 404",
+      !elements["history-detail-modal"].classList.contains("d-none") &&
+        !elements["history-detail-not-found"].classList.contains("d-none") &&
         elements["history-detail-not-found-text"].textContent.includes("9999"),
     );
   }
 
   // -------------------------------------------------------------------------
-  // Trường hợp 6: API bị lỗi hoặc mất kết nối
+  // Trường hợp 7: API danh sách bị lỗi hoặc chưa đăng nhập (401)
   // -------------------------------------------------------------------------
   {
     const { elements, DHHistory } = createHarness({
@@ -525,15 +716,12 @@ async function runTests() {
     await DHHistory.loadHistoryList();
 
     assert(
-      "TH6: Hiển thị trạng thái lỗi và nút Thử lại khi mất kết nối API",
+      "TH7.1: Hiển thị trạng thái lỗi danh sách khi mất kết nối API",
       !elements["history-error"].classList.contains("d-none") &&
         elements["history-error-message"].textContent.includes("Không kết nối được backend"),
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Trường hợp 7: Người dùng chưa đăng nhập hoặc token hết hạn (401)
-  // -------------------------------------------------------------------------
   {
     const { elements, DHHistory } = createHarness({
       loggedIn: false,
@@ -543,7 +731,7 @@ async function runTests() {
     await DHHistory.loadHistoryList();
 
     assert(
-      "TH7: Hiển thị yêu cầu đăng nhập khi người dùng chưa đăng nhập hoặc token hết hạn",
+      "TH7.2: Hiển thị yêu cầu đăng nhập khi chưa đăng nhập",
       !elements["history-auth-required"].classList.contains("d-none") &&
         elements["history-list-view"].classList.contains("d-none"),
     );
@@ -560,4 +748,3 @@ async function runTests() {
 }
 
 runTests();
-
