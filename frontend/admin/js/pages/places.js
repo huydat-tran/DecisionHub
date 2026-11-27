@@ -192,6 +192,7 @@ function openPlaceForm(place) {
   document.getElementById("place-activity").value = isEdit ? place.activity_type : "";
   document.getElementById("place-cost").value = isEdit ? place.estimated_cost : "";
   document.getElementById("place-duration").value = isEdit ? place.estimated_duration : "";
+  document.getElementById("place-rating").value = isEdit && place.rating !== undefined ? place.rating : DEFAULT_PLACE_RATING;
   document.getElementById("place-description").value = isEdit ? place.description || "" : "";
   document.getElementById("place-highlights").value = isEdit ? placeHighlightsToString(place.highlights) : "";
   document.getElementById("place-image-url").value = isEdit ? place.image_url || "" : "";
@@ -216,6 +217,11 @@ function validatePlaceForm(values) {
   } else if (Number(values.estimated_duration) <= 0) {
     errors.estimated_duration = "Thời lượng phải lớn hơn 0 giờ.";
   }
+  if (values.rating === "" || values.rating === undefined) {
+    errors.rating = "Vui lòng nhập đánh giá.";
+  } else if (Number(values.rating) < 0 || Number(values.rating) > 5) {
+    errors.rating = "Đánh giá phải từ 0 đến 5 sao.";
+  }
   if (values.image_url && !/^https?:\/\//i.test(values.image_url)) {
     errors.image_url = "URL hình ảnh phải bắt đầu bằng http:// hoặc https://.";
   }
@@ -230,6 +236,7 @@ function showPlaceErrors(errors) {
     activity_type: "place-activity",
     estimated_cost: "place-cost",
     estimated_duration: "place-duration",
+    rating: "place-rating",
     image_url: "place-image-url",
   };
   Object.keys(fieldMap).forEach((key) => {
@@ -263,7 +270,7 @@ async function handlePlaceSubmit(event) {
     activity_type: values.activity_type,
     estimated_cost: Number(values.estimated_cost),
     estimated_duration: Number(values.estimated_duration),
-    rating: current ? Number(current.rating) : DEFAULT_PLACE_RATING,
+    rating: Number(values.rating || DEFAULT_PLACE_RATING),
     description: values.description || null,
     highlights: placeStringToList(values.highlights),
     image_url: values.image_url || null,

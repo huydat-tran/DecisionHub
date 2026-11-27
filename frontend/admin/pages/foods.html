@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Quản lý món ăn – DecisionHub Admin</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" href="../../assets/images/logo.svg" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="../css/admin-variables.css" />
@@ -52,11 +55,7 @@
               <option value="dinner">Bữa tối</option>
               <option value="snack">Bữa nhẹ</option>
             </select>
-            <select class="adm-select adm-filter" id="food-filter-status" aria-label="Lọc theo trạng thái">
-              <option value="">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Tạm ngưng</option>
-            </select>
+            
             <span class="adm-result-count" id="food-count">0 món ăn</span>
           </div>
 
@@ -91,7 +90,6 @@
                   <th>Giá tham khảo</th>
                   <th>Chuẩn bị</th>
                   <th>Nhãn</th>
-                  <th>Trạng thái</th>
                   <th class="adm-col-actions">Thao tác</th>
                 </tr>
               </thead>
@@ -185,12 +183,7 @@
                 <span class="adm-help">Các nguyên liệu cách nhau bằng dấu phẩy.</span>
                 <span class="adm-error" data-error-for="food-ingredients"></span>
               </div>
-              <div class="adm-field">
-                <div class="adm-switch-row">
-                  <input type="checkbox" id="food-is-active" name="is_active" checked />
-                  <label class="adm-switch-label" for="food-is-active">Món ăn đang hoạt động</label>
-                </div>
-              </div>
+
               <div class="adm-placeholder-note is-warning">
                 <span aria-hidden="true">⚠️</span>
                 <span>Dữ liệu chỉ được giữ trong phiên hiện tại, chưa ghi xuống máy chủ cho tới khi API quản trị được tích hợp.</span>

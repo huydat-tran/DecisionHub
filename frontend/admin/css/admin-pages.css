@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DecisionHub Admin · Page-specific styles
+   DecisionHub Admin · Page-specific styles (Enhanced Luxury Edition)
    ========================================================================== */
 
 /* -------------------------------------------------------------- Dashboard */
@@ -11,9 +11,9 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 24px;
-  padding: 28px 30px;
-  margin-bottom: 22px;
+  gap: 26px;
+  padding: 32px 36px;
+  margin-bottom: 26px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -22,36 +22,36 @@
 .adm-hero::before {
   content: "";
   position: absolute;
-  top: -70px;
-  right: -40px;
-  width: 240px;
-  height: 240px;
+  top: -80px;
+  right: -50px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 92, 246, .16), rgba(139, 92, 246, 0) 70%);
+  background: radial-gradient(circle, rgba(139, 92, 246, .18), rgba(139, 92, 246, 0) 70%);
 }
-.adm-hero-text { position: relative; max-width: 640px; }
+.adm-hero-text { position: relative; max-width: 680px; }
 .adm-hero-title {
   margin: 0;
   color: var(--text-primary);
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -.5px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.6px;
 }
-.adm-hero-desc { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; }
-.adm-hero-actions { position: relative; display: flex; gap: 10px; flex-wrap: wrap; }
+.adm-hero-desc { margin: 10px 0 0; color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+.adm-hero-actions { position: relative; display: flex; gap: 12px; flex-wrap: wrap; }
 
 .adm-dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 18px;
+  gap: 22px;
   align-items: start;
 }
-.adm-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.adm-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .adm-quick-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px;
+  gap: 16px;
+  padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -59,13 +59,13 @@
   transition: all var(--transition);
 }
 .adm-quick-card:hover {
-  border-color: transparent;
+  border-color: rgba(79, 70, 229, .25);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 .adm-quick-icon {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -73,10 +73,10 @@
   color: var(--primary);
   background: var(--primary-soft);
   border-radius: var(--radius-md);
-  font-size: 19px;
+  font-size: 21px;
 }
-.adm-quick-title { color: var(--text-primary); font-size: 14.5px; font-weight: 600; }
-.adm-quick-desc { margin-top: 2px; color: var(--text-secondary); font-size: 12.5px; }
+.adm-quick-title { color: var(--text-primary); font-size: 15.5px; font-weight: 700; letter-spacing: -.2px; }
+.adm-quick-desc { margin-top: 3px; color: var(--text-secondary); font-size: 13px; }
 
 /* --------------------------------------------------------- Activity list */
 
@@ -84,21 +84,21 @@
 .adm-activity-item {
   display: flex;
   align-items: flex-start;
-  gap: 13px;
-  padding: 14px 0;
+  gap: 15px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
 }
 .adm-activity-item:last-child { border-bottom: 0; padding-bottom: 0; }
 .adm-activity-item:first-child { padding-top: 0; }
 .adm-activity-dot {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 15px;
   background: var(--surface-muted);
   color: var(--text-secondary);
 }
@@ -106,37 +106,38 @@
 .adm-activity-dot.is-success { color: #047857; background: var(--success-soft); }
 .adm-activity-dot.is-danger { color: #B91C1C; background: var(--danger-soft); }
 .adm-activity-text { min-width: 0; }
-.adm-activity-title { color: var(--text-primary); font-size: 13.5px; font-weight: 500; }
-.adm-activity-time { margin-top: 2px; color: var(--text-tertiary); font-size: 12px; }
+.adm-activity-title { color: var(--text-primary); font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+.adm-activity-time { margin-top: 3px; color: var(--text-tertiary); font-size: 12.5px; }
 
 /* --------------------------------------------------------- Modal preview */
 
 .adm-preview {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   align-items: flex-start;
 }
 .adm-preview img {
-  width: 110px;
-  height: 110px;
+  width: 130px;
+  height: 130px;
   border-radius: var(--radius-lg);
   object-fit: cover;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   background: var(--surface-muted);
+  box-shadow: var(--shadow-sm);
 }
-.adm-preview-info { min-width: 0; }
-.adm-preview-name { margin: 0 0 8px; color: var(--text-primary); font-size: 17px; font-weight: 600; }
-.adm-preview-desc { margin: 0 0 14px; color: var(--text-secondary); font-size: 13.5px; }
+.adm-preview-info { min-width: 0; flex: 1; }
+.adm-preview-name { margin: 0 0 8px; color: var(--text-primary); font-size: 19px; font-weight: 700; letter-spacing: -.3px; }
+.adm-preview-desc { margin: 0 0 16px; color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; }
 .adm-preview-meta {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px 18px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 20px;
 }
-.adm-preview-meta dt { color: var(--text-tertiary); font-size: 11.5px; font-weight: 500; }
-.adm-preview-meta dd { margin: 2px 0 0; color: var(--text-primary); font-size: 13.5px; font-weight: 500; }
+.adm-preview-meta dt { color: var(--text-tertiary); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.adm-preview-meta dd { margin: 3px 0 0; color: var(--text-primary); font-size: 14.5px; font-weight: 600; }
 
 @media (max-width: 991.98px) {
   .adm-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
   .adm-hero { padding: 24px; }
-  .adm-hero-title { font-size: 21px; }
+  .adm-hero-title { font-size: 22px; }
 }

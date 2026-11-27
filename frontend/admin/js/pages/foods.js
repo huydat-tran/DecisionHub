@@ -24,7 +24,6 @@ const el = {
   count: document.getElementById("food-count"),
   search: document.getElementById("food-search"),
   filterMeal: document.getElementById("food-filter-meal"),
-  filterStatus: document.getElementById("food-filter-status"),
   btnAdd: document.getElementById("btn-add-food"),
   btnEmptyAdd: document.getElementById("btn-empty-add-food"),
   btnClearFilters: document.getElementById("btn-clear-food-filters"),
@@ -42,12 +41,6 @@ let foodViewModal = null;
 
 function foodMealLabel(value) {
   return FOOD_MEAL_LABELS[value] || value || "—";
-}
-
-function foodStatusBadge(food) {
-  return food.is_active
-    ? '<span class="adm-badge adm-badge-success"><span class="adm-dot"></span>Đang hoạt động</span>'
-    : '<span class="adm-badge adm-badge-muted"><span class="adm-dot"></span>Tạm ngưng</span>';
 }
 
 function foodThumb(food) {
@@ -73,7 +66,6 @@ function foodRow(food) {
       <td>${escapeHtml(formatMoney(food.price))}</td>
       <td>${prep}</td>
       <td>${tags || '<span class="adm-muted">—</span>'}</td>
-      <td>${foodStatusBadge(food)}</td>
       <td class="adm-col-actions">
         <div class="adm-actions">
           <button type="button" class="adm-action-btn" data-action="view" title="Xem chi tiết" aria-label="Xem chi tiết">👁</button>
@@ -87,13 +79,10 @@ function foodRow(food) {
 function applyFilters() {
   const keyword = el.search.value.trim().toLowerCase();
   const meal = el.filterMeal.value;
-  const status = el.filterStatus.value;
 
   foodState.filtered = foodState.foods.filter((food) => {
     if (keyword && !food.name.toLowerCase().includes(keyword)) return false;
     if (meal && food.meal_type !== meal) return false;
-    if (status === "active" && !food.is_active) return false;
-    if (status === "inactive" && food.is_active) return false;
     return true;
   });
 
@@ -168,7 +157,6 @@ function openFoodForm(food) {
   document.getElementById("food-image-url").value = isEdit ? food.image_url || "" : "";
   document.getElementById("food-tags").value = isEdit ? foodTagsToString(food.tags) : "";
   document.getElementById("food-ingredients").value = isEdit ? foodIngredientsToString(food.ingredients) : "";
-  document.getElementById("food-is-active").checked = isEdit ? Boolean(food.is_active) : true;
 
   foodFormModal.show();
 }
@@ -211,6 +199,9 @@ async function handleFoodSubmit(event) {
   showFoodErrors(errors);
   if (Object.keys(errors).length) return;
 
+  const id = document.getElementById("food-id").value;
+  const current = id ? foodState.foods.find((f) => f.id === Number(id)) : null;
+
   const payload = {
     name: values.name,
     price: Number(values.price),
@@ -220,10 +211,8 @@ async function handleFoodSubmit(event) {
     image_url: values.image_url || null,
     tags: foodStringToList(values.tags),
     ingredients: foodStringToList(values.ingredients).map((name) => ({ name })),
-    is_active: values.is_active,
+    is_active: current ? current.is_active : true,
   };
-
-  const id = document.getElementById("food-id").value;
   el.formSubmit.disabled = true;
   try {
     if (id) {
@@ -261,7 +250,6 @@ function openFoodView(food) {
           <div><dt>Thời gian chuẩn bị</dt><dd>${food.prep_time === null || food.prep_time === undefined ? "—" : escapeHtml(food.prep_time) + " phút"}</dd></div>
           <div><dt>Nguyên liệu</dt><dd>${ingredients}</dd></div>
           <div><dt>Nhãn</dt><dd>${tags}</dd></div>
-          <div><dt>Trạng thái</dt><dd>${food.is_active ? "Đang hoạt động" : "Tạm ngưng"}</dd></div>
         </dl>
       </div>
     </div>`;
@@ -311,11 +299,9 @@ function initFoodPage() {
   el.btnEmptyAdd.addEventListener("click", () => openFoodForm(null));
   el.search.addEventListener("input", applyFilters);
   el.filterMeal.addEventListener("change", applyFilters);
-  el.filterStatus.addEventListener("change", applyFilters);
   el.btnClearFilters.addEventListener("click", () => {
     el.search.value = "";
     el.filterMeal.value = "";
-    el.filterStatus.value = "";
     applyFilters();
   });
 
