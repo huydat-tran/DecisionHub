@@ -387,6 +387,25 @@
 }
 .adm-modal .modal-footer .adm-btn { min-width: 104px; }
 
+/* Modal form (thêm/sửa): .modal-body nằm trong <form> nên Bootstrap không áp
+   được vùng cuộn cho body. Cần cho form làm flex column để body cuộn được. */
+.adm-modal .modal-dialog-scrollable form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.adm-modal .modal-dialog-scrollable .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.adm-modal .modal-dialog-scrollable .modal-header,
+.adm-modal .modal-dialog-scrollable .modal-footer {
+  flex: 0 0 auto;
+}
+
 /* -------------------------------------------------------------- Skeleton */
 
 .adm-skeleton {
