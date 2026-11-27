@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard – DecisionHub Admin</title>
+    <link rel="icon" href="../../assets/images/logo.svg" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/admin-variables.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-components.css" />
+    <link rel="stylesheet" href="../css/admin-pages.css" />
+  </head>
+  <body data-page="dashboard" data-title="Tổng quan" data-crumb="Tổng quan">
+    <aside class="adm-sidebar" id="adm-sidebar"></aside>
+    <div class="adm-backdrop" id="adm-backdrop"></div>
+    <header class="adm-header" id="adm-header"></header>
+
+    <main class="adm-main">
+      <div class="adm-content">
+        <!-- HERO -->
+        <section class="adm-hero">
+          <div class="adm-hero-text">
+            <p class="adm-eyebrow">DecisionHub Admin</p>
+            <h2 class="adm-hero-title" id="adm-welcome-title">Xin chào, Quản trị viên</h2>
+            <p class="adm-hero-desc">
+              Tổng quan nhanh về danh mục món ăn và địa điểm du lịch của nền tảng.
+            </p>
+          </div>
+          <div class="adm-hero-actions">
+            <a class="adm-btn adm-btn-soft" href="foods.html">Quản lý món ăn</a>
+            <a class="adm-btn adm-btn-primary" href="places.html">Quản lý du lịch</a>
+          </div>
+        </section>
+
+        <!-- STATS -->
+        <section class="adm-stat-grid">
+          <article class="adm-stat-card is-accent">
+            <div class="adm-stat-head">
+              <span class="adm-stat-label">Tổng số món ăn</span>
+              <span class="adm-stat-icon" aria-hidden="true">🍜</span>
+            </div>
+            <p class="adm-stat-value" id="stat-foods">—</p>
+            <p class="adm-stat-hint">Số món ăn đang có trong danh mục</p>
+          </article>
+
+          <article class="adm-stat-card">
+            <div class="adm-stat-head">
+              <span class="adm-stat-label">Tổng số địa điểm</span>
+              <span class="adm-stat-icon" aria-hidden="true">📍</span>
+            </div>
+            <p class="adm-stat-value" id="stat-places">—</p>
+            <p class="adm-stat-hint">Số địa điểm du lịch trong danh mục</p>
+          </article>
+
+          <article class="adm-stat-card">
+            <div class="adm-stat-head">
+              <span class="adm-stat-label">Trạng thái dữ liệu</span>
+              <span class="adm-stat-icon" aria-hidden="true">🔌</span>
+            </div>
+            <p class="adm-stat-value is-placeholder" style="font-size: 20px">Chưa kết nối</p>
+            <p class="adm-stat-hint">Số liệu sẽ hiển thị khi tích hợp API</p>
+          </article>
+        </section>
+
+        <!-- GRID -->
+        <section class="adm-dashboard-grid">
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div>
+                <h3 class="adm-card-title">Hoạt động gần đây</h3>
+                <p class="adm-card-subtitle">Các thay đổi trong phiên quản trị hiện tại</p>
+              </div>
+            </div>
+            <div class="adm-card-body">
+              <div class="adm-empty" id="adm-activity-empty">
+                <div class="adm-empty-icon" aria-hidden="true">🗂️</div>
+                <h4 class="adm-empty-title">Chưa có hoạt động nào</h4>
+                <p class="adm-empty-desc">
+                  Khi bạn thêm, sửa hoặc xoá món ăn / địa điểm, các thay đổi đó sẽ được ghi nhận tại đây.
+                </p>
+              </div>
+              <div class="adm-activity-list" id="adm-activity-list"></div>
+            </div>
+          </div>
+
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div>
+                <h3 class="adm-card-title">Truy cập nhanh</h3>
+                <p class="adm-card-subtitle">Chuyển tới các màn hình quản trị</p>
+              </div>
+            </div>
+            <div class="adm-card-body">
+              <div class="adm-quick-grid">
+                <a class="adm-quick-card" href="foods.html">
+                  <span class="adm-quick-icon" aria-hidden="true">🍜</span>
+                  <span>
+                    <span class="adm-quick-title">Món ăn</span>
+                    <span class="adm-quick-desc">Thêm, sửa, xoá món ăn</span>
+                  </span>
+                </a>
+                <a class="adm-quick-card" href="places.html">
+                  <span class="adm-quick-icon" aria-hidden="true">📍</span>
+                  <span>
+                    <span class="adm-quick-title">Địa điểm du lịch</span>
+                    <span class="adm-quick-desc">Thêm, sửa, xoá điểm đến</span>
+                  </span>
+                </a>
+              </div>
+              <div class="adm-placeholder-note" style="margin-top: 18px">
+                <span aria-hidden="true">ℹ️</span>
+                <span>
+                  <strong>Chưa có dữ liệu thật.</strong>
+                  Danh mục hiện để trống cho tới khi API quản trị được tích hợp ở giai đoạn sau.
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="../../js/utils.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script src="../js/layout.js"></script>
+    <script src="../js/pages/dashboard.js"></script>
+  </body>
+</html>
