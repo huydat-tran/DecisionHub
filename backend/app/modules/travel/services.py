@@ -1,12 +1,34 @@
-"""Dịch vụ hiển thị và đóng gói dữ liệu gợi ý địa điểm du lịch (Travel Display Service)."""
+"""Dịch vụ nghiệp vụ cho module Travel (CRUD quản trị & đóng gói kết quả gợi ý)."""
 
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.common.exceptions import (
+    BadRequestException,
+    DecisionHubException,
+    ResourceNotFoundException,
+)
+from app.modules.travel.models import TravelPlace, TravelRegion
+from app.modules.travel.repository import (
+    create_travel_place,
+    delete_travel_place,
+    get_travel_place_by_id,
+    get_travel_place_by_name,
+    list_travel_places,
+    update_travel_place,
+)
 from app.modules.travel.schemas import (
     RecommendedTravelResponse,
     TravelAppliedFilters,
     TravelDecisionData,
     TravelExcludedOptionResponse,
+    TravelPlaceCreateRequest,
+    TravelPlaceDeleteData,
+    TravelPlaceListData,
+    TravelPlaceOut,
+    TravelPlaceUpdateRequest,
     TravelRecommendRequest,
     TravelScoringResponse,
 )
@@ -121,3 +143,196 @@ def build_travel_decision_response(
         message = f"Đề xuất {len(items)} địa điểm du lịch phù hợp nhất."
 
     return decision_data, message
+
+
+def _serialize_highlights(highlights: list[str] | None) -> str | None:
+    """Chuyển danh sách highlights đã chuẩn hóa sang chuỗi lưu DB."""
+    if not highlights:
+        return None
+    return ", ".join(highlights)
+
+
+def _to_travel_place_out(place: TravelPlace) -> TravelPlaceOut:
+    """Chuyển ORM TravelPlace sang schema response chuẩn."""
+    return TravelPlaceOut.model_validate(place)
+
+
+def _require_travel_place(db: Session, place_id: int) -> TravelPlace:
+    """Lấy địa điểm theo ID hoặc ném ResourceNotFoundException (404)."""
+    place = get_travel_place_by_id(db, place_id)
+    if place is None:
+        raise ResourceNotFoundException("Địa điểm du lịch", place_id)
+    return place
+
+
+def _ensure_unique_place_name(
+    db: Session,
+    name: str,
+    *,
+    exclude_place_id: int | None = None,
+) -> None:
+    """Kiểm tra tên địa điểm chưa bị trùng; nếu trùng ném lỗi 409 CONFLICT."""
+    existing = get_travel_place_by_name(db, name)
+    if existing is not None and existing.id != exclude_place_id:
+        raise DecisionHubException(
+            message=f"Địa điểm '{name}' đã tồn tại.",
+            status_code=409,
+        )
+
+
+def _build_place_payload_dict(payload: TravelPlaceCreateRequest) -> dict[str, Any]:
+    """Chuyển dữ liệu đã validate từ TravelPlaceCreateRequest sang dict ghi DB."""
+    return {
+        "name": payload.name,
+        "province_city": payload.province_city,
+        "region": payload.region,
+        "estimated_cost": payload.estimated_cost,
+        "estimated_duration": payload.estimated_duration,
+        "activity_type": payload.activity_type,
+        "highlights": _serialize_highlights(payload.highlights),
+        "description": payload.description,
+        "image_url": payload.image_url,
+        "rating": payload.rating,
+        "is_active": payload.is_active,
+    }
+
+
+def list_admin_travel_places(
+    db: Session,
+    *,
+    keyword: str | None = None,
+    region: TravelRegion | None = None,
+    activity_type: str | None = None,
+    is_active: bool | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> TravelPlaceListData:
+    """Lấy danh sách địa điểm du lịch cho quản trị viên (kèm tìm kiếm, lọc và phân trang)."""
+    clean_keyword = keyword.strip() if keyword and keyword.strip() else None
+    clean_activity = activity_type.strip() if activity_type and activity_type.strip() else None
+
+    places, total = list_travel_places(
+        db,
+        keyword=clean_keyword,
+        region=region,
+        activity_type=clean_activity,
+        is_active=is_active,
+        limit=limit,
+        offset=offset,
+    )
+    return TravelPlaceListData(
+        items=[_to_travel_place_out(place) for place in places],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def get_admin_travel_place_detail(db: Session, place_id: int) -> TravelPlaceOut:
+    """Lấy chi tiết một địa điểm du lịch theo ID."""
+    place = _require_travel_place(db, place_id)
+    return _to_travel_place_out(place)
+
+
+def create_admin_travel_place(
+    db: Session,
+    payload: TravelPlaceCreateRequest,
+) -> TravelPlaceOut:
+    """Tạo mới địa điểm du lịch sau khi kiểm tra trùng tên."""
+    _ensure_unique_place_name(db, payload.name)
+    place_data = _build_place_payload_dict(payload)
+    try:
+        place = create_travel_place(db, place_data)
+        db.commit()
+        db.refresh(place)
+    except IntegrityError:
+        db.rollback()
+        raise DecisionHubException(
+            message=f"Địa điểm '{payload.name}' đã tồn tại.",
+            status_code=409,
+        ) from None
+    except Exception:
+        db.rollback()
+        raise
+    return _to_travel_place_out(place)
+
+
+def replace_admin_travel_place(
+    db: Session,
+    place_id: int,
+    payload: TravelPlaceCreateRequest,
+) -> TravelPlaceOut:
+    """Cập nhật toàn bộ thông tin địa điểm du lịch theo ID (PUT)."""
+    place = _require_travel_place(db, place_id)
+    _ensure_unique_place_name(db, payload.name, exclude_place_id=place.id)
+    update_data = _build_place_payload_dict(payload)
+    try:
+        updated = update_travel_place(db, place, update_data)
+        db.commit()
+        db.refresh(updated)
+    except IntegrityError:
+        db.rollback()
+        raise DecisionHubException(
+            message=f"Địa điểm '{payload.name}' đã tồn tại.",
+            status_code=409,
+        ) from None
+    except Exception:
+        db.rollback()
+        raise
+    return _to_travel_place_out(updated)
+
+
+def update_admin_travel_place(
+    db: Session,
+    place_id: int,
+    payload: TravelPlaceUpdateRequest,
+) -> TravelPlaceOut:
+    """Cập nhật một phần thông tin địa điểm du lịch theo ID (PATCH)."""
+    place = _require_travel_place(db, place_id)
+    fields_set = payload.model_fields_set
+    if not fields_set:
+        raise BadRequestException("Không có trường nào được cập nhật.")
+
+    if "name" in fields_set and payload.name is not None:
+        _ensure_unique_place_name(db, payload.name, exclude_place_id=place.id)
+
+    update_data: dict[str, Any] = {}
+    for field_name in fields_set:
+        if field_name == "highlights":
+            update_data["highlights"] = _serialize_highlights(payload.highlights)
+        else:
+            update_data[field_name] = getattr(payload, field_name)
+
+    try:
+        updated = update_travel_place(db, place, update_data)
+        db.commit()
+        db.refresh(updated)
+    except IntegrityError:
+        db.rollback()
+        raise DecisionHubException(
+            message=f"Địa điểm '{payload.name or place.name}' đã tồn tại.",
+            status_code=409,
+        ) from None
+    except Exception:
+        db.rollback()
+        raise
+    return _to_travel_place_out(updated)
+
+
+def delete_admin_travel_place(db: Session, place_id: int) -> TravelPlaceDeleteData:
+    """Xóa địa điểm du lịch theo ID."""
+    place = _require_travel_place(db, place_id)
+    deleted = TravelPlaceDeleteData(id=place.id, name=place.name)
+    try:
+        delete_travel_place(db, place)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise DecisionHubException(
+            message="Không thể xóa địa điểm vì đang được dữ liệu khác tham chiếu.",
+            status_code=409,
+        ) from None
+    except Exception:
+        db.rollback()
+        raise
+    return deleted
