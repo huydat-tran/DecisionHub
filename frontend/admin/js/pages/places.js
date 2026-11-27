@@ -6,6 +6,14 @@
 
 const PLACE_REGIONS = ["Bắc", "Trung", "Nam", "Tây Nguyên", "Tây Nam Bộ"];
 const DEFAULT_PLACE_IMAGE = "../../assets/images/travel/dalat.jpg";
+const DEFAULT_ACTIVITY_TYPES = [
+  "Nghỉ dưỡng biển",
+  "Khám phá thiên nhiên",
+  "Văn hóa lịch sử",
+  "Nghỉ dưỡng núi",
+  "Sinh thái",
+];
+const DEFAULT_PLACE_RATING = 4.5;
 
 const placeState = { places: [], filtered: [], activityTypes: [] };
 
@@ -125,6 +133,22 @@ function syncActivityFilter() {
   el.filterActivity.value = types.includes(current) ? current : "";
 }
 
+/** Đổ danh sách loại hình trong form: gợi ý mặc định + các loại hình đang có trong dữ liệu. */
+function syncActivityOptions() {
+  const select = document.getElementById("place-activity");
+  const types = Array.from(
+    new Set(
+      DEFAULT_ACTIVITY_TYPES.concat(
+        placeState.places.map((place) => place.activity_type).filter(Boolean),
+      ),
+    ),
+  ).sort();
+
+  select.innerHTML =
+    '<option value="">Chọn loại hình trải nghiệm</option>' +
+    types.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("");
+}
+
 async function loadPlaces() {
   el.loading.hidden = false;
   el.tableWrap.hidden = true;
@@ -133,6 +157,7 @@ async function loadPlaces() {
 
   placeState.places = await admStoreListPlaces();
   syncActivityFilter();
+  syncActivityOptions();
   applyFilters();
 }
 
@@ -167,7 +192,6 @@ function openPlaceForm(place) {
   document.getElementById("place-activity").value = isEdit ? place.activity_type : "";
   document.getElementById("place-cost").value = isEdit ? place.estimated_cost : "";
   document.getElementById("place-duration").value = isEdit ? place.estimated_duration : "";
-  document.getElementById("place-rating").value = isEdit ? place.rating : "";
   document.getElementById("place-description").value = isEdit ? place.description || "" : "";
   document.getElementById("place-highlights").value = isEdit ? placeHighlightsToString(place.highlights) : "";
   document.getElementById("place-image-url").value = isEdit ? place.image_url || "" : "";
@@ -181,7 +205,7 @@ function validatePlaceForm(values) {
   if (!values.name) errors.name = "Vui lòng nhập tên địa điểm.";
   if (!values.province_city) errors.province_city = "Vui lòng nhập tỉnh hoặc thành phố.";
   if (!values.region) errors.region = "Vui lòng chọn khu vực.";
-  if (!values.activity_type) errors.activity_type = "Vui lòng nhập loại hình trải nghiệm.";
+  if (!values.activity_type) errors.activity_type = "Vui lòng chọn loại hình trải nghiệm.";
   if (values.estimated_cost === "" || values.estimated_cost === undefined) {
     errors.estimated_cost = "Vui lòng nhập chi phí tham khảo.";
   } else if (Number(values.estimated_cost) < 0) {
@@ -191,11 +215,6 @@ function validatePlaceForm(values) {
     errors.estimated_duration = "Vui lòng nhập thời lượng.";
   } else if (Number(values.estimated_duration) <= 0) {
     errors.estimated_duration = "Thời lượng phải lớn hơn 0 giờ.";
-  }
-  if (values.rating === "" || values.rating === undefined) {
-    errors.rating = "Vui lòng nhập điểm đánh giá.";
-  } else if (Number(values.rating) < 1 || Number(values.rating) > 5) {
-    errors.rating = "Điểm đánh giá phải nằm trong khoảng 1.0 đến 5.0.";
   }
   if (values.image_url && !/^https?:\/\//i.test(values.image_url)) {
     errors.image_url = "URL hình ảnh phải bắt đầu bằng http:// hoặc https://.";
@@ -211,7 +230,6 @@ function showPlaceErrors(errors) {
     activity_type: "place-activity",
     estimated_cost: "place-cost",
     estimated_duration: "place-duration",
-    rating: "place-rating",
     image_url: "place-image-url",
   };
   Object.keys(fieldMap).forEach((key) => {
@@ -233,6 +251,11 @@ async function handlePlaceSubmit(event) {
   showPlaceErrors(errors);
   if (Object.keys(errors).length) return;
 
+  const id = document.getElementById("place-id").value;
+  const current = id
+    ? placeState.places.find((item) => item.id === Number(id))
+    : null;
+
   const payload = {
     name: values.name,
     province_city: values.province_city,
@@ -240,14 +263,13 @@ async function handlePlaceSubmit(event) {
     activity_type: values.activity_type,
     estimated_cost: Number(values.estimated_cost),
     estimated_duration: Number(values.estimated_duration),
-    rating: Number(values.rating),
+    rating: current ? Number(current.rating) : DEFAULT_PLACE_RATING,
     description: values.description || null,
     highlights: placeStringToList(values.highlights),
     image_url: values.image_url || null,
     is_active: values.is_active,
   };
 
-  const id = document.getElementById("place-id").value;
   el.formSubmit.disabled = true;
   try {
     if (id) {
