@@ -243,45 +243,466 @@
   gap: 8px;
 }
 
-/* ---------- Giao diện Xem chi tiết quyết định ---------- */
-.history-page .history-detail-header-card {
-  border-top: 3px solid var(--dh-primary);
+/* ---------- Khóa cuộn trang nền khi mở Modal ---------- */
+.history-page.history-modal-open {
+  overflow: hidden;
 }
 
-.history-page .history-stat-card .dh-card-body {
-  padding: 16px 20px;
+/* ---------- Overlay & Modal Chi tiết quyết định (Light Theme) ---------- */
+.history-page .history-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(30, 36, 33, 0.14);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  opacity: 0;
+  transition: opacity 180ms ease;
 }
 
-.history-page .history-stat-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--dh-text-muted);
-  margin-bottom: 6px;
+.history-page .history-modal-backdrop.is-open {
+  opacity: 1;
 }
 
-.history-page .history-stat-value {
-  font-size: 22px;
+.history-page .history-modal-dialog {
+  width: 100%;
+  max-width: 860px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--dh-surface);
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-xl);
+  box-shadow:
+    0 24px 56px rgba(23, 43, 35, 0.14),
+    0 4px 16px rgba(23, 43, 35, 0.06);
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease;
+}
+
+.history-page .history-modal-backdrop.is-open .history-modal-dialog {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Header cố định của Modal */
+.history-page .history-modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 24px;
+  background: var(--dh-surface);
+  border-bottom: 1px solid var(--dh-border);
+}
+
+.history-page .history-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.history-page .history-modal-brand-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  font-size: 16px;
+  box-shadow: 0 3px 10px rgba(22, 132, 91, 0.18);
+}
+
+.history-page .history-modal-heading-text {
+  min-width: 0;
+}
+
+.history-page .history-modal-title {
+  margin: 0;
+  font-size: 19px;
   font-weight: 700;
   color: var(--dh-text);
-  margin: 0;
   line-height: 1.25;
 }
 
-.history-page .history-stat-hint {
-  font-size: 12px;
+.history-page .history-modal-subtitle {
+  margin: 3px 0 0;
+  font-size: 13px;
   color: var(--dh-text-muted);
-  margin: 4px 0 0;
+  line-height: 1.35;
 }
 
-/* Bảng tiêu chí đầu vào */
+.history-page .history-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--dh-border);
+  border-radius: 10px;
+  background: var(--dh-surface-subtle);
+  color: var(--dh-text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--dh-transition),
+    color var(--dh-transition),
+    border-color var(--dh-transition);
+}
+
+.history-page .history-modal-close-btn:hover {
+  background: var(--dh-danger-soft);
+  border-color: rgba(194, 65, 59, 0.3);
+  color: var(--dh-danger);
+}
+
+/* Thân Modal cuộn dọc độc lập, scrollbar sáng nhẹ */
+.history-page .history-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 20px 24px 24px;
+  background: var(--dh-surface);
+  scrollbar-width: thin;
+  scrollbar-color: #ccd9d1 #f8fbf9;
+}
+
+.history-page .history-modal-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.history-page .history-modal-body::-webkit-scrollbar-track {
+  background: #f8fbf9;
+  border-radius: 999px;
+}
+
+.history-page .history-modal-body::-webkit-scrollbar-thumb {
+  background: #ccd9d1;
+  border-radius: 999px;
+}
+
+.history-page .history-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #b2c4ba;
+}
+
+/* Footer cố định của Modal */
+.history-page .history-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 24px;
+  background: var(--dh-surface-subtle);
+  border-top: 1px solid var(--dh-border);
+}
+
+.history-page .history-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.history-page .history-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: var(--dh-font);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dh-text);
+  background: var(--dh-surface);
+  border: 1px solid var(--dh-border-strong);
+  border-radius: 5px;
+}
+
+/* Skeleton trong Modal */
+.history-page .history-modal-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.history-page .history-modal-skeleton-hero {
+  height: 120px;
+  border-radius: var(--dh-radius-lg);
+}
+
+.history-page .history-modal-skeleton-row {
+  height: 68px;
+  border-radius: var(--dh-radius-md);
+}
+
+/* ---------- 1. Khu vực thông tin lần quyết định ---------- */
+.history-page .history-modal-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+  border-radius: var(--dh-radius-lg);
+}
+
+.history-page .history-modal-meta-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-page .history-modal-meta-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--dh-text-muted);
+  font-weight: 500;
+}
+
+/* ---------- Khối Section chung trong Modal ---------- */
+.history-page .history-modal-section {
+  margin-bottom: 20px;
+}
+
+.history-page .history-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.history-page .history-modal-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.history-page .history-modal-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dh-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.history-page .history-modal-section-sub {
+  font-size: 12px;
+  color: var(--dh-text-muted);
+}
+
+/* ---------- 2. Card món ăn nổi bật / được lựa chọn ---------- */
+.history-page .history-featured-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: var(--dh-radius-lg);
+  border: 1.5px solid rgba(22, 132, 91, 0.28);
+  background: linear-gradient(135deg, rgba(232, 245, 239, 0.55) 0%, #ffffff 68%);
+  box-shadow: var(--dh-shadow-sm);
+}
+
+.history-page .history-featured-card.is-empty-result {
+  grid-template-columns: auto 1fr;
+  border-color: rgba(183, 121, 31, 0.3);
+  background: linear-gradient(135deg, rgba(255, 246, 229, 0.7) 0%, #ffffff 70%);
+}
+
+.history-page .history-featured-media {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: var(--dh-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--dh-border);
+  background: var(--dh-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-page .history-featured-card.is-empty-result .history-featured-media {
+  width: 64px;
+  height: 64px;
+  background: var(--dh-warning-soft);
+  border-color: rgba(183, 121, 31, 0.25);
+}
+
+.history-page .history-dish-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.history-page .history-dish-fallback-icon {
+  font-size: 38px;
+  line-height: 1;
+  user-select: none;
+}
+
+.history-page .history-featured-info {
+  min-width: 0;
+}
+
+.history-page .history-featured-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.history-page .history-selected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--dh-primary);
+  color: #ffffff;
+}
+
+.history-page .history-rank-pill-soft {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--dh-surface);
+  color: var(--dh-primary);
+  border: 1px solid rgba(22, 132, 91, 0.25);
+}
+
+.history-page .history-featured-name {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dh-text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.history-page .history-featured-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--dh-text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.history-page .history-featured-score {
+  flex-shrink: 0;
+  min-width: 88px;
+  padding: 12px 14px;
+  border-radius: var(--dh-radius-md);
+  background: var(--dh-surface);
+  border: 1px solid rgba(22, 132, 91, 0.24);
+  text-align: center;
+  box-shadow: var(--dh-shadow-sm);
+}
+
+.history-page .history-featured-score-num {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--dh-primary);
+  line-height: 1.1;
+}
+
+.history-page .history-featured-score-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dh-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 3. Khu vực Lý do đề xuất ---------- */
+.history-page .history-reasons-panel {
+  padding: 16px 18px;
+  border-radius: var(--dh-radius-lg);
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+  border-left: 3.5px solid var(--dh-primary);
+}
+
+.history-page .history-reasons-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-page .history-reasons-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--dh-text);
+  line-height: 1.45;
+}
+
+.history-page .history-reasons-bullet {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--dh-primary-soft);
+  color: var(--dh-primary);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.history-page .history-criteria-breakdown {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--dh-border);
+}
+
+/* ---------- 4. Bảng tiêu chí đầu vào (Grid Card nhỏ) ---------- */
 .history-page .history-input-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 10px;
 }
 
 .history-page .history-input-item {
-  padding: 12px 14px;
+  padding: 11px 14px;
   border-radius: var(--dh-radius-md);
   background: var(--dh-surface-subtle);
   border: 1px solid var(--dh-border);
@@ -295,15 +716,15 @@
 }
 
 .history-page .history-input-val {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--dh-text);
   overflow-wrap: anywhere;
 }
 
-/* Khung JSON Snapshot */
+/* Khung JSON Snapshot (Light Theme đồng bộ) */
 .history-page .history-snapshot-details {
-  margin-top: 14px;
+  margin-top: 12px;
   border: 1px solid var(--dh-border);
   border-radius: var(--dh-radius-md);
   background: var(--dh-surface-subtle);
@@ -311,8 +732,8 @@
 }
 
 .history-page .history-snapshot-details summary {
-  padding: 10px 14px;
-  font-size: 13px;
+  padding: 9px 14px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--dh-primary);
   cursor: pointer;
@@ -323,76 +744,180 @@
   margin: 0;
   padding: 12px 14px;
   border-top: 1px solid var(--dh-border);
-  background: #172b23;
-  color: #e8f5ef;
+  background: #f3f7f4;
+  color: var(--dh-text);
   font-size: 12px;
   line-height: 1.5;
   overflow-x: auto;
-  max-height: 280px;
+  max-height: 220px;
 }
 
-/* Danh sách phương án xếp hạng trong Chi tiết */
+/* ---------- 5. Danh sách phương án xếp hạng trong Modal ---------- */
 .history-page .history-ranked-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .history-page .history-ranked-card {
-  padding: 18px 20px;
+  padding: 14px 16px;
   border-radius: var(--dh-radius-lg);
   border: 1px solid var(--dh-border);
   background: var(--dh-surface);
-  transition: box-shadow var(--dh-transition);
+  transition:
+    border-color var(--dh-transition),
+    box-shadow var(--dh-transition);
+}
+
+.history-page .history-ranked-card:hover {
+  border-color: var(--dh-border-strong);
 }
 
 .history-page .history-ranked-card.is-top-rank {
-  border: 2px solid var(--dh-primary);
-  background: linear-gradient(180deg, rgba(232, 245, 239, 0.45) 0%, #ffffff 100%);
+  border: 1.5px solid rgba(22, 132, 91, 0.42);
+  background: linear-gradient(180deg, rgba(232, 245, 239, 0.42) 0%, #ffffff 100%);
   box-shadow: var(--dh-shadow-sm);
 }
 
-.history-page .history-ranked-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+.history-page .history-ranked-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
   gap: 14px;
-  margin-bottom: 14px;
+  align-items: center;
 }
 
-.history-page .history-rank-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+.history-page .history-rank-number {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 10px;
   background: #edf2ef;
   color: var(--dh-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.history-page .history-ranked-card.is-top-rank .history-rank-badge {
+.history-page .history-ranked-card.is-top-rank .history-rank-number {
   background: var(--dh-primary);
-  color: #fff;
+  color: #ffffff;
+}
+
+.history-page .history-ranked-thumb {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: var(--dh-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--dh-border);
+  background: var(--dh-surface-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-page .history-ranked-thumb .history-dish-fallback-icon {
+  font-size: 22px;
+}
+
+.history-page .history-ranked-main {
+  min-width: 0;
+}
+
+.history-page .history-ranked-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
 .history-page .history-ranked-title {
-  font-size: 18px;
+  font-size: 15.5px;
   font-weight: 700;
   color: var(--dh-text);
-  margin: 8px 0 6px;
+  margin: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
-/* Bảng phương án bị loại */
+.history-page .history-chosen-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--dh-primary-soft);
+  color: var(--dh-primary);
+  border: 1px solid rgba(22, 132, 91, 0.22);
+}
+
+.history-page .history-ranked-score {
+  flex-shrink: 0;
+  text-align: right;
+  padding: 6px 11px;
+  border-radius: var(--dh-radius-sm);
+  background: var(--dh-surface-subtle);
+  border: 1px solid var(--dh-border);
+}
+
+.history-page .history-ranked-card.is-top-rank .history-ranked-score {
+  background: var(--dh-primary-soft);
+  border-color: rgba(22, 132, 91, 0.22);
+}
+
+.history-page .history-ranked-score-val {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dh-primary);
+  line-height: 1.1;
+}
+
+.history-page .history-ranked-score-unit {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dh-text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.history-page .history-ranked-subreason {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--dh-border);
+  font-size: 12.5px;
+  color: var(--dh-text-muted);
+}
+
+/* Bảng phương án bị loại (giữ màu đỏ accent cho trạng thái loại trừ) */
 .history-page .history-excluded-card {
+  border: 1px solid var(--dh-border);
   border-top: 3px solid var(--dh-danger);
+  border-radius: var(--dh-radius-lg);
+  overflow: hidden;
+  background: var(--dh-surface);
+}
+
+.history-page .history-excluded-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--dh-surface-subtle);
+  border-bottom: 1px solid var(--dh-border);
 }
 
 .history-page .history-table th {
-  padding: 12px 16px;
-  font-size: 12px;
+  padding: 10px 14px;
+  font-size: 11.5px;
   color: var(--dh-text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -401,7 +926,7 @@
 }
 
 .history-page .history-table td {
-  padding: 12px 16px;
+  padding: 10px 14px;
   font-size: 13px;
   vertical-align: middle;
   border-bottom: 1px solid var(--dh-border);
@@ -421,6 +946,43 @@
     padding-top: 8px;
     border-top: 1px dashed var(--dh-border);
   }
+
+  .history-page .history-modal-backdrop {
+    padding: 14px;
+  }
+
+  .history-page .history-modal-dialog {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .history-page .history-featured-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .history-page .history-featured-score {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 10px 14px;
+  }
+
+  .history-page .history-featured-score-label {
+    margin-top: 0;
+  }
+
+  .history-page .history-ranked-row {
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+  }
+
+  .history-page .history-ranked-thumb {
+    display: none;
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -436,6 +998,45 @@
   }
 
   .history-page .history-card-actions .dh-btn {
+    width: 100%;
+  }
+
+  .history-page .history-modal-backdrop {
+    padding: 10px;
+  }
+
+  .history-page .history-modal-dialog {
+    max-height: 92vh;
+    border-radius: var(--dh-radius-lg);
+  }
+
+  .history-page .history-modal-header,
+  .history-page .history-modal-body,
+  .history-page .history-modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .history-page .history-featured-card {
+    grid-template-columns: 1fr;
+    padding: 15px 16px;
+  }
+
+  .history-page .history-featured-media {
+    width: 100%;
+    height: 156px;
+  }
+
+  .history-page .history-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-page .history-modal-footer-hint {
+    display: none;
+  }
+
+  .history-page .history-modal-footer-actions,
+  .history-page .history-modal-footer-actions .dh-btn {
     width: 100%;
   }
 }
