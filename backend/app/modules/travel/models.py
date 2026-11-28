@@ -47,7 +47,7 @@ class TravelPlace(Base):
     __tablename__ = "travel_places"
 
     id: Mapped[int] = mapped_column(
-        BigInteger,
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
         autoincrement=True,
         comment="Khóa chính tự tăng định danh địa điểm",
