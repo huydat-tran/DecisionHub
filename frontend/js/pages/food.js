@@ -1,11 +1,9 @@
 // Trang Khám phá món ăn (Food)
-// - Lấy danh sách món ăn từ GET /api/v1/food
-// - Khi bấm nút "detal", truyền thẳng item.id vào hàm xử lý để gọi GET /api/v1/food/{id}
-//   và hiển thị khối chi tiết món ăn (#detall_food) ở giữa màn hình.
+// - Lấy danh sách món ăn từ GET /api/v1/food (đầy đủ trạng thái Loading, Empty, Error + Retry)
+// - Khi bấm nút "Chi tiết", gọi GET /api/v1/food/{id} và hiển thị modal chi tiết món ăn (#detall_food).
 
-// shortcut: phân trang phía client trên dữ liệu GET /api/v1/food; chuyển sang limit/offset ở backend khi bảng foods vượt vài trăm món.
 const DEFAULT_FOOD_IMAGE = "../assets/images/foods/hihi.png";
-const FOODS_PER_PAGE = 10;
+const FOODS_PER_PAGE = 8;
 
 const MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -15,7 +13,12 @@ const MEAL_LABELS = {
 };
 
 const gridEl = document.getElementById("food-results-grid");
+const loadingEl = document.getElementById("food-loading");
 const emptyEl = document.getElementById("food-empty");
+const errorEl = document.getElementById("food-error");
+const errorMessageEl = document.getElementById("food-error-message");
+const btnRetryEl = document.getElementById("btn-food-retry");
+const btnEmptyResetEl = document.getElementById("btn-food-empty-reset");
 const countEl = document.getElementById("food-results-count");
 const paginationEl = document.getElementById("food-pagination");
 const detailOverlayEl = document.getElementById("detall_food");
@@ -23,6 +26,19 @@ const btnCloseDetailEl = document.getElementById("btnCloseDetail");
 
 let allFoods = [];
 let currentPage = 1;
+let isLoadingFoods = false;
+let isLoadingDetail = false;
+
+function setCatalogState(mode) {
+  if (loadingEl) loadingEl.classList.toggle("d-none", mode !== "loading");
+  if (emptyEl) emptyEl.classList.toggle("d-none", mode !== "empty");
+  if (errorEl) errorEl.classList.toggle("d-none", mode !== "error");
+  if (gridEl) gridEl.classList.toggle("d-none", mode !== "success");
+  if (mode !== "success" && paginationEl) {
+    paginationEl.innerHTML = "";
+    paginationEl.classList.add("d-none");
+  }
+}
 
 function renderFoodCards(foods) {
   if (!gridEl) return;
@@ -32,24 +48,32 @@ function renderFoodCards(foods) {
       const name = escapeHtml(item.name);
       const description = escapeHtml(item.description || "");
       const imageSrc = escapeHtml(item.image_url || DEFAULT_FOOD_IMAGE);
+      const idVal = escapeHtml(item.id);
+      const tags = Array.isArray(item.tags) ? item.tags : [];
+      const tagsHtml = tags.length
+        ? `<ul class="list-unstyled card-tags-list">${tags
+            .map((tag) => `<li class="card-tag-item">#${escapeHtml(tag)}</li>`)
+            .join("")}</ul>`
+        : "";
 
       return `
-        <div class="card" data-food-id="${item.id}">
+        <div class="card" data-food-id="${idVal}">
           <img
             src="${imageSrc}"
             class="card-img-top"
             alt="${name}"
+            loading="lazy"
           />
           <div class="card-body">
             <h5 class="card-title">${name}</h5>
             <p class="card-text">${description}</p>
+            ${tagsHtml}
             <div class="card-detail-book">
               <a
                 href="#"
                 class="btn-food-detail"
-                data-food-id="${item.id}"
+                data-food-id="${idVal}"
                 data-action="detail"
-                onclick="handleDetailClick(event, ${item.id})"
               >Chi tiết</a>
             </div>
           </div>
@@ -60,6 +84,12 @@ function renderFoodCards(foods) {
 
 function renderPagination(totalPages) {
   if (!paginationEl) return;
+
+  if (totalPages <= 1) {
+    paginationEl.innerHTML = "";
+    paginationEl.classList.add("d-none");
+    return;
+  }
 
   const pageButtons = Array.from({ length: totalPages }, (_, index) => {
     const p = index + 1;
@@ -80,16 +110,12 @@ function renderPage(page) {
 
   if (!allFoods.length) {
     gridEl.innerHTML = "";
-    if (emptyEl) emptyEl.classList.remove("d-none");
-    if (paginationEl) {
-      paginationEl.innerHTML = "";
-      paginationEl.classList.add("d-none");
-    }
-    if (countEl) countEl.textContent = "Hiển thị 0 phương án phù hợp";
+    setCatalogState("empty");
+    if (countEl) countEl.textContent = "Hiển thị 0 món ăn";
     return;
   }
 
-  if (emptyEl) emptyEl.classList.add("d-none");
+  setCatalogState("success");
 
   const totalPages = Math.ceil(allFoods.length / FOODS_PER_PAGE);
   currentPage = Math.min(Math.max(1, page), totalPages);
@@ -179,17 +205,23 @@ function renderFoodDetail(food) {
 }
 
 async function showFoodDetail(foodId) {
-  if (!foodId) return;
+  if (!foodId || isLoadingDetail) return;
+  isLoadingDetail = true;
 
   try {
-    const response = await api.get(`/api/v1/food/${foodId}`);
+    const response = await api.get(`/api/v1/food/${encodeURIComponent(foodId)}`);
     if (response && response.data) {
       renderFoodDetail(response.data);
     }
   } catch (error) {
     if (typeof showToast === "function") {
-      showToast(error.message || "Không tải được chi tiết món ăn.", "error");
+      showToast(
+        (error && error.message) || "Không thể tải chi tiết món ăn. Vui lòng thử lại.",
+        "error",
+      );
     }
+  } finally {
+    isLoadingDetail = false;
   }
 }
 
@@ -206,6 +238,15 @@ function closeFoodDetail() {
 
 window.handleDetailClick = handleDetailClick;
 window.showFoodDetail = showFoodDetail;
+
+if (gridEl) {
+  gridEl.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-action='detail']");
+    if (!btn) return;
+    event.preventDefault();
+    showFoodDetail(btn.dataset.foodId);
+  });
+}
 
 if (btnCloseDetailEl) {
   btnCloseDetailEl.addEventListener("click", closeFoodDetail);
@@ -238,23 +279,40 @@ if (paginationEl) {
 }
 
 async function loadAllFoods() {
-  if (!gridEl) return;
+  if (!gridEl || isLoadingFoods) return;
+
+  isLoadingFoods = true;
+  if (btnRetryEl) btnRetryEl.disabled = true;
+  if (btnEmptyResetEl) btnEmptyResetEl.disabled = true;
+  if (countEl) countEl.textContent = "Đang tải danh sách món ăn...";
+  setCatalogState("loading");
 
   try {
     const response = await api.get("/api/v1/food");
-    allFoods = Array.isArray(response.data) ? response.data : [];
+    allFoods = response && Array.isArray(response.data) ? response.data : [];
     renderPage(1);
   } catch (error) {
-    if (countEl) {
-      countEl.textContent = error.message || "Không tải được danh sách món ăn.";
-    }
+    const friendlyMessage =
+      (error && error.message) ||
+      "Không thể tải danh sách món ăn từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.";
+    if (errorMessageEl) errorMessageEl.textContent = friendlyMessage;
+    if (countEl) countEl.textContent = "Tải danh sách món ăn không thành công";
+    setCatalogState("error");
     if (typeof showToast === "function") {
-      showToast(
-        error.message || "Không tải được chi tiết danh sách món ăn.",
-        "error",
-      );
+      showToast(friendlyMessage, "error");
     }
+  } finally {
+    isLoadingFoods = false;
+    if (btnRetryEl) btnRetryEl.disabled = false;
+    if (btnEmptyResetEl) btnEmptyResetEl.disabled = false;
   }
+}
+
+if (btnRetryEl) {
+  btnRetryEl.addEventListener("click", loadAllFoods);
+}
+if (btnEmptyResetEl) {
+  btnEmptyResetEl.addEventListener("click", loadAllFoods);
 }
 
 // ---------- Menu mobile ----------

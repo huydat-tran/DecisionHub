@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quản lý du lịch – DecisionHub Admin</title>
+    <link rel="icon" href="../../assets/images/logo.svg" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/admin-variables.css" />
+    <link rel="stylesheet" href="../css/admin-layout.css" />
+    <link rel="stylesheet" href="../css/admin-components.css" />
+    <link rel="stylesheet" href="../css/admin-pages.css" />
+  </head>
+  <body data-page="places" data-title="Quản lý du lịch" data-crumb="Địa điểm">
+    <aside class="adm-sidebar" id="adm-sidebar"></aside>
+    <div class="adm-backdrop" id="adm-backdrop"></div>
+    <header class="adm-header" id="adm-header"></header>
+
+    <main class="adm-main">
+      <div class="adm-content">
+        <div class="adm-page-heading">
+          <div class="adm-heading-text">
+            <p class="adm-eyebrow">Danh mục Travel</p>
+            <h2 class="adm-h1">Quản lý địa điểm du lịch</h2>
+            <p class="adm-description">
+              Thêm, cập nhật và xoá các địa điểm dùng cho bộ gợi ý WhereShouldIGo.
+            </p>
+          </div>
+          <div class="adm-heading-actions">
+            <button type="button" class="adm-btn adm-btn-primary" id="btn-add-place">
+              <span aria-hidden="true">+</span> Thêm địa điểm
+            </button>
+          </div>
+        </div>
+        <div class="adm-card">
+          <div class="adm-toolbar">
+            <div class="adm-search">
+              <span class="adm-search-icon" aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                class="adm-input"
+                id="place-search"
+                placeholder="Tìm theo tên địa điểm hoặc tỉnh/thành..."
+                aria-label="Tìm địa điểm"
+              />
+            </div>
+            <select class="adm-select adm-filter" id="place-filter-region" aria-label="Lọc theo khu vực">
+              <option value="">Tất cả khu vực</option>
+              <option value="Bắc">Bắc</option>
+              <option value="Trung">Trung</option>
+              <option value="Nam">Nam</option>
+              <option value="Tây Nguyên">Tây Nguyên</option>
+              <option value="Tây Nam Bộ">Tây Nam Bộ</option>
+            </select>
+            <select class="adm-select adm-filter" id="place-filter-activity" aria-label="Lọc theo loại hình">
+              <option value="">Tất cả loại hình</option>
+            </select>
+            <select class="adm-select adm-filter" id="place-filter-status" aria-label="Lọc theo trạng thái">
+              <option value="">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Tạm ngưng</option>
+            </select>
+            <span class="adm-result-count" id="place-count">0 địa điểm</span>
+          </div>
+
+          <div class="adm-card-body" id="place-loading" hidden>
+            <div class="adm-skeleton adm-skeleton-row" style="width: 40%"></div>
+            <div class="adm-skeleton adm-skeleton-row" style="width: 70%"></div>
+            <div class="adm-skeleton adm-skeleton-row" style="width: 55%"></div>
+          </div>
+
+          <div class="adm-empty" id="place-empty" hidden>
+            <div class="adm-empty-icon" aria-hidden="true">🧭</div>
+            <h4 class="adm-empty-title">Chưa có địa điểm nào</h4>
+            <p class="adm-empty-desc">
+              Danh mục địa điểm đang trống. Hãy thêm địa điểm đầu tiên để bắt đầu quản lý.
+            </p>
+            <button type="button" class="adm-btn adm-btn-primary" id="btn-empty-add-place">Thêm địa điểm</button>
+          </div>
+
+          <div class="adm-empty" id="place-no-result" hidden>
+            <div class="adm-empty-icon" aria-hidden="true">🔎</div>
+            <h4 class="adm-empty-title">Không tìm thấy địa điểm phù hợp</h4>
+            <p class="adm-empty-desc">Thử đổi từ khoá tìm kiếm hoặc bỏ bớt điều kiện lọc.</p>
+            <button type="button" class="adm-btn adm-btn-soft" id="btn-clear-place-filters">Xoá bộ lọc</button>
+          </div>
+
+          <div class="adm-table-wrap" id="place-table-wrap" hidden>
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Địa điểm</th>
+                  <th>Khu vực</th>
+                  <th>Loại hình</th>
+                  <th>Chi phí (VND)</th>
+                  <th>Thời lượng</th>
+                  <th>Đánh giá</th>
+                  <th>Trạng thái</th>
+                  <th class="adm-col-actions">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="place-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+    <!-- Modal: xem chi tiết -->
+    <div class="modal fade adm-modal" id="place-view-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title">Chi tiết địa điểm</h5>
+              <p class="modal-subtitle">Thông tin lưu trữ của một địa điểm trong danh mục</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+          </div>
+          <div class="modal-body" id="place-view-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="adm-btn" data-bs-dismiss="modal">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal: thêm / sửa -->
+    <div class="modal fade adm-modal" id="place-form-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h5 class="modal-title" id="place-form-title">Thêm địa điểm</h5>
+              <p class="modal-subtitle" id="place-form-subtitle">Điền thông tin địa điểm theo cấu trúc dữ liệu hiện có</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+          </div>
+          <form id="place-form" novalidate>
+            <div class="modal-body">
+              <input type="hidden" id="place-id" name="id" />
+              <div class="adm-field">
+                <label class="adm-label" for="place-name">Tên địa điểm <span class="adm-required">*</span></label>
+                <input type="text" class="adm-input" id="place-name" name="name" maxlength="200" required />
+                <span class="adm-error" data-error-for="place-name"></span>
+              </div>
+              <div class="adm-form-row">
+                <div class="adm-field">
+                  <label class="adm-label" for="place-province">Tỉnh / Thành phố <span class="adm-required">*</span></label>
+                  <input type="text" class="adm-input" id="place-province" name="province_city" maxlength="100" required />
+                  <span class="adm-error" data-error-for="place-province"></span>
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="place-region">Khu vực <span class="adm-required">*</span></label>
+                  <select class="adm-select" id="place-region" name="region" required>
+                    <option value="Bắc">Bắc</option>
+                    <option value="Trung">Trung</option>
+                    <option value="Nam">Nam</option>
+                    <option value="Tây Nguyên">Tây Nguyên</option>
+                    <option value="Tây Nam Bộ">Tây Nam Bộ</option>
+                  </select>
+                  <span class="adm-error" data-error-for="place-region"></span>
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="place-activity">Loại hình trải nghiệm <span class="adm-required">*</span></label>
+                  <select class="adm-select" id="place-activity" name="activity_type" required></select>
+                  <span class="adm-error" data-error-for="place-activity"></span>
+                </div>
+              </div>
+              <div class="adm-form-row">
+                <div class="adm-field">
+                  <label class="adm-label" for="place-cost">Chi phí tham khảo (VND) <span class="adm-required">*</span></label>
+                  <input type="number" class="adm-input" id="place-cost" name="estimated_cost" min="0" step="1000" required />
+                  <span class="adm-error" data-error-for="place-cost"></span>
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="place-duration">Thời lượng (giờ) <span class="adm-required">*</span></label>
+                  <input type="number" class="adm-input" id="place-duration" name="estimated_duration" min="0" step="0.5" required />
+                  <span class="adm-error" data-error-for="place-duration"></span>
+                </div>
+              </div>
+              <div class="adm-field">
+                <label class="adm-label" for="place-description">Mô tả</label>
+                <textarea class="adm-textarea" id="place-description" name="description" maxlength="2000"></textarea>
+                <span class="adm-error" data-error-for="place-description"></span>
+              </div>
+              <div class="adm-field">
+                <label class="adm-label" for="place-highlights">Hoạt động nổi bật</label>
+                <textarea class="adm-textarea" id="place-highlights" name="highlights" maxlength="1000" style="min-height: 84px"></textarea>
+                <span class="adm-help">Mỗi hoạt động một dòng, hoặc cách nhau bằng dấu phẩy.</span>
+                <span class="adm-error" data-error-for="place-highlights"></span>
+              </div>
+              <div class="adm-field">
+                <label class="adm-label" for="place-image-url">URL hình ảnh</label>
+                <input type="url" class="adm-input" id="place-image-url" name="image_url" maxlength="500" placeholder="https://..." />
+                <span class="adm-help">Nếu để trống, giao diện dùng ảnh mặc định của hệ thống.</span>
+                <span class="adm-error" data-error-for="place-image-url"></span>
+              </div>
+              <div class="adm-field">
+                <div class="adm-switch-row">
+                  <input type="checkbox" id="place-is-active" name="is_active" checked />
+                  <label class="adm-switch-label" for="place-is-active">Địa điểm đang mở cửa</label>
+                </div>
+              </div>
+              <div class="adm-placeholder-note is-warning">
+                <span aria-hidden="true">⚠️</span>
+                <span>Dữ liệu chỉ được giữ trong phiên hiện tại, chưa ghi xuống máy chủ cho tới khi API quản trị được tích hợp.</span>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="adm-btn" data-bs-dismiss="modal">Hủy</button>
+              <button type="submit" class="adm-btn adm-btn-primary" id="place-form-submit">Lưu địa điểm</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="../../js/utils.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/store.js"></script>
+    <script src="../js/layout.js"></script>
+    <script src="../js/pages/places.js"></script>
+  </body>
+</html>

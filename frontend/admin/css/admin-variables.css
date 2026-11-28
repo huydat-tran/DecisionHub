@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap");
+
+/* ==========================================================================
+   DecisionHub Admin · Design Tokens
+   Giao diện Admin độc lập với giao diện User (Light theme, Indigo).
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --secondary: #6366F1;
+  --accent: #8B5CF6;
+
+  --primary-soft: #EEF0FF;
+  --primary-soft-hover: #E3E6FF;
+
+  /* Surfaces */
+  --background: #F5F7FF;
+  --surface: #FFFFFF;
+  --surface-subtle: #FAFBFF;
+  --surface-muted: #F3F4FC;
+
+  /* Text */
+  --text-primary: #1E1B4B;
+  --text-secondary: #64748B;
+  --text-tertiary: #94A3B8;
+
+  /* Borders & states */
+  --border: #E8EAF3;
+  --border-strong: #D8DBEB;
+  --success: #10B981;
+  --success-soft: #E7F8F1;
+  --warning: #F59E0B;
+  --warning-soft: #FEF4E4;
+  --danger: #EF4444;
+  --danger-soft: #FDECEC;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(110deg, #4F46E5 0%, #6366F1 45%, #8B5CF6 100%);
+
+  /* Elevation */
+  --shadow-sm: 0 2px 8px rgba(30, 27, 75, 0.04);
+  --shadow-md: 0 8px 24px rgba(30, 27, 75, 0.07);
+  --shadow-lg: 0 18px 48px rgba(30, 27, 75, 0.12);
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Layout */
+  --font: "Roboto", Arial, sans-serif;
+  --sidebar-width: 264px;
+  --header-height: 72px;
+  --page-padding: 28px;
+  --transition: 160ms ease;
+}

@@ -54,6 +54,13 @@ from app.modules.decision.schema import (
     DecisionHistoryListResponse,
     DecisionRecommendRequest,
 )
+from app.modules.travel.adapter import (
+    adapt_travel_candidates,
+    adapt_travel_criteria,
+)
+from app.modules.travel.repository import get_active_travel_places
+from app.modules.travel.schemas import TravelExcludedOptionResponse
+from app.modules.travel.services import build_travel_decision_response
 
 logger = logging.getLogger(__name__)
 
@@ -730,6 +737,95 @@ def get_user_decision_detail(
         input_snapshot=item.input_snapshot,
         result_snapshot=item.result_snapshot,
         created_at=item.created_at,
+    )
+
+
+def evaluate_travel_recommendation(
+    raw_candidates: list[Any],
+    payload: Any,
+) -> tuple[list[dict[str, Any]], int, list[Any], list[dict[str, Any]]]:
+    """Lọc điều kiện cứng và chạy Decision Engine cho danh sách ứng viên Travel."""
+
+    adapted_candidates = adapt_travel_candidates(
+        raw_candidates,
+        preferred_activities=payload.preferred_activities,
+    )
+    adapted_criteria = adapt_travel_criteria()
+
+    valid_candidates: list[dict[str, Any]] = []
+    excluded_items: list[TravelExcludedOptionResponse] = []
+
+    for cand in adapted_candidates:
+        reasons: list[str] = []
+        cost = int(cand.get("estimated_cost") or 0)
+        duration = float(cand.get("estimated_duration") or 0.0)
+
+        if payload.budget_max is not None and cost > payload.budget_max:
+            reasons.append(
+                f"Chi phí {_format_vnd(cost)} vượt quá ngân sách tối đa {_format_vnd(payload.budget_max)}."
+            )
+        if payload.max_duration is not None and duration > payload.max_duration:
+            reasons.append(
+                f"Thời lượng {duration:.1f}h vượt quá thời lượng tối đa {payload.max_duration:.1f}h."
+            )
+        if payload.region is not None:
+            reg_val = payload.region.value
+            if cand.get("region") != reg_val:
+                reasons.append(
+                    f"Khu vực '{cand.get('region')}' không khớp khu vực yêu cầu '{reg_val}'."
+                )
+        if payload.activity_type is not None and payload.activity_type.strip():
+            act_req = payload.activity_type.strip()
+            if cand.get("activity_type") != act_req:
+                reasons.append(
+                    f"Loại hình '{cand.get('activity_type')}' không khớp loại hình yêu cầu '{act_req}'."
+                )
+
+        if reasons:
+            excluded_items.append(
+                TravelExcludedOptionResponse(
+                    id=cand.get("id"),
+                    name=str(cand.get("name") or ""),
+                    status="excluded",
+                    is_excluded=True,
+                    exclusion_reason="; ".join(reasons),
+                    exclusion_reasons=reasons,
+                )
+            )
+        else:
+            valid_candidates.append(cand)
+
+    if valid_candidates:
+        eval_result = evaluate_decision(
+            candidates=valid_candidates,
+            criteria=adapted_criteria,
+            domain="travel",
+            user_preferences=payload.preferred_activities,
+            limit=payload.limit,
+        )
+        ranked_candidates = eval_result.get("valid_candidates", [])
+    else:
+        ranked_candidates = []
+
+    return ranked_candidates, len(valid_candidates), excluded_items, adapted_criteria
+
+
+def recommend_travel(
+    db: Session,
+    payload: Any,
+) -> tuple[Any, str]:
+    """Lấy dữ liệu từ Travel repository, chấm điểm qua Decision Engine và trả về hiển thị."""
+
+    raw_candidates = get_active_travel_places(db)
+    ranked_candidates, total_valid, excluded_items, adapted_criteria = (
+        evaluate_travel_recommendation(raw_candidates, payload)
+    )
+    return build_travel_decision_response(
+        ranked_candidates=ranked_candidates,
+        total_valid=total_valid,
+        excluded_items=excluded_items,
+        adapted_criteria=adapted_criteria,
+        payload=payload,
     )
 
 

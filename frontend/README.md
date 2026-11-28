@@ -25,6 +25,8 @@ frontend/
 └── assets/images/         # Ảnh, logo, icon
 ```
 
+> **Admin Console**: giao diện quản trị nằm riêng trong `frontend/admin/` (xem `frontend/admin/README.md`), không dùng chung khung layout với giao diện người dùng.
+
 ## 2. Chạy frontend
 
 **Bước 1: chạy backend trước.** Làm theo `backend/README.md` cho đến khi mở http://127.0.0.1:8000/api/health thấy `"database":"connected"`.

@@ -61,12 +61,16 @@
     currentView: "list", // "list" | "detail"
     isModalOpen: false,
     savedScrollY: 0,
-    detailRequestSeq: 0,
     lastFocusedTrigger: null,
     hasLoadedListOnce: false,
-    activeListPromise: null,
     activeDecisionId: null,
     activeDecision: null,
+    isLoadingList: false,
+    isLoadingDetail: false,
+    listRequestSeq: 0,
+    detailRequestSeq: 0,
+    activeListPromise: null,
+    activeDetailPromise: null,
   };
 
   // ---------- Helpers an toàn & định dạng ----------
@@ -141,18 +145,37 @@
     return MEAL_TYPE_LABELS[mealType] || String(mealType);
   }
 
+  // Trích xuất thông báo lỗi thân thiện từ ApiError của Backend (không hiển thị lỗi kỹ thuật thô)
   function extractErrorMessage(error, fallbackMessage) {
     if (!error) return fallbackMessage;
+    if (error.isTimeout) {
+      return "Yêu cầu tải lịch sử phản hồi quá thời gian chờ. Vui lòng kiểm tra mạng và thử lại.";
+    }
+    if (error.status === 0) {
+      return (
+        (typeof error.message === "string" && error.message.trim()) ||
+        "Không thể kết nối tới máy chủ DecisionHub. Vui lòng kiểm tra kết nối mạng và thử lại."
+      );
+    }
+    if (error.status === 403) {
+      return "Bạn không có quyền truy cập dữ liệu lịch sử này.";
+    }
+    if (error.status >= 500) {
+      return "Máy chủ đang gặp sự cố tạm thời khi tải lịch sử quyết định. Vui lòng thử lại sau.";
+    }
     if (error.data && typeof error.data.message === "string" && error.data.message.trim()) {
-      return error.data.message.trim();
+      const msg = error.data.message.trim();
+      if (!/traceback|sqlalchemy|pymysql/i.test(msg)) return msg;
     }
     if (error.data && typeof error.data.detail === "string" && error.data.detail.trim()) {
-      return error.data.detail.trim();
+      const msg = error.data.detail.trim();
+      if (!/traceback|sqlalchemy|pymysql/i.test(msg)) return msg;
     }
     if (
       typeof error.message === "string" &&
       error.message.trim() &&
-      !/^Lỗi \d+$/.test(error.message.trim())
+      !/^Lỗi \d+$/.test(error.message.trim()) &&
+      !/traceback|sqlalchemy|pymysql/i.test(error.message)
     ) {
       return error.message.trim();
     }
@@ -287,10 +310,14 @@
     const els = getEls();
 
     state.detailRequestSeq += 1;
+    state.isLoadingDetail = false;
     state.isModalOpen = false;
     state.currentView = "list";
     state.activeDecisionId = null;
     state.activeDecision = null;
+    if (!state.isLoadingList) {
+      setHistoryControlsLoading(false);
+    }
 
     if (els.detailModal) {
       els.detailModal.classList.remove("is-open");
@@ -643,10 +670,12 @@
         els.cardsContainer.classList.add("d-none");
       }
       if (els.paginationBar) els.paginationBar.classList.add("d-none");
-      if (els.emptyTitle) els.emptyTitle.textContent = "Chưa có lịch sử quyết định";
+      if (els.emptyTitle) {
+        els.emptyTitle.textContent = "Bạn chưa có quyết định món ăn nào.";
+      }
       if (els.emptyDesc) {
         els.emptyDesc.textContent =
-          "Tài khoản của bạn chưa có quyết định nào được lưu. Hãy thực hiện gợi ý món ăn hoặc du lịch để hệ thống lưu lại lịch sử.";
+          "Hãy thử tìm món ăn phù hợp để lưu lại lịch sử quyết định của bạn.";
       }
       if (els.btnResetFilter) els.btnResetFilter.classList.add("d-none");
       if (els.emptyBox) els.emptyBox.classList.remove("d-none");
@@ -658,16 +687,23 @@
         els.cardsContainer.innerHTML = "";
         els.cardsContainer.classList.add("d-none");
       }
-      const meta = getDomainMeta(state.currentFilter);
-      if (els.emptyTitle) {
-        els.emptyTitle.textContent =
-          state.currentFilter === "food"
-            ? "Bạn chưa có quyết định món ăn nào."
-            : `Không có quyết định thuộc phân hệ ${meta.shortLabel}`;
-      }
-      if (els.emptyDesc) {
-        els.emptyDesc.textContent =
-          "Không tìm thấy quyết định nào khớp với bộ lọc hiện tại. Bạn có thể chuyển về xem tất cả phân hệ.";
+      if (state.currentFilter === "food") {
+        if (els.emptyTitle) {
+          els.emptyTitle.textContent = "Bạn chưa có quyết định món ăn nào.";
+        }
+        if (els.emptyDesc) {
+          els.emptyDesc.textContent =
+            "Hãy thử tìm món ăn phù hợp để lưu lại lịch sử quyết định của bạn.";
+        }
+      } else {
+        const meta = getDomainMeta(state.currentFilter);
+        if (els.emptyTitle) {
+          els.emptyTitle.textContent = `Không có quyết định thuộc phân hệ ${meta.shortLabel}`;
+        }
+        if (els.emptyDesc) {
+          els.emptyDesc.textContent =
+            "Không tìm thấy quyết định nào khớp với bộ lọc hiện tại. Bạn có thể chuyển về xem tất cả phân hệ.";
+        }
       }
       if (els.btnResetFilter) els.btnResetFilter.classList.remove("d-none");
       if (els.emptyBox) els.emptyBox.classList.remove("d-none");
@@ -1355,22 +1391,45 @@
     if (els.authRequired) els.authRequired.classList.remove("d-none");
   }
 
+  function setHistoryControlsLoading(isLoading) {
+    const els = getEls();
+    if (els.btnReload) els.btnReload.disabled = isLoading;
+    if (els.btnRetryHistory) els.btnRetryHistory.disabled = isLoading;
+    if (els.btnRetryDetail) els.btnRetryDetail.disabled = isLoading;
+    if (isLoading) {
+      if (els.btnPrevPage) els.btnPrevPage.disabled = true;
+      if (els.btnNextPage) els.btnNextPage.disabled = true;
+    }
+  }
+
   // ---------- Luồng tải dữ liệu Danh sách & Modal Chi tiết ----------
 
   function loadHistoryList(options = {}) {
-    if (state.activeListPromise) {
+    const els = getEls();
+    const targetOffset =
+      options.offset !== undefined ? Math.max(0, Number(options.offset) || 0) : state.offset;
+
+    // Tránh gửi nhiều request trùng lặp khi người dùng bấm liên tục vào cùng một trang:
+    // dùng lại Promise đang chạy thay vì tạo request mới.
+    if (
+      state.isLoadingList &&
+      targetOffset === state.offset &&
+      !options.force &&
+      state.activeListPromise
+    ) {
       return state.activeListPromise;
     }
 
-    const els = getEls();
-    if (options.offset !== undefined) {
-      state.offset = Math.max(0, Number(options.offset) || 0);
-    }
+    state.offset = targetOffset;
 
     if (!api.session.isLoggedIn()) {
       showAuthRequiredState();
       return Promise.resolve();
     }
+
+    const reqSeq = ++state.listRequestSeq;
+    state.isLoadingList = true;
+    setHistoryControlsLoading(true);
 
     if (els.listView) els.listView.classList.remove("d-none");
     if (els.authRequired) els.authRequired.classList.add("d-none");
@@ -1378,11 +1437,14 @@
     if (els.emptyBox) els.emptyBox.classList.add("d-none");
     if (els.cardsContainer) els.cardsContainer.classList.add("d-none");
     if (els.paginationBar) els.paginationBar.classList.add("d-none");
+    if (els.summaryCounter) els.summaryCounter.textContent = "Đang tải lịch sử quyết định...";
     if (els.loadingBox) els.loadingBox.classList.remove("d-none");
 
-    const runPromise = (async () => {
+    const promise = (async () => {
       try {
         const response = await fetchHistoryList(state.limit, state.offset);
+        if (reqSeq !== state.listRequestSeq) return;
+
         const rawList = Array.isArray(response.data)
           ? response.data
           : Array.isArray(response.items)
@@ -1398,6 +1460,8 @@
 
         renderHistoryList();
       } catch (error) {
+        if (reqSeq !== state.listRequestSeq) return;
+
         if (els.loadingBox) els.loadingBox.classList.add("d-none");
 
         if (error && error.status === 401) {
@@ -1409,21 +1473,38 @@
           error,
           "Không thể tải danh sách lịch sử quyết định từ máy chủ. Vui lòng thử lại.",
         );
+        if (els.summaryCounter) els.summaryCounter.textContent = "Tải lịch sử không thành công";
         if (els.errorMessage) els.errorMessage.textContent = msg;
         if (els.errorBox) els.errorBox.classList.remove("d-none");
       } finally {
-        state.activeListPromise = null;
+        if (reqSeq === state.listRequestSeq) {
+          state.isLoadingList = false;
+          state.activeListPromise = null;
+          setHistoryControlsLoading(false);
+          if (
+            state.currentView === "list" &&
+            els.paginationBar &&
+            !els.paginationBar.classList.contains("d-none")
+          ) {
+            renderPagination();
+          }
+        }
       }
     })();
 
-    state.activeListPromise = runPromise;
-    return runPromise;
+    state.activeListPromise = promise;
+    return promise;
   }
 
   async function openDecisionDetail(decisionId, triggerEl = null) {
     const els = getEls();
     const numericId = Number(decisionId);
-    const reqSeq = ++state.detailRequestSeq;
+
+    // Chặn request trùng khi đang tải cùng một decision_id
+    if (state.isLoadingDetail && String(state.activeDecisionId) === String(decisionId)) {
+      return;
+    }
+
     state.activeDecisionId = decisionId;
 
     if (triggerEl && typeof triggerEl.focus === "function") {
@@ -1459,6 +1540,9 @@
       return;
     }
 
+    const reqSeq = ++state.detailRequestSeq;
+    state.isLoadingDetail = true;
+    setHistoryControlsLoading(true);
     if (els.detailLoading) els.detailLoading.classList.remove("d-none");
 
     try {
@@ -1500,6 +1584,11 @@
       );
       if (els.detailErrorText) els.detailErrorText.textContent = errMsg;
       if (els.detailError) els.detailError.classList.remove("d-none");
+    } finally {
+      if (reqSeq === state.detailRequestSeq) {
+        state.isLoadingDetail = false;
+        setHistoryControlsLoading(false);
+      }
     }
   }
 
@@ -1570,12 +1659,16 @@
 
     if (els.btnReload) {
       els.btnReload.addEventListener("click", () => {
-        loadHistoryList();
+        if (state.isModalOpen && state.activeDecisionId) {
+          openDecisionDetail(state.activeDecisionId);
+        } else {
+          loadHistoryList({ force: true });
+        }
       });
     }
 
     if (els.btnRetryHistory) {
-      els.btnRetryHistory.addEventListener("click", () => loadHistoryList());
+      els.btnRetryHistory.addEventListener("click", () => loadHistoryList({ force: true }));
     }
 
     // Các hành động đóng Modal: nút X, nút Đóng footer, nút Đóng trên trạng thái lỗi/404

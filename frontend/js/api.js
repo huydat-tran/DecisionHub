@@ -184,14 +184,30 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
-// Lấy câu thông báo lỗi dễ đọc từ response của FastAPI
+// Lấy câu thông báo lỗi dễ đọc từ response của FastAPI (hỗ trợ cả chuẩn DecisionHub { message, errors } và FastAPI { detail })
 function getErrorMessage(data, status) {
-  if (data && typeof data.detail === "string") return data.detail;
-  // Lỗi 422 (dữ liệu không hợp lệ): detail là mảng [{ loc: [...], msg: "..." }]
+  if (data && typeof data.message === "string" && data.message.trim()) {
+    return data.message.trim();
+  }
+  if (data && typeof data.detail === "string" && data.detail.trim()) {
+    return data.detail.trim();
+  }
+  if (data && Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors
+      .map((e) => (e && e.message ? e.message : ""))
+      .filter(Boolean)
+      .join("; ");
+  }
+  // Lỗi 422 mặc định của FastAPI: detail là mảng [{ loc: [...], msg: "..." }]
   if (data && Array.isArray(data.detail)) {
     return data.detail.map((e) => `${e.loc[e.loc.length - 1]}: ${e.msg}`).join("; ");
   }
-  return `Lỗi ${status}`;
+  if (status === 401) return "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.";
+  if (status === 403) return "Bạn không có quyền truy cập chức năng này.";
+  if (status === 404) return "Không tìm thấy dữ liệu yêu cầu.";
+  if (status === 422) return "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.";
+  if (status >= 500) return "Hệ thống máy chủ đang gặp sự cố tạm thời. Vui lòng thử lại sau.";
+  return `Yêu cầu không thành công (mã ${status}).`;
 }
 
 // Gom xử lý lỗi một chỗ: đổi lỗi của axios thành ApiError dễ dùng
@@ -218,10 +234,30 @@ http.interceptors.response.use(
 
       return Promise.reject(new ApiError(getErrorMessage(data, status), status, data));
     }
-    // Không có response: server tắt, sai URL, bị chặn CORS, hoặc quá thời gian chờ
-    return Promise.reject(new ApiError(
-      "Không kết nối được backend. Backend đã chạy chưa? Kiểm tra CONFIG.API_BASE_URL.", 0,
-    ));
+
+    // Quá thời gian chờ (Timeout)
+    if (
+      error &&
+      (error.code === "ECONNABORTED" ||
+        (typeof error.message === "string" && error.message.toLowerCase().includes("timeout")))
+    ) {
+      const timeoutErr = new ApiError(
+        "Yêu cầu phản hồi quá thời gian chờ. Vui lòng kiểm tra mạng và thử lại.",
+        0,
+        { code: "TIMEOUT" },
+      );
+      timeoutErr.isTimeout = true;
+      return Promise.reject(timeoutErr);
+    }
+
+    // Không có response: server tắt, sai URL, hoặc bị chặn kết nối
+    return Promise.reject(
+      new ApiError(
+        "Không thể kết nối tới máy chủ DecisionHub. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.",
+        0,
+        { code: "NETWORK_ERROR" },
+      ),
+    );
   },
 );
 
