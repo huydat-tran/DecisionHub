@@ -82,6 +82,13 @@
             <button type="button" class="adm-btn adm-btn-soft" id="btn-clear-food-filters">Xoá bộ lọc</button>
           </div>
 
+          <div class="adm-empty" id="food-error" hidden>
+            <div class="adm-empty-icon" aria-hidden="true">⚠️</div>
+            <h4 class="adm-empty-title">Không tải được danh sách món ăn</h4>
+            <p class="adm-empty-desc" id="food-error-desc">Đã xảy ra lỗi khi kết nối máy chủ.</p>
+            <button type="button" class="adm-btn adm-btn-soft" id="btn-retry-foods">Thử lại</button>
+          </div>
+
           <div class="adm-table-wrap" id="food-table-wrap" hidden>
             <table class="adm-table">
               <thead>
@@ -191,10 +198,6 @@
                   <label class="adm-switch-label" for="food-is-active">Món ăn đang hoạt động</label>
                 </div>
               </div>
-              <div class="adm-placeholder-note is-warning">
-                <span aria-hidden="true">⚠️</span>
-                <span>Dữ liệu chỉ được giữ trong phiên hiện tại, chưa ghi xuống máy chủ cho tới khi API quản trị được tích hợp.</span>
-              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="adm-btn" data-bs-dismiss="modal">Hủy</button>
@@ -206,9 +209,11 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
     <script src="../../js/utils.js"></script>
     <script src="../js/common.js"></script>
-    <script src="../js/store.js"></script>
     <script src="../js/layout.js"></script>
     <script src="../js/pages/foods.js"></script>
   </body>

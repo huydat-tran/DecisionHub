@@ -1,8 +1,7 @@
 // DecisionHub Admin · Trang Quản lý món ăn
-// - Tải danh sách món ăn (loading / empty / no-result / table)
+// - Tải danh sách món ăn từ GET /api/v1/food?include_inactive=true
 // - Tìm kiếm + lọc theo loại bữa ăn và trạng thái
-// - Modal thêm / sửa / xem chi tiết, xác nhận xoá bằng SweetAlert2
-// Dữ liệu lấy từ ../store.js (tạm thời trong phiên, chưa gọi API).
+// - CRUD đầy đủ (GET / POST / PUT / DELETE /api/v1/food) qua ../../js/api.js
 
 const FOOD_MEAL_LABELS = {
   breakfast: "Bữa sáng",
@@ -21,6 +20,9 @@ const el = {
   loading: document.getElementById("food-loading"),
   empty: document.getElementById("food-empty"),
   noResult: document.getElementById("food-no-result"),
+  errorBox: document.getElementById("food-error"),
+  errorDesc: document.getElementById("food-error-desc"),
+  btnRetry: document.getElementById("btn-retry-foods"),
   count: document.getElementById("food-count"),
   search: document.getElementById("food-search"),
   filterMeal: document.getElementById("food-filter-meal"),
@@ -105,6 +107,7 @@ function renderList() {
   const hasResults = foodState.filtered.length > 0;
 
   el.loading.hidden = true;
+  if (el.errorBox) el.errorBox.hidden = true;
   el.tableWrap.hidden = !hasResults;
   el.empty.hidden = hasData;
   el.noResult.hidden = !hasData || hasResults;
@@ -123,12 +126,23 @@ function renderList() {
 
 async function loadFoods() {
   el.loading.hidden = false;
+  if (el.errorBox) el.errorBox.hidden = true;
   el.tableWrap.hidden = true;
   el.empty.hidden = true;
   el.noResult.hidden = true;
 
-  foodState.foods = await admStoreListFoods();
-  applyFilters();
+  try {
+    const response = await api.get("/api/v1/food", { include_inactive: true });
+    foodState.foods = Array.isArray(response.data) ? response.data : [];
+    applyFilters();
+  } catch (error) {
+    el.loading.hidden = true;
+    const message = error && error.message ? error.message : "Không tải được danh sách món ăn.";
+    if (el.errorDesc) el.errorDesc.textContent = message;
+    if (el.errorBox) el.errorBox.hidden = false;
+    el.count.textContent = "0 món ăn";
+    admToast(message, "error");
+  }
 }
 
 /* ------------------------------------------------------------------ Form */
@@ -227,11 +241,11 @@ async function handleFoodSubmit(event) {
   el.formSubmit.disabled = true;
   try {
     if (id) {
-      await admStoreUpdateFood(Number(id), payload);
-      admToast("Đã cập nhật món ăn trong phiên hiện tại (chưa ghi xuống máy chủ).", "success");
+      await api.put(`/api/v1/food/${Number(id)}`, payload);
+      admToast("Đã cập nhật món ăn thành công.", "success");
     } else {
-      await admStoreCreateFood(payload);
-      admToast("Đã thêm món ăn vào phiên hiện tại (chưa ghi xuống máy chủ).", "success");
+      await api.post("/api/v1/food", payload);
+      admToast("Đã thêm món ăn thành công.", "success");
     }
     foodFormModal.hide();
     await loadFoods();
@@ -273,7 +287,12 @@ async function handleFoodAction(action, id) {
   if (!food) return;
 
   if (action === "view") {
-    openFoodView(food);
+    try {
+      const response = await api.get(`/api/v1/food/${id}`, { include_inactive: true });
+      openFoodView((response && response.data) || food);
+    } catch (error) {
+      admToast(error.message || "Không tải được chi tiết món ăn.", "error");
+    }
     return;
   }
   if (action === "edit") {
@@ -283,15 +302,15 @@ async function handleFoodAction(action, id) {
   if (action === "delete") {
     const confirmed = await admConfirm({
       title: "Xoá món ăn?",
-      text: `"${food.name}" sẽ bị xoá khỏi danh mục trong phiên hiện tại.`,
+      text: `"${food.name}" sẽ bị xoá vĩnh viễn khỏi danh mục món ăn.`,
       confirmText: "Xoá",
       cancelText: "Giữ lại",
       danger: true,
     });
     if (!confirmed) return;
     try {
-      await admStoreDeleteFood(id);
-      admToast("Đã xoá món ăn khỏi phiên hiện tại (chưa ghi xuống máy chủ).", "success");
+      await api.delete(`/api/v1/food/${id}`);
+      admToast("Đã xoá món ăn thành công.", "success");
       await loadFoods();
     } catch (error) {
       admToast(error.message || "Không xoá được món ăn.", "error");
@@ -309,6 +328,7 @@ function initFoodPage() {
 
   el.btnAdd.addEventListener("click", () => openFoodForm(null));
   el.btnEmptyAdd.addEventListener("click", () => openFoodForm(null));
+  if (el.btnRetry) el.btnRetry.addEventListener("click", loadFoods);
   el.search.addEventListener("input", applyFilters);
   el.filterMeal.addEventListener("change", applyFilters);
   el.filterStatus.addEventListener("change", applyFilters);
